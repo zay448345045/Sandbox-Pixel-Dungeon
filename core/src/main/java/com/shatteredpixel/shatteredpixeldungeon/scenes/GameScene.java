@@ -21,7 +21,17 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.scenes;
 
-import com.shatteredpixel.shatteredpixeldungeon.*;
+import com.shatteredpixel.shatteredpixeldungeon.Assets;
+import com.shatteredpixel.shatteredpixeldungeon.Badges;
+import com.shatteredpixel.shatteredpixeldungeon.Challenges;
+import com.shatteredpixel.shatteredpixeldungeon.Chrome;
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
+import com.shatteredpixel.shatteredpixeldungeon.Rankings;
+import com.shatteredpixel.shatteredpixeldungeon.SPDAction;
+import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
+import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
@@ -29,7 +39,13 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AscensionChallenge;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ChampionEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
-import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.DemonSpawner;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Ghoul;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.HeroMob;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mimic;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Snake;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ArrowCell;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Barrier;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Checkpoint;
@@ -37,6 +53,7 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.EditCompWindow;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.other.CustomParticle;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelScheme;
+import com.shatteredpixel.shatteredpixeldungeon.editor.overview.dungeon.WndSelectDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.LevelColoring;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.SideControlPane;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.CustomDungeonSaves;
@@ -54,10 +71,12 @@ import com.shatteredpixel.shatteredpixeldungeon.items.journal.Guidebook;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.Potion;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.DimensionalSundial;
-import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.MimicTooth;
+import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.TrinketCatalyst;
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.MeleeWeapon;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Bestiary;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Document;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Journal;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Notes;
 import com.shatteredpixel.shatteredpixeldungeon.levels.LastLevel;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.levels.RegularLevel;
@@ -70,19 +89,69 @@ import com.shatteredpixel.shatteredpixeldungeon.plants.Plant;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.HeroSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
-import com.shatteredpixel.shatteredpixeldungeon.tiles.*;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.tiles.CustomTilemap;
+import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTerrainTilemap;
+import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap;
+import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonWallsTilemap;
+import com.shatteredpixel.shatteredpixeldungeon.tiles.FogOfWar;
+import com.shatteredpixel.shatteredpixeldungeon.tiles.RaisedTerrainTilemap;
+import com.shatteredpixel.shatteredpixeldungeon.tiles.TerrainFeaturesTilemap;
+import com.shatteredpixel.shatteredpixeldungeon.tiles.WallBlockingTilemap;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ActionIndicator;
+import com.shatteredpixel.shatteredpixeldungeon.ui.AttackIndicator;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Banner;
+import com.shatteredpixel.shatteredpixeldungeon.ui.BossHealthBar;
+import com.shatteredpixel.shatteredpixeldungeon.ui.CharHealthIndicator;
+import com.shatteredpixel.shatteredpixeldungeon.ui.GameLog;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.InventoryPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.LootIndicator;
+import com.shatteredpixel.shatteredpixeldungeon.ui.MenuPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.QuickSlotButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ResumeIndicator;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RightClickMenu;
+import com.shatteredpixel.shatteredpixeldungeon.ui.StatusPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.StyledButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Tag;
+import com.shatteredpixel.shatteredpixeldungeon.ui.TargetHealthIndicator;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Toolbar;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
-import com.shatteredpixel.shatteredpixeldungeon.windows.*;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndBag;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndGame;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndHero;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoArrowCell;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoBarrier;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoCell;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoCheckpoint;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoItem;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoMob;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoPlant;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoTrap;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndKeyBindings;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndMessage;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptions;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndResurrect;
+import com.watabou.NotAllowedInLua;
 import com.watabou.input.ControllerHandler;
 import com.watabou.input.KeyBindings;
 import com.watabou.input.PointerEvent;
-import com.watabou.noosa.*;
+import com.watabou.noosa.Camera;
+import com.watabou.noosa.Game;
+import com.watabou.noosa.Gizmo;
+import com.watabou.noosa.Group;
+import com.watabou.noosa.Image;
+import com.watabou.noosa.Visual;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.tweeners.Tweener;
 import com.watabou.noosa.ui.Component;
-import com.watabou.utils.*;
+import com.watabou.utils.Callback;
+import com.watabou.utils.DeviceCompat;
+import com.watabou.utils.GameMath;
+import com.watabou.utils.Point;
+import com.watabou.utils.PointF;
+import com.watabou.utils.Random;
+import com.watabou.utils.RectF;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -90,6 +159,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+@NotAllowedInLua
 public class GameScene extends DungeonScene {
 
 	static GameScene scene;
@@ -129,9 +199,10 @@ public class GameScene extends DungeonScene {
 	public void create() {
 
 		EditorScene.isEditing = false;
-		
+
 		if (Dungeon.hero == null || Dungeon.level == null){
 			SandboxPixelDungeon.switchNoFade(TitleScene.class);
+			CustomObjectManager.loadUserContentFromFiles();
 			return;
 		}
 
@@ -341,13 +412,6 @@ public class GameScene extends DungeonScene {
                 break;
             case DESCEND:
             case FALL:
-                if (Dungeon.depth == Statistics.deepestFloor && Dungeon.curLvlScheme().getNumInRegion() == 1) {
-                    int region = Dungeon.curLvlScheme().getRegion();
-                    if (!Document.INTROS.isPageRead(region)) {
-                        add(new WndStory(Document.INTROS.pageBody(region)).setDelays(0.6f, 1.4f));
-                        Document.INTROS.readPage(region);
-                    }
-                }
 				if (Dungeon.levelName.equals(Dungeon.customDungeon.getStart())) {
 					Badges.validateHeroStart();
 				}
@@ -445,10 +509,10 @@ public class GameScene extends DungeonScene {
 					if (r instanceof SecretRoom) reqSecrets--;
 				}
 
-				//60%/90% chance, use level's seed so that we get the same result for the same level
+				//75%/100% chance, use level's seed so that we get the same result for the same level
 				//offset seed slightly to avoid output patterns
 				Random.pushGenerator(Dungeon.seedCurLevel()+1);
-					if (reqSecrets <= 0 && Random.Int(10) < 3+3*Dungeon.hero.pointsInTalent(Talent.ROGUES_FORESIGHT)){
+					if (reqSecrets <= 0 && Random.Int(4) < 2+Dungeon.hero.pointsInTalent(Talent.ROGUES_FORESIGHT)){
 						GLog.p(Messages.get(this, "secret_hint"));
 					}
 				Random.popGenerator();
@@ -469,13 +533,34 @@ public class GameScene extends DungeonScene {
 			}
 
 			switch (Dungeon.level.feeling) {
-				case CHASM:     GLog.w(Messages.get(this, "chasm"));    break;
-				case WATER:     GLog.w(Messages.get(this, "water"));    break;
-				case GRASS:     GLog.w(Messages.get(this, "grass"));    break;
-				case DARK:      GLog.w(Messages.get(this, "dark"));     break;
-				case LARGE:     GLog.w(Messages.get(this, "large"));    break;
-				case TRAPS:     GLog.w(Messages.get(this, "traps"));    break;
-				case SECRETS:   GLog.w(Messages.get(this, "secrets"));  break;
+				case CHASM:
+					GLog.w(Dungeon.level.feeling.desc());
+					Notes.add(Notes.Landmark.CHASM_FLOOR);
+					break;
+				case WATER:
+					GLog.w(Dungeon.level.feeling.desc());
+					Notes.add(Notes.Landmark.WATER_FLOOR);
+					break;
+				case GRASS:
+					GLog.w(Dungeon.level.feeling.desc());
+					Notes.add(Notes.Landmark.GRASS_FLOOR);
+					break;
+				case DARK:
+					GLog.w(Dungeon.level.feeling.desc());
+					Notes.add(Notes.Landmark.DARK_FLOOR);
+					break;
+				case LARGE:
+					GLog.w(Dungeon.level.feeling.desc());
+					Notes.add(Notes.Landmark.LARGE_FLOOR);
+					break;
+				case TRAPS:
+					GLog.w(Dungeon.level.feeling.desc());
+					Notes.add(Notes.Landmark.TRAPS_FLOOR);
+					break;
+				case SECRETS:
+					GLog.w(Dungeon.level.feeling.desc());
+					Notes.add(Notes.Landmark.SECRETS_FLOOR);
+					break;
 			}
 
 			for (Mob mob : Dungeon.level.mobs) {
@@ -506,10 +591,13 @@ public class GameScene extends DungeonScene {
 			if (Document.ADVENTURERS_GUIDE.isPageFound(Document.GUIDE_INTRO)){
 				GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_INTRO);
 			} else if (ControllerHandler.isControllerConnected()) {
+				GameLog.wipe();
 				GLog.p(Messages.get(GameScene.class, "tutorial_move_controller"));
 			} else if (SPDSettings.interfaceSize() == 0) {
+				GameLog.wipe();
 				GLog.p(Messages.get(GameScene.class, "tutorial_move_mobile"));
 			} else {
+				GameLog.wipe();
 				GLog.p(Messages.get(GameScene.class, "tutorial_move_desktop"));
 			}
 			toolbar.visible = toolbar.active = false;
@@ -520,8 +608,12 @@ public class GameScene extends DungeonScene {
 		if (!SPDSettings.intro() &&
 				Rankings.INSTANCE.totalNumber > 0 &&
 				!Document.ADVENTURERS_GUIDE.isPageRead(Document.GUIDE_DIEING)){
-			GLog.p(Messages.get(Guidebook.class, "hint"));
 			GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_DIEING);
+		}
+
+		TrinketCatalyst cata = Dungeon.hero.belongings.getItem(TrinketCatalyst.class);
+		if (cata != null && cata.hasRolledTrinkets()){
+			addToFront(new TrinketCatalyst.WndTrinket(cata));
 		}
 
 		if (!invVisible) toggleInvPane();
@@ -606,6 +698,7 @@ public class GameScene extends DungeonScene {
 	@Override
 	public synchronized void onPause() {
 		try {
+			if (!Dungeon.hero.ready) waitForActorThread(500, false);
 			Dungeon.saveAll();
 			Badges.saveGlobal();
 			Journal.saveGlobal();
@@ -624,7 +717,9 @@ public class GameScene extends DungeonScene {
 
 	public static boolean tagDisappeared = false;
 	public static boolean updateTags = false;
-	
+
+	private static float waterOfs = 0;
+
 	@Override
 	public synchronized void update() {
 
@@ -646,7 +741,11 @@ public class GameScene extends DungeonScene {
 
 		if (notifyDelay > 0) notifyDelay -= Game.elapsed;
 
-		if (!Emitter.freezeEmitters) water.offset( 0, -5 * Game.elapsed );
+		if (!Emitter.freezeEmitters) {
+			waterOfs -= 5 * Game.elapsed;
+			water.offsetTo( 0, waterOfs );
+			waterOfs = water.offsetY(); //re-assign to account for auto adjust
+		}
 
 		if (!Actor.processing() && Dungeon.hero.isAlive()) {
 			if (actorThread == null || !actorThread.isAlive()) {
@@ -806,7 +905,7 @@ public class GameScene extends DungeonScene {
 
 	@Override
 	protected synchronized void addMobSprite( Mob mob ) {
-		CharSprite sprite = mob.sprite();
+		CharSprite sprite = mob.createSprite();
 		mobs.add( sprite );
 		sprite.link( mob );
 		mob.updateSpriteVisibility();
@@ -880,6 +979,16 @@ public class GameScene extends DungeonScene {
 
 	public static void flashForDocument( Document doc, String page ){
 		if (scene != null) {
+			if (doc == Document.ADVENTURERS_GUIDE){
+				if (!page.equals(Document.GUIDE_INTRO)) {
+					if (SPDSettings.interfaceSize() == 0) {
+						GLog.p(Messages.get(Guidebook.class, "hint_mobile"));
+					} else {
+						GLog.p(Messages.get(Guidebook.class, "hint_desktop", KeyBindings.getKeyName(KeyBindings.getFirstKeyForAction(SPDAction.JOURNAL, ControllerHandler.isControllerConnected()))));
+					}
+				}
+				Dungeon.hero.sprite.showStatus(CharSprite.POSITIVE, Messages.get(Guidebook.class, "hint_status"));
+			}
 			scene.menu.flashForPage( doc, page );
 		}
 	}
@@ -927,11 +1036,15 @@ public class GameScene extends DungeonScene {
 	}
 	
 	public static void updateKeyDisplay(){
-		if (scene != null) scene.menu.updateKeys();
+		if (scene != null && scene.menu != null) scene.menu.updateKeys();
 	}
 
 	public static void showlevelUpStars(){
-		if (scene != null) scene.status.showStarParticles();
+		if (scene != null && scene.status != null) scene.status.showStarParticles();
+	}
+
+	public static void updateAvatar(){
+		if (scene != null && scene.status != null) scene.status.updateAvatar();
 	}
 
 	public static void resetMap() {
@@ -1080,10 +1193,9 @@ public class GameScene extends DungeonScene {
 	
 	public static void afterObserve() {
 		if (scene != null) {
-			boolean stealthyMimics = MimicTooth.stealthyMimics();
 			for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])) {
 				if (mob.sprite != null) {
-					if ((!Mimic.isLikeMob(mob) || stealthyMimics && mob instanceof Mimic && mob.state == mob.PASSIVE) && mob.sprite.visible){
+					if (mob instanceof Mimic && mob.state == mob.PASSIVE && !((Mimic) mob).stealthy() && Dungeon.level.visited[mob.pos]){
 						//mimics stay visible in fog of war after being first seen
 						mob.sprite.visible = true;
 					} else {
@@ -1105,12 +1217,18 @@ public class GameScene extends DungeonScene {
 
 	public static void flash( int color, boolean lightmode ) {
 		if (scene != null) {
-			//greater than 0 to account for negative values (which have the first bit set to 1)
-			if (color > 0 && color < 0x01000000) {
-				scene.fadeIn(0xFF000000 | color, lightmode);
-			} else {
-				scene.fadeIn(color, lightmode);
-			}
+			//don't want to do this on the actor thread
+			SandboxPixelDungeon.runOnRenderThread(new Callback() {
+				@Override
+				public void call() {
+					//greater than 0 to account for negative values (which have the first bit set to 1)
+					if (color > 0 && color < 0x01000000) {
+						scene.fadeIn(0xFF000000 | color, lightmode);
+					} else {
+						scene.fadeIn(color, lightmode);
+					}
+				}
+			});
 		}
 	}
 
@@ -1131,7 +1249,9 @@ public class GameScene extends DungeonScene {
 					} catch (IOException | CustomDungeonSaves.RenameRequiredException e) {
 						SandboxPixelDungeon.reportException(e);
 					}
-				} else StartScene.showWndSelectDungeon(GamesInProgress.firstEmpty(), Dungeon.hero.heroClass, Dungeon.customDungeon.getName());
+				} else {
+					StartScene.showWndSelectDungeon(GamesInProgress.firstEmpty(), Dungeon.hero.heroClass, Dungeon.customDungeon.getName(), Messages.get(WndSelectDungeon.class, "play_again"));
+				}
 			}
 
 			@Override
@@ -1353,15 +1473,18 @@ public class GameScene extends DungeonScene {
 				GameScene.show(((HeroMob) o).mobInfoWindow());
 			else GameScene.show(new WndInfoMob((Mob) o));
 			if (o instanceof Snake && !Document.ADVENTURERS_GUIDE.isPageRead(Document.GUIDE_SURPRISE_ATKS)){
-				GLog.p(Messages.get(Guidebook.class, "hint"));
 				GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_SURPRISE_ATKS);
 			}
 		} else if ( o instanceof Heap && !((Heap) o).isEmpty() ){
 			GameScene.show(new WndInfoItem((Heap)o));
 		} else if ( o instanceof Plant ){
 			GameScene.show( new WndInfoPlant((Plant) o) );
+			//plants can be harmful to trample, so let the player ID just by examine
+			Bestiary.setSeen(o.getClass());
 		} else if ( o instanceof Trap ){
 			GameScene.show( new WndInfoTrap((Trap) o));
+			//traps are often harmful to trigger, so let the player ID just by examine
+			Bestiary.setSeen(o.getClass());
 		} else if ( o instanceof Barrier ){
 			GameScene.show( new WndInfoBarrier((Barrier) o));
 		} else if ( o instanceof ArrowCell ){
@@ -1407,10 +1530,10 @@ public class GameScene extends DungeonScene {
 				image = Icons.get(Icons.INFO);
 			} else if (objects.get(0) instanceof Hero) {
 				title = textLines.remove(0);
-				image = HeroSprite.avatar(((Hero) objects.get(0)).heroClass, ((Hero) objects.get(0)).tier());
+				image = HeroSprite.avatar((Hero) objects.get(0));
 			} else if (objects.get(0) instanceof Mob) {
 				title = textLines.remove(0);
-				image = ((Mob) objects.get(0)).sprite();
+				image = ((Mob) objects.get(0)).createSprite();
 			} else if (objects.get(0) instanceof Heap) {
 				title = textLines.remove(0);
 				image = new ItemSprite((Heap) objects.get(0));

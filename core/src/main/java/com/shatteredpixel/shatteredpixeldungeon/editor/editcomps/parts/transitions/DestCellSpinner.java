@@ -1,8 +1,8 @@
 package com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.transitions;
 
-import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.Spinner;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerTextModel;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.StyledSpinner;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 
 import java.util.ArrayList;
@@ -11,10 +11,10 @@ import java.util.List;
 import static com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.transitions.TransitionEditPart.DEFAULT;
 import static com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.transitions.TransitionEditPart.NONE;
 
-public class DestCellSpinner extends Spinner {
+public class DestCellSpinner extends StyledSpinner {
 
     public DestCellSpinner(List<Integer> cells, int levelWidth) {
-        super(new DestCellModel(cells, levelWidth), Messages.get(TransitionEditPart.class, "dest_cell"), 8);
+        super(new DestCellModel(cells, levelWidth), Messages.get(TransitionEditPart.class, "dest_cell"), 7);
         setButtonWidth(13);
     }
 
@@ -50,7 +50,7 @@ public class DestCellSpinner extends Spinner {
             if (val == NONE) return Messages.get(DestCellSpinner.class, "none");
             if (val == DEFAULT) return Messages.get(DestCellSpinner.class, "default");
             if (levelWidth <= 0) return "ERROR";
-            return EditorUtilies.cellToString(val, levelWidth);
+            return EditorUtilities.cellToString(val, levelWidth);
         }
     }
 }

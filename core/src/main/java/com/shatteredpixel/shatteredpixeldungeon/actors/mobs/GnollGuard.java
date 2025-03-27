@@ -31,6 +31,7 @@ import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.GnollGuardSprite;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
+import com.watabou.utils.Random;
 
 public class GnollGuard extends Mob {
 
@@ -59,8 +60,8 @@ public class GnollGuard extends Mob {
 
 	public void linkSapper( GnollSapper sapper){
 		this.sapperID = sapper.id();
-		if (sprite instanceof GnollGuardSprite){
-			((GnollGuardSprite) sprite).setupArmor();
+		if (sprite.extraCode instanceof GnollGuardSprite.EarthArmor) {
+			((GnollGuardSprite.EarthArmor) sprite.extraCode).setupArmor(sprite);
 		}
 	}
 
@@ -73,8 +74,8 @@ public class GnollGuard extends Mob {
 	public void loseSapper(){
 		if (sapperID != -1){
 			sapperID = -1;
-			if (sprite instanceof GnollGuardSprite){
-				((GnollGuardSprite) sprite).loseArmor();
+			if (sprite.extraCode instanceof GnollGuardSprite.EarthArmor){
+				((GnollGuardSprite.EarthArmor) sprite.extraCode).loseArmor();
 			}
 		}
 	}
@@ -88,7 +89,7 @@ public class GnollGuard extends Mob {
 	@Override
 	public int damageRoll() {
 		if (enemy != null && !Dungeon.level.adjacent(pos, enemy.pos)){
-			return Char.combatRoll( damageRollMin, damageRollMax );
+			return Random.NormalIntRange( specialDamageRollMin, specialDamageRollMax );
 		} else {
 			return super.damageRoll();
 		}
@@ -101,7 +102,7 @@ public class GnollGuard extends Mob {
 //
 //	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 6);
+//		return super.drRoll() + Random.NormalIntRange(0, 6);
 //	}
 
 	@Override
@@ -134,11 +135,11 @@ public class GnollGuard extends Mob {
 		return customLootInfo;
 	}
 	@Override
-	public String description() {
+	public String desc() {
 		if (hasSapper()){
-			return super.description() + "\n\n" + Messages.get(this, "desc_armor");
+			return super.desc() + "\n\n" + Messages.get(this, "desc_armor");
 		} else {
-			return super.description();
+			return super.desc();
 		}
 	}
 

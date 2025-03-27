@@ -34,6 +34,7 @@ import com.shatteredpixel.shatteredpixeldungeon.effects.particles.PurpleParticle
 import com.shatteredpixel.shatteredpixeldungeon.items.Dewdrop;
 import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
+import com.shatteredpixel.shatteredpixeldungeon.items.stones.StoneOfAggression;
 import com.shatteredpixel.shatteredpixeldungeon.items.stones.*;
 import com.shatteredpixel.shatteredpixeldungeon.items.wands.WandOfDisintegration;
 import com.shatteredpixel.shatteredpixeldungeon.levels.traps.DisintegrationTrap;
@@ -79,7 +80,7 @@ public class Eye extends Mob {
 
 //	@Override
 //	public int damageRoll() {
-//		return Char.combatRoll(20, 30);
+//		return Random.NormalIntRange(20, 30);
 //	}
 //
 //	@Override
@@ -89,7 +90,7 @@ public class Eye extends Mob {
 //
 //	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 10);
+//		return super.drRoll() + Random.NormalIntRange(0, 10);
 //	}
 	
 	private Ballistica beam;
@@ -120,6 +121,8 @@ public class Eye extends Mob {
 	@Override
 	protected boolean act() {
 		if (beamCharged && state != HUNTING){
+			if (sprite.extraCode instanceof EyeSprite.ChargeParticles)
+				((EyeSprite.ChargeParticles) sprite.extraCode).cancelCharging();
 			beamCharged = false;
 			sprite.idle();
 		}
@@ -139,7 +142,7 @@ public class Eye extends Mob {
 		if (beamCooldown > 0 || (!beamCharged && !beam.subPath(1, beam.dist).contains(enemy.pos))) {
 			return super.doAttack(enemy);
 		} else if (!beamCharged){
-			((EyeSprite)sprite).charge( enemy.pos );
+			EyeSprite.charge( sprite, enemy.pos );
 			spend( attackDelay()*2f );
 			beamCharged = true;
 			return true;
@@ -149,10 +152,11 @@ public class Eye extends Mob {
 			
 			if (Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[beam.collisionPos] ) {
 				sprite.zap( beam.collisionPos );
+				if (sprite.instantZapDamage()) zap();
 				return false;
 			} else {
 				sprite.idle();
-				deathGaze();
+				zap();
 				return true;
 			}
 		}
@@ -164,25 +168,25 @@ public class Eye extends Mob {
 		if (beamCharged) dmg /= 4;
 		super.damage(dmg, src);
 	}
-	
+
+	@Override
+	public void die(Object cause) {
+		setFlying(false);
+		super.die(cause);
+	}
+
 	//used so resistances can differentiate between melee and magical attacks
 	public static class DeathGaze{}
 
 	@Override
 	public void zap() {
-		deathGaze();
-	}
-
-	@Override
-	public void playZapAnim(int target) {
-		EyeSprite.playZap(sprite.parent, sprite, target, this);
-	}
-
-	public void deathGaze(){
 		if (!beamCharged || beamCooldown > 0 || beam == null)
 			return;
 
+		if (sprite.extraCode instanceof EyeSprite.ChargeParticles)
+			((EyeSprite.ChargeParticles) sprite.extraCode).cancelCharging();
 		beamCharged = false;
+
 		beamCooldown = Random.IntRange(4, 6);
 
 		boolean terrainAffected = false;
@@ -204,8 +208,19 @@ public class Eye extends Mob {
 			}
 
 			if (hit( this, ch, true )) {
-				int dmg = Char.combatRoll( specialDamageRollMin, specialDamageRollMax );
+				int dmg = Random.NormalIntRange( specialDamageRollMin, specialDamageRollMax );
 				dmg = Math.round(dmg * AscensionChallenge.statModifier(this));
+
+				//logic for fists or Yog-Dzewa taking 1/2 or 1/4 damage from aggression stoned minions
+				if ( ch.buff(StoneOfAggression.Aggression.class) != null
+						&& ch.alignment == alignment
+						&& (Char.hasProp(ch, Property.BOSS) || Char.hasProp(ch, Property.MINIBOSS))){
+					dmg *= 0.5f;
+					if (ch instanceof YogDzewa){
+						dmg *= 0.5f;
+					}
+				}
+
 				ch.damage( dmg, new DeathGaze() );
 
 				if (Dungeon.level.heroFOV[pos]) {
@@ -229,6 +244,11 @@ public class Eye extends Mob {
 
 		beam = null;
 		beamTarget = -1;
+	}
+
+	@Override
+	public void playZapAnim(int target) {
+		EyeSprite.playZap(sprite.parent, sprite, target, this);
 	}
 
 	//generates an average of 1 dew, 0.25 seeds, and 0.25 stones
@@ -323,8 +343,6 @@ public class Eye extends Mob {
 			beamTarget = bundle.getInt(BEAM_TARGET);
 		beamCooldown = bundle.getInt(BEAM_COOLDOWN);
 		beamCharged = bundle.getBoolean(BEAM_CHARGED);
-
-		spriteClass = EyeSprite.class;
 	}
 
 	{
@@ -343,5 +361,10 @@ public class Eye extends Mob {
 			}
 			return super.act(enemyInFOV, justAlerted);
 		}
+	}
+
+
+	public static boolean usesEvilEyeZapAnimation(CharSprite sprite) {
+		return sprite instanceof EyeSprite || !sprite.hasOwnZapAnimation();
 	}
 }

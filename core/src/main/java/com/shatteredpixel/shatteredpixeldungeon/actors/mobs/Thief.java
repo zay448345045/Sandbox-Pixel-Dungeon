@@ -96,7 +96,7 @@ public class Thief extends Mob {
 
 //    @Override
 //    public int damageRoll() {
-//        return Char.combatRoll(1, 10);
+//        return Random.NormalIntRange(1, 10);
 //    }
 //
 //	@Override
@@ -145,7 +145,7 @@ public class Thief extends Mob {
 //
 //    @Override
 //    public int drRoll() {
-//        return super.drRoll() + Char.combatRoll(0, 3);
+//        return super.drRoll() + Random.NormalIntRange(0, 3);
 //    }
 
 	@Override
@@ -195,8 +195,8 @@ public class Thief extends Mob {
 	}
 
 	@Override
-	public String description() {
-		String desc = super.description();
+	public String desc() {
+		String desc = super.desc();
 
 		if (item != null) {
 			desc += Messages.get(this, "carries", item.name() );

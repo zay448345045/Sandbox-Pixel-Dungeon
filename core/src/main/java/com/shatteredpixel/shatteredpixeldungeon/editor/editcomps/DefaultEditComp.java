@@ -1,28 +1,52 @@
 package com.shatteredpixel.shatteredpixeldungeon.editor.editcomps;
 
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObject;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.LuaCustomObject;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.CustomGameObjectClass;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.CustomObjectClass;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.LuaCustomObjectClass;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.ui.editcomps.CustomObjectEditor;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ArrowCell;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Barrier;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Checkpoint;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.EToolbar;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.TileItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.overview.dungeon.WndSelectDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.ActionPartModify;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.Undo;
-import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.*;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.ArrowCellActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.BarrierActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.CheckpointActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.HeapActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.MobActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.PlantActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.TileModify;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.TrapActionPart;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.AdvancedListPaneItem;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.CustomDungeonSaves;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
 import com.shatteredpixel.shatteredpixeldungeon.levels.traps.Trap;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.plants.Plant;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.DungeonScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.CheckBox;
+import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.windows.IconTitle;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndError;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndGameInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndTitledMessage;
+import com.watabou.idewindowactions.LuaScript;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.ui.Component;
 
@@ -35,6 +59,10 @@ public abstract class DefaultEditComp<T> extends Component {
 
     protected final IconButton rename, delete;
 
+    protected CheckBox inheritStats;
+    protected CustomObjectEditor<?> customObjectEditor;
+    protected RedButton viewScript; // for test-games only
+
     protected final T obj;
 
     private Runnable onUpdate;
@@ -45,7 +73,7 @@ public abstract class DefaultEditComp<T> extends Component {
 
         this.obj = obj;
 
-        rename = new IconButton(Icons.get(Icons.RENAME_ON)) {
+        rename = new IconButton(Icons.SCROLL_COLOR.get()) {
             @Override
             protected void onClick() {
                 onRenameClicked();
@@ -55,8 +83,13 @@ public abstract class DefaultEditComp<T> extends Component {
             protected String hoverText() {
                 return Messages.get(WndSelectDungeon.class, "rename_yes");
             }
+
+            @Override
+            public void setVisible(boolean flag) {
+                super.setVisible(flag);
+            }
         };
-        rename.visible = false;
+        rename.setVisible(false);
 
         delete = new IconButton(Icons.get(Icons.TRASH)) {
             @Override
@@ -69,7 +102,7 @@ public abstract class DefaultEditComp<T> extends Component {
                 return Messages.get(WndGameInProgress.class, "erase");
             }
         };
-        delete.visible = false;
+        delete.setVisible(false);
 
         mainTitleComp = createTitle();
 
@@ -99,6 +132,68 @@ public abstract class DefaultEditComp<T> extends Component {
         bringToFront(title);
     }
 
+    protected void initializeCompsForCustomObjectClass() {
+        if (!CustomDungeon.isEditing()) {
+            if (obj instanceof LuaCustomObjectClass) {
+                
+                int identifier = ((LuaCustomObjectClass) obj).getIdentifier();
+                LuaCustomObject customObject = CustomObjectManager.getUserContent(identifier, LuaCustomObject.class);
+                
+                if (customObject.getLuaScriptPath() != null) {
+                    viewScript = new RedButton(Messages.get(this, "view_code")) {
+                        @Override
+                        protected void onClick() {
+                            int identifier = ((LuaCustomObjectClass) obj).getIdentifier();
+                            LuaCustomObject customObject = CustomObjectManager.getUserContent(identifier, LuaCustomObject.class);
+                            LuaScript script = CustomDungeonSaves.readLuaFile(customObject.getLuaScriptPath());
+                            DungeonScene.show(
+                                    script == null
+                                            ? new WndError("Error loading script")
+                                            : new WndTitledMessage(Icons.INFO.get(), customObject.getLuaScriptPath(), script.code) {{
+                                        setHighlightingEnabled(false);
+                                    }}
+                            );
+                        }
+                    };
+                    add(viewScript);
+                }
+            }
+            return;
+        }
+
+        if (obj instanceof CustomGameObjectClass && !CustomObjectClass.isOriginal(obj)) {
+            inheritStats = new CheckBox(Messages.get(this, "inherit_stats")) {
+                boolean initializing;
+                {
+                    initializing = true;
+                    checked(((CustomGameObjectClass) obj).getInheritStats());
+                    initializing = false;
+                }
+                @Override
+                public void checked(boolean value) {
+                    if (value != checked()) {
+                        onInheritStatsClicked(value, initializing);
+                        updateStates();
+                        updateObj();
+                    }
+                    super.checked(value);
+                }
+            };
+            add(inheritStats);
+        }
+
+        if (obj instanceof CustomObjectClass) {
+            CustomObject customObject = CustomObjectManager.getUserContent(((CustomObjectClass) obj).getIdentifier(), null);
+            customObjectEditor = customObject == null ? null : customObject.createCustomObjectEditor(this::updateObj);
+        } else if (obj instanceof CustomObject) {
+            customObjectEditor = ((CustomObject) obj).createCustomObjectEditor(this::updateObj);
+        }
+        if (customObjectEditor != null)
+            add(customObjectEditor);
+
+        bringToFront(title);
+    }
+
     public void setDoLayoutTitle(boolean doLayoutTitle) {
         this.doLayoutTitle = doLayoutTitle;
         if (doLayoutTitle) add(title);
@@ -123,6 +218,16 @@ public abstract class DefaultEditComp<T> extends Component {
 
         height = posY + 2 - y;
         if (height == 2) height = 0;
+
+        layoutCompsLinear(inheritStats);
+    }
+
+    protected void layoutCustomObjectEditor() {
+        if (customObjectEditor != null && customObjectEditor.visible) {
+            customObjectEditor.setRect(x, height + WndTitledMessage.GAP, width, 0);
+            height += customObjectEditor.height() + WndTitledMessage.GAP;
+        }
+        layoutCompsLinear(viewScript);
     }
 
     protected void layoutTitle() {
@@ -150,16 +255,32 @@ public abstract class DefaultEditComp<T> extends Component {
 
     protected final void layoutCompsLinear(Component... comps) {
         if (height > 0) height += WndTitledMessage.GAP;
-        float newHeight = EditorUtilies.layoutCompsLinear(WndTitledMessage.GAP, this, comps);
+        float newHeight = EditorUtilities.layoutCompsLinear(WndTitledMessage.GAP, this, comps);
         if (newHeight == height && height > WndTitledMessage.GAP) height -= WndTitledMessage.GAP;
         else height = newHeight;
     }
 
     protected final void layoutCompsInRectangles(Component... comps) {
-        if (height > 0) height += WndTitledMessage.GAP;
-        float newHeight = EditorUtilies.layoutStyledCompsInRectangles(WndTitledMessage.GAP, width, this, comps);
-        if (newHeight == height) height -= WndTitledMessage.GAP;
+        layoutCompsInRectangles(WndTitledMessage.GAP, comps);
+    }
+
+    protected final void layoutCompsInRectangles(int gap, Component... comps) {
+        if (height > 0) height += gap;
+        float newHeight = EditorUtilities.layoutStyledCompsInRectangles(WndTitledMessage.GAP, width, this, comps);
+        if (newHeight == height) height -= gap;
         else height = newHeight;
+    }
+    
+    protected final void layoutOneRectCompInRow(Component... comps) {
+        int gap = WndTitledMessage.GAP;
+        if (height > 0) height += gap;
+        float newHeight = EditorUtilities.layoutStyledCompsInRectangles(WndTitledMessage.GAP,width, 1,this, comps);
+        if (newHeight == height) height -= gap;
+        else height = newHeight;
+    }
+
+    protected void onInheritStatsClicked(boolean flag, boolean initializing) {
+        if (viewScript != null) viewScript.visible = viewScript.active = !flag;
     }
 
     protected void onRenameClicked() {
@@ -190,7 +311,7 @@ public abstract class DefaultEditComp<T> extends Component {
     }
 
 
-    protected void updateObj() {
+    public void updateObj() {
         if (mainTitleComp instanceof IconTitle) {
             ((IconTitle) mainTitleComp).label(createTitleText());
             ((IconTitle) mainTitleComp).icon(getIcon());
@@ -200,6 +321,11 @@ public abstract class DefaultEditComp<T> extends Component {
         layout();
         if (advancedListPaneItem != null) advancedListPaneItem.onUpdate();
         if (onUpdate != null) onUpdate.run();
+
+        EToolbar.updateSlot(obj);
+    }
+
+    protected void updateStates() {
     }
 
     public void setOnUpdate(Runnable onUpdate) {
@@ -291,8 +417,8 @@ public abstract class DefaultEditComp<T> extends Component {
         Runnable r = () -> {
 
             float ch = content.height();
-            float maxHeightNoOffset = PixelScene.uiCamera.height * 0.9f - 10;
-            int offset = EditorUtilies.getMaxWindowOffsetYForVisibleToolbar();
+            float maxHeightNoOffset = Window.WindowSize.HEIGHT_LARGE.get() - 10;
+            int offset = EditorUtilities.getMaxWindowOffsetYForVisibleToolbar();
             if (ch > maxHeightNoOffset) {
                 if (ch > maxHeightNoOffset + offset) ch = maxHeightNoOffset + offset;
                 else offset = (int) Math.ceil(ch - maxHeightNoOffset);

@@ -37,10 +37,12 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Game;
 
 import java.util.Locale;
 
+@NotAllowedInLua
 public class WndGameInProgress extends Window {
 	
 	private static final int WIDTH    = 120;
@@ -78,7 +80,7 @@ public class WndGameInProgress extends Window {
 					Game.scene().add( new WndChallenges( info.challenges, false ) );
 				}
 			};
-			btnChallenges.icon(Icons.get(Icons.CHALLENGE_ON));
+			btnChallenges.icon(Icons.get(Icons.CHALLENGE_COLOR));
 			float btnW = btnChallenges.reqWidth() + 2;
 			btnChallenges.setRect( (WIDTH - btnW)/2, pos, btnW , 18 );
 			add( btnChallenges );
@@ -111,7 +113,7 @@ public class WndGameInProgress extends Window {
 			statSlot( Messages.get(this, "dungeon_seed"), DungeonSeed.convertToCode(info.seed) );
 		}
 
-		statSlot("Dungeon", info.dungeonName);
+		statSlot("Dungeon", info.dungeonName, false);
 		
 		pos += GAP;
 		
@@ -144,7 +146,7 @@ public class WndGameInProgress extends Window {
 					@Override
 					protected void onSelect( int index ) {
 						if (index == 0) {
-							Dungeon.deleteGame(slot, true);
+							Dungeon.deleteGame(slot);
 							SandboxPixelDungeon.switchNoFade(StartScene.class);
 						}
 					}
@@ -164,10 +166,14 @@ public class WndGameInProgress extends Window {
 	}
 	
 	private void statSlot( String label, String value ) {
+		statSlot(label, value, true);
+	}
+	
+	private void statSlot( String label, String value, boolean enableHighlighting ) {
 		
 		RenderedTextBlock txt = PixelScene.renderTextBlock( label, 8 );
 		txt.setPos(0, pos);
-		txt.setHighlighting(false);
+		txt.setHighlighting(enableHighlighting);
 		add( txt );
 
 		int size = 8;

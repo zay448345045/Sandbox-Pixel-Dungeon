@@ -22,6 +22,8 @@
 package com.shatteredpixel.shatteredpixeldungeon.desktop;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Graphics;
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Graphics;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.PixmapPacker;
@@ -29,6 +31,7 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndTitledMessage;
+import com.watabou.NotAllowedInLua;
 import com.watabou.input.ControllerHandler;
 import com.watabou.noosa.Game;
 import com.watabou.utils.PlatformSupport;
@@ -40,6 +43,7 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@NotAllowedInLua
 public class DesktopPlatformSupport extends PlatformSupport {
 
 	//we recall previous window sizes as a workaround to not save maximized size to settings
@@ -59,18 +63,39 @@ public class DesktopPlatformSupport extends PlatformSupport {
 			SPDSettings.windowResolution( previousSizes[0] );
 		}
 	}
-	
+
+	private static boolean first = true;
+
 	@Override
 	public void updateSystemUI() {
 		Gdx.app.postRunnable( new Runnable() {
 			@Override
 			public void run () {
 				if (SPDSettings.fullscreen()){
-					Gdx.graphics.setFullscreenMode( Gdx.graphics.getDisplayMode() );
+					int monitorNum = 0;
+					if (!first){
+						Graphics.Monitor[] monitors = Gdx.graphics.getMonitors();
+						for (int i = 0; i < monitors.length; i++){
+							if (((Lwjgl3Graphics.Lwjgl3Monitor)Gdx.graphics.getMonitor()).getMonitorHandle()
+									== ((Lwjgl3Graphics.Lwjgl3Monitor)monitors[i]).getMonitorHandle()) {
+								monitorNum = i;
+							}
+						}
+					} else {
+						monitorNum = SPDSettings.fulLScreenMonitor();
+					}
+
+					Graphics.Monitor[] monitors = Gdx.graphics.getMonitors();
+					if (monitors.length <= monitorNum) {
+						monitorNum = 0;
+					}
+					Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode(monitors[monitorNum]));
+					SPDSettings.fulLScreenMonitor(monitorNum);
 				} else {
 					Point p = SPDSettings.windowResolution();
 					Gdx.graphics.setWindowedMode( p.x, p.y );
 				}
+				first = false;
 			}
 		} );
 	}
@@ -137,18 +162,18 @@ public class DesktopPlatformSupport extends PlatformSupport {
 					+ "(?<= )|(?= )|"  + "(?<= )|(?= )|"  + "(?<= )|(?= )|"
 					+ "(?<= )|(?= )|"  + "(?<= )|(?= )|";
 
-	//splits on newlines, underscores, and chinese/japaneses characters
+	//splits on newline (for layout), chinese/japanese (for font choice), and '_'/'**' (for highlighting)
 	private Pattern regularsplitter = Pattern.compile(
-			"(?<=\n)|(?=\n)|(?<=_)|(?=_)|" +
+			"(?<=\n)|(?=\n)|(?<=_)|(?=_)|(?<=\\*\\*)|(?=\\*\\*)|" +
 					HIGHLIGHT_COLORS +
 					"(?<=\\p{InHiragana})|(?=\\p{InHiragana})|" +
 					"(?<=\\p{InKatakana})|(?=\\p{InKatakana})|" +
 					"(?<=\\p{InCJK_Unified_Ideographs})|(?=\\p{InCJK_Unified_Ideographs})|" +
 					"(?<=\\p{InCJK_Symbols_and_Punctuation})|(?=\\p{InCJK_Symbols_and_Punctuation})");
 	
-	//additionally splits on words, so that each word can be arranged individually
+	//additionally splits on spaces, so that each word can be laid out individually
 	private Pattern regularsplitterMultiline = Pattern.compile(
-			"(?<= )|(?= )|(?<=\n)|(?=\n)|(?<=_)|(?=_)|" +
+			"(?<= )|(?= )|(?<=\n)|(?=\n)|(?<=_)|(?=_)|(?<=\\*\\*)|(?=\\*\\*)|" +
 					HIGHLIGHT_COLORS +
 					"(?<=\\\\)|(?=\\\\)|(?<=/)|(?=/)|" +
 					"(?<=\\p{InHiragana})|(?=\\p{InHiragana})|" +

@@ -28,15 +28,21 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.WellWater;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.CustomObjectClass;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ArrowCell;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Barrier;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Checkpoint;
-import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.*;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.EditorInventory;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.GameObjectCategory;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.Items;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.Mobs;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.Plants;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.Tiles;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.Traps;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.BlobItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.CustomTileItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.EditorItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.other.CustomParticle;
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.LuaClass;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.BlobActionPart;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.CustomTileLoader;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
@@ -67,9 +73,9 @@ public class FindInBag implements Bundlable {
 	public FindInBag(Object source) {
 		this.source = source;
 
-		if (source instanceof LuaClass) {
+		if (source instanceof CustomObjectClass) {
 			type = Type.CUSTOM_OBJECT;
-			value = ((LuaClass) source).getIdentifier();
+			value = ((CustomObjectClass) source).getIdentifier();
 		}
 
 		else if (source instanceof Integer) {
@@ -86,10 +92,15 @@ public class FindInBag implements Bundlable {
 			type = Type.PARTICLE;
 			value = ((CustomParticle.ParticleProperty) source).particleID();
 		}
-
+		
+		else if (source  instanceof CustomTileLoader.SimpleCustomTile) {
+			type = Type.SIMPLE_CUSTOM_TILE;
+			value = ((CustomTileLoader.UserCustomTile) source).getIdentifier();
+		}
+		
 		else if (source  instanceof CustomTileLoader.UserCustomTile) {
 			type = Type.CUSTOM_TILE;
-			value = ((CustomTileLoader.UserCustomTile) source).identifier;
+			value = ((CustomTileLoader.UserCustomTile) source).getIdentifier();
 		}
 
 		else if (source  == EditorItem.REMOVER_ITEM) {
@@ -129,18 +140,24 @@ public class FindInBag implements Bundlable {
 		switch (type) {
 			case TILE:
 			case CUSTOM_TILE:
+			case SIMPLE_CUSTOM_TILE:
 			case PARTICLE:
 				return (EditorItem<?>) Tiles.bag.findItem(this);
 			case CUSTOM_OBJECT:
-				return (EditorItem<?>) Mobs.bag.findItem(this);
+				EditorItem<?> result;
+				for (GameObjectCategory<?> category : EditorInventory.getAllCategories()) {
+					result = (EditorItem<?>) category.getBag().findItem(FindInBag.this);
+					if (result != null) return result;
+				}
 			case REMOVER: return EditorItem.REMOVER_ITEM;
 			case CLASS:
+				if (value == null) return null;//was CustomMob in v1.2
 				Class<?> clazz = (Class<?>) value;
 				EditorItem<T> inBag;
-				if (Item.class.isAssignableFrom(clazz)) inBag = (EditorItem<T>) Items.bag.findItem(this);
-				else if (Mob.class.isAssignableFrom(clazz)) inBag = (EditorItem<T>) Mobs.bag.findItem(this);
-				else if (Trap.class.isAssignableFrom(clazz)) inBag = (EditorItem<T>) Traps.bag.findItem(this);
-				else if (Plant.class.isAssignableFrom(clazz)) inBag = (EditorItem<T>) Plants.bag.findItem(this);
+				if (Item.class.isAssignableFrom(clazz)) inBag = (EditorItem<T>) Items.bag().findItem(this);
+				else if (Mob.class.isAssignableFrom(clazz)) inBag = (EditorItem<T>) Mobs.bag().findItem(this);
+				else if (Trap.class.isAssignableFrom(clazz)) inBag = (EditorItem<T>) Traps.bag().findItem(this);
+				else if (Plant.class.isAssignableFrom(clazz)) inBag = (EditorItem<T>) Plants.bag().findItem(this);
 				else if (Blob.class.isAssignableFrom(clazz)) {
 					BlobItem realInBag = (BlobItem) Tiles.bag.findItem(this);//Blobs
 					realInBag.setObject((Class<? extends Blob>) clazz);
@@ -205,6 +222,7 @@ public class FindInBag implements Bundlable {
 		CLASS,
 		TILE,
 		CUSTOM_TILE,
+		SIMPLE_CUSTOM_TILE,
 		PARTICLE,
 		CUSTOM_OBJECT,
 		REMOVER;
@@ -219,6 +237,8 @@ public class FindInBag implements Bundlable {
 					break;
 				case CUSTOM_TILE: bundle.put(VALUE, (String) value);
 					break;
+				case SIMPLE_CUSTOM_TILE: bundle.put(VALUE, value == null ? 0 : ((Integer) value));
+					break;
 			}
 		}
 
@@ -227,7 +247,8 @@ public class FindInBag implements Bundlable {
 				case CLASS: return bundle.getClass(VALUE);
 				case TILE:
 				case PARTICLE:
-				case CUSTOM_OBJECT: return bundle.getInt(VALUE);
+				case CUSTOM_OBJECT:
+				case SIMPLE_CUSTOM_TILE: return bundle.getInt(VALUE);
 				case CUSTOM_TILE: return bundle.getString(VALUE);
 			}
 			return null;

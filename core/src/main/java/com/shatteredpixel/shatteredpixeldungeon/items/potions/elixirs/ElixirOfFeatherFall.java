@@ -21,6 +21,7 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs;
 
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.FlavourBuff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
@@ -45,13 +46,22 @@ public class ElixirOfFeatherFall extends Elixir {
 		Buff.append(hero, FeatherBuff.class, FeatherBuff.DURATION);
 
 		hero.sprite.emitter().burst(Speck.factory(Speck.JET), 20);
-		GLog.p(Messages.get(this, "light"));
+		if (hero == Dungeon.hero) {
+			GLog.p(Messages.get(this, "light"));
+		}
 	}
 
 	public static class FeatherBuff extends FlavourBuff {
 		//does nothing, just waits to be triggered by chasm falling
 		{
 			type = buffType.POSITIVE;
+		}
+
+		public void processFall(){
+			spend(-10f);
+			if (cooldown() <= 0) {
+				detach();
+			}
 		}
 
 		public static final float DURATION	= 50f;
@@ -84,13 +94,13 @@ public class ElixirOfFeatherFall extends Elixir {
 
 	public static class Recipe extends com.shatteredpixel.shatteredpixeldungeon.items.Recipe.SimpleRecipe {
 
-		private static final int OUT_QUANTITY = 2;
+		private static final int OUT_QUANTITY = 1;
 
 		{
 			inputs =  new Class[]{PotionOfLevitation.class};
 			inQuantity = new int[]{1};
 
-			cost = 16;
+			cost = 10;
 
 			output = ElixirOfFeatherFall.class;
 			outQuantity = OUT_QUANTITY;

@@ -25,14 +25,11 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.SacrificialFire;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AllyBuff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ChampionEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.duelist.Challenge;
 import com.shatteredpixel.shatteredpixeldungeon.effects.FloatingText;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Pushing;
 import com.shatteredpixel.shatteredpixeldungeon.items.Gold;
-import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.MasterThievesArmband;
 import com.shatteredpixel.shatteredpixeldungeon.levels.features.Chasm;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
@@ -44,6 +41,8 @@ import com.watabou.utils.Random;
 import java.util.ArrayList;
 
 public class Ghoul extends Mob {
+	
+	protected static final float REVIVE_PERCENT = 0.1f;
 	
 	{
 		spriteClass = GhoulSprite.class;
@@ -70,7 +69,7 @@ public class Ghoul extends Mob {
 
 //	@Override
 //	public int damageRoll() {
-//		return Char.combatRoll( 16, 22 );
+//		return Random.NormalIntRange( 16, 22 );
 //	}
 //
 //	@Override
@@ -80,7 +79,7 @@ public class Ghoul extends Mob {
 //
 //	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 4);
+//		return super.drRoll() + Random.NormalIntRange(0, 4);
 //	}
 
 	@Override
@@ -126,6 +125,9 @@ public class Ghoul extends Mob {
 			
 			if (!candidates.isEmpty()){
 				Ghoul child = new Ghoul();
+				child.spriteClass = spriteClass;
+				child.customDesc = customDesc;
+				child.customName = customName;
 				child.partnerID = this.id();
 				this.partnerID = child.id();
 				child.setPlayerAlignment(playerAlignment);
@@ -142,8 +144,11 @@ public class Ghoul extends Mob {
 					Actor.add( new Pushing( child, pos, child.pos ) );
 				}
 
-				for (Buff b : buffs(ChampionEnemy.class)){
-					Buff.affect( child, b.getClass());
+				//champion buff, mainly
+				for (Buff b : buffs()){
+					if (b.revivePersists) {
+						Buff.affect(child, b.getClass());
+					}
 				}
 
 			}
@@ -164,7 +169,7 @@ public class Ghoul extends Mob {
 				Actor.remove(this);
 				Dungeon.level.mobs.remove( this );
 				Buff.append(nearby, GhoulLifeLink.class).set(timesDowned*5, this);
-				((GhoulSprite)sprite).crumple();
+				GhoulSprite.crumple(sprite);
 				return;
 			}
 		}
@@ -189,10 +194,7 @@ public class Ghoul extends Mob {
 				if (buff instanceof SacrificialFire.Marked){
 					//don't remove and postpone so marked stays on
 					Buff.prolong(this, SacrificialFire.Marked.class, timesDowned*5);
-				} else if (buff instanceof AllyBuff
-						|| buff instanceof ChampionEnemy
-						|| buff instanceof MasterThievesArmband.StolenTracker
-						|| buff instanceof DwarfKing.KingDamager) {
+				} else if (buff.revivePersists) {
 					//don't remove
 				} else {
 					buff.detach();
@@ -294,14 +296,15 @@ public class Ghoul extends Mob {
 						return true;
 					}
 				}
-				ghoul.HP = Math.round(ghoul.HT/10f);
+				int hpGained = Math.max(1, Math.round(ghoul.HT * REVIVE_PERCENT) );
+				ghoul.HP = hpGained;
 				ghoul.beingLifeLinked = false;
 				Actor.add(ghoul);
 				ghoul.timeToNow();
 				Dungeon.level.mobs.add(ghoul);
 				Dungeon.level.occupyCell( ghoul );
 				ghoul.sprite.idle();
-				ghoul.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(Math.round(ghoul.HT/10f)), FloatingText.HEALING);
+				ghoul.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(hpGained), FloatingText.HEALING);
 				super.detach();
 				return true;
 			}
@@ -325,7 +328,7 @@ public class Ghoul extends Mob {
 		public void fx(boolean on) {
 			if (on && !alwaysHidesFx && ghoul != null && ghoul.sprite == null){
 				GameScene.addSprite(ghoul);
-				((GhoulSprite)ghoul.sprite).crumple();
+				GhoulSprite.crumple(ghoul.sprite);
 			}
 		}
 

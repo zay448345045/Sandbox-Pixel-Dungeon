@@ -37,6 +37,7 @@ import com.shatteredpixel.shatteredpixeldungeon.effects.Chains;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Effects;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Pushing;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.RingOfEnergy;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Catalog;
 import com.shatteredpixel.shatteredpixeldungeon.levels.MiningLevel;
 import com.shatteredpixel.shatteredpixeldungeon.mechanics.Ballistica;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
@@ -113,14 +114,20 @@ public class EtherealChains extends Artifact {
 		}
 	}
 
-	private CellSelector.Listener caster = new CellSelector.Listener(){
+	@Override
+	public void resetForTrinity(int visibleLevel) {
+		super.resetForTrinity(visibleLevel);
+		charge = 5+(level()*2); //sets charge to soft cap
+	}
+
+	public CellSelector.Listener caster = new CellSelector.Listener(){
 
 		@Override
 		public void onSelect(Integer target) {
 			if (target != null && (Dungeon.level.visited[target] || Dungeon.level.mapped[target])){
 
 				//chains cannot be used to go where it is impossible to walk to
-				PathFinder.buildDistanceMap(target, Dungeon.level.getPassableAndAvoidVar(curUser));
+				PathFinder.buildDistanceMap(target, Dungeon.level.getPassableAndAvoidVar(curUser), curUser);
 
 				final Ballistica chain = new Ballistica(curUser.pos, target, Ballistica.STOP_TARGET, null);
 
@@ -146,7 +153,7 @@ public class EtherealChains extends Artifact {
 	};
 	
 	//pulls an enemy to a position along the chain's path, as close to the hero as possible
-	private void chainEnemy( Ballistica chain, final Hero hero, final Char enemy ){
+	protected void chainEnemy( Ballistica chain, final Hero hero, final Char enemy ){
 		
 		if (enemy.properties().contains(Char.Property.IMMOVABLE)) {
 			GLog.w( Messages.get(this, "cant_pull") );
@@ -199,6 +206,8 @@ public class EtherealChains extends Artifact {
 						Dungeon.observe();
 						GameScene.updateFog();
 						hero.spendAndNext(1f);
+
+						artifactProc(enemy, visiblyUpgraded(), chargeUse);
 					}
 				}));
 				hero.next();
@@ -348,6 +357,7 @@ public class EtherealChains extends Artifact {
 			if (exp > 100+level()*100 && level() < levelCap){
 				exp -= 100+level()*100;
 				GLog.p( Messages.get(this, "levelup") );
+				Catalog.countUses(EtherealChains.class, 2);
 				upgrade();
 			}
 

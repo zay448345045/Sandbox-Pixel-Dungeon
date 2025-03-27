@@ -7,8 +7,8 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.BuffWithDuration;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.FlavourBuff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
-import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Bestiary;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.MobSpawner;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.ZonePrompt;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ItemsWithChanceDistrComp;
@@ -252,10 +252,11 @@ public class Zone implements Bundlable {
 
         for (Buff buff : buffs) {
             Buff b;
+            Buff buffBefore = ch.buff((buff.getClass()));
             if (buff instanceof FlavourBuff) {
-                b = Buff.affect(ch, (Class<? extends FlavourBuff>) buff.getClass(), 0);
+                b = Buff.affect(ch, ((FlavourBuff) buff), 0);
             } else {
-                b = Buff.affect(ch, buff.getClass());
+                b = Buff.affect(ch, buff);
             }
             if (b instanceof BuffWithDuration) {
                 ((BuffWithDuration) b).set((BuffWithDuration) buff, getClass());
@@ -322,7 +323,7 @@ public class Zone implements Bundlable {
 
     public Mob createMob() {
         return mobRotation == null || !ownMobRotationEnabled ? null
-                : Bestiary.createMob(mobsToSpawn, () -> Bestiary.getMobRotation(mobRotation));
+                : MobSpawner.createMob(mobsToSpawn, () -> MobSpawner.getMobRotation(mobRotation));
     }
 
 

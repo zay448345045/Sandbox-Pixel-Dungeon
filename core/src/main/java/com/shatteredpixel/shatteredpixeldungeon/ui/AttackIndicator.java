@@ -26,6 +26,7 @@ import com.shatteredpixel.shatteredpixeldungeon.SPDAction;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.HeroMob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.LuaCustomObjectClass;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
@@ -118,7 +119,7 @@ public class AttackIndicator extends Tag {
 			}
 		}
 		
-		if (!candidates.contains( lastTarget )) {
+		if (lastTarget == null || !candidates.contains( lastTarget )) {
 			if (candidates.isEmpty()) {
 				lastTarget = null;
 			} else {
@@ -128,8 +129,8 @@ public class AttackIndicator extends Tag {
 				flash();
 			}
 		} else {
+			active = true;
 			if (!bg.visible) {
-				active = true;
 				flash();
 			}
 		}
@@ -145,10 +146,12 @@ public class AttackIndicator extends Tag {
 			sprite = null;
 		}
 
-		if (lastTarget instanceof HeroMob) sprite = lastTarget.sprite();
+		if (lastTarget instanceof LuaCustomObjectClass || lastTarget instanceof HeroMob) {
+			sprite = lastTarget.createSprite();
+		}
 		else {
 			sprite = Reflection.newInstance(lastTarget.spriteClass);
-			if (sprite == null) sprite = lastTarget.sprite();
+			if (sprite == null) sprite = lastTarget.createSprite();
 		}
 		active = true;
 		sprite.linkVisuals(lastTarget);

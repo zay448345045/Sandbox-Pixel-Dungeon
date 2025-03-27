@@ -25,7 +25,12 @@ import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AscensionChallenge;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Hex;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Invisibility;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vulnerable;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Weakness;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ItemsWithChanceDistrComp;
 import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
@@ -46,6 +51,8 @@ public abstract class Shaman extends Mob {
 		attackSkill = 18;
 		damageRollMin = 5;
 		damageRollMax = 10;
+		specialDamageRollMin = 6;
+		specialDamageRollMax = 15;
 		damageReductionMax = 6;
 
 		EXP = 8;
@@ -57,7 +64,7 @@ public abstract class Shaman extends Mob {
 	
 //	@Override
 //	public int damageRoll() {
-//		return Char.combatRoll( 5, 10 );
+//		return Random.NormalIntRange( 5, 10 );
 //	}
 //
 //	@Override
@@ -67,7 +74,7 @@ public abstract class Shaman extends Mob {
 //
 //	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 6);
+//		return super.drRoll() + Random.NormalIntRange(0, 6);
 //	}
 
 	@Override
@@ -108,13 +115,7 @@ public abstract class Shaman extends Mob {
 			
 		} else {
 			
-			if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
-				sprite.zap( enemy.pos );
-				return false;
-			} else {
-				zap();
-				return true;
-			}
+			return doRangedAttack();
 		}
 	}
 	
@@ -134,7 +135,7 @@ public abstract class Shaman extends Mob {
 				if (enemy == Dungeon.hero) Sample.INSTANCE.play( Assets.Sounds.DEBUFF );
 			}
 			
-			int dmg = Char.combatRoll( 6, 15 );
+			int dmg = Random.NormalIntRange( specialDamageRollMin, specialDamageRollMax );
 			dmg = Math.round(dmg * AscensionChallenge.statModifier(this));
 			enemy.damage( dmg, new EarthenBolt() );
 			
@@ -151,9 +152,9 @@ public abstract class Shaman extends Mob {
 	protected abstract void debuff( Char enemy );
 
 	@Override
-	public String description() {
-		if (customDesc != null) return super.description();
-		return super.description() + "\n\n" + Messages.get(this, "spell_desc");
+	public String desc() {
+		if (customDesc != null) return super.desc();
+		return super.desc() + "\n\n" + Messages.get(this, "spell_desc");
 	}
 	
 	public static class RedShaman extends Shaman {

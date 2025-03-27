@@ -30,6 +30,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Regeneration;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ArmorAbility;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.cleric.Trinity;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.RingOfEnergy;
@@ -58,6 +59,8 @@ abstract public class ClassArmor extends Armor {
 		defaultAction = AC_ABILITY;
 
 		bones = false;
+
+		charge = 50;
 	}
 
 	private Charger charger;
@@ -113,6 +116,9 @@ abstract public class ClassArmor extends Armor {
 				break;
 			case DUELIST:
 				classArmor = new DuelistArmor();
+				break;
+			case CLERIC:
+				classArmor = new ClericArmor();
 				break;
 		}
 
@@ -243,15 +249,10 @@ abstract public class ClassArmor extends Armor {
 								if (armor.checkSeal() != null) {
 									inscribe(armor.glyph);
 									seal = armor.checkSeal();
-									if (seal.level() > 0) {
-										int newLevel = trueLevel() + 1;
-										level(newLevel);
-										Badges.validateItemLevelAquired(ClassArmor.this);
-									}
 								} else if (checkSeal() != null){
-									//automates the process of detaching the glyph manually
+									//automates the process of detaching the seal manually
 									// and re-affixing it to the new armor
-									if (seal.level() > 0 && trueLevel() <= armor.trueLevel()){
+									if (seal.level() > 0){
 										int newLevel = trueLevel() + 1;
 										level(newLevel);
 										Badges.validateItemLevelAquired(ClassArmor.this);
@@ -303,7 +304,10 @@ abstract public class ClassArmor extends Armor {
 			if (ability != null) {
 				desc += "\n\n" + ability.shortDesc();
 				float chargeUse = ability.chargeUse(Dungeon.hero);
-				desc += " " + Messages.get(this, "charge_use", Messages.decimalFormat("#.##", chargeUse));
+				//trinity has variable charge cost
+				if (!(ability instanceof Trinity)) {
+					desc += " " + Messages.get(this, "charge_use", Messages.decimalFormat("#.##", chargeUse));
+				}
 			} else {
 				desc += "\n\n" + "_" + Messages.get(this, "no_ability") + "_";
 			}

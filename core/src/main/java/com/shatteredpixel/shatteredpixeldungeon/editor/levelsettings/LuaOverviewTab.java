@@ -24,39 +24,52 @@ package com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings;/*
 
 import com.shatteredpixel.shatteredpixeldungeon.Chrome;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObject;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.LuaCustomObject;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.LuaManager;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.blueprints.LuaLevelScript;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.other.DefaultListItemWithRemoveBtn;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelScheme;
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.CustomObject;
 import com.shatteredpixel.shatteredpixeldungeon.editor.lua.DungeonScript;
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.LuaCodeHolder;
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.LuaManager;
 import com.shatteredpixel.shatteredpixeldungeon.editor.lua.luaeditor.IDEWindow;
 import com.shatteredpixel.shatteredpixeldungeon.editor.lua.luaeditor.NewInstanceButton;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.MultiWindowTabComp;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.PopupMenu;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.CustomDungeonSaves;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.CellSelector;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.DungeonScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.HeroSelectScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
-import com.shatteredpixel.shatteredpixeldungeon.scrollofdebug.references.Reference;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollingListPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptionsCondensed;
+import com.watabou.NotAllowedInLua;
 import com.watabou.idewindowactions.LuaScript;
 import com.watabou.noosa.ColorBlock;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.TextInput;
 import com.watabou.noosa.ui.Component;
 import com.watabou.utils.Reflection;
 
+import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.shatteredpixel.shatteredpixeldungeon.editor.ui.MultiWindowTabComp.GAP;
 
+@NotAllowedInLua
 public class LuaOverviewTab extends WndEditorSettings.TabComp {
 
 	private MultiWindowTabComp.OutsideSpSwitchTabs outsideSp;
@@ -64,7 +77,7 @@ public class LuaOverviewTab extends WndEditorSettings.TabComp {
 	protected ScrollingListPane scrollingListPane;
 	protected RenderedTextBlock title;
 
-	private int selectedTab;
+	private int selectedTab = 0;
 
 	public LuaOverviewTab() {
 
@@ -75,55 +88,49 @@ public class LuaOverviewTab extends WndEditorSettings.TabComp {
 		scrollingListPane = new ScrollingListPane();
 		add(scrollingListPane);
 
-		outsideSp = new MultiWindowTabComp.OutsideSpSwitchTabs() {
-			@Override
-			protected void createChildren() {
-				tabs = new TabControlButton[2];
-				for (int j = 0; j < tabs.length; j++) {
-					tabs[j] = new TabControlButton(j);
-					add(tabs[j]);
-				}
-				tabs[0].text(getTabName(0));
-				tabs[1].text(getTabName(1));
-
-				super.createChildren();
-
-				select(0);
-			}
-
-			@Override
-			public void select(int index) {
-				super.select(index);
-				if (outsideSp != null) LuaOverviewTab.this.select(index);
-			}
-
-			@Override
-			protected void layout() {
-				float posY = y;
-				float buttonWidth = width() / tabs.length;
-				for (int i = 0; i < tabs.length; i++) {
-					tabs[i].setRect(x + i * buttonWidth, posY, buttonWidth, ScrollingListPane.ITEM_HEIGHT);
-					PixelScene.align(tabs[i]);
-				}
-				height = posY - y + ScrollingListPane.ITEM_HEIGHT;
-			}
-
-			@Override
-			public String getTabName(int index) {
-				switch (index) {
-					case 0: return Messages.get(LuaOverviewTab.class, "scripts_title");
-					case 1: return Messages.get(LuaOverviewTab.class, "dungeon_script_title");
-				}
-				return "null";
-			}
-		};
-		add(outsideSp);
-	}
-
-	private void select(int index) {
-		selectedTab = index;
-		title.text(outsideSp.getTabName(index));
-		layout();
+//		outsideSp = new MultiWindowTabComp.OutsideSpSwitchTabs() {
+//			{
+//				tabs = new TabControlButton[2];
+//				for (int j = 0; j < tabs.length; j++) {
+//					tabs[j] = new TabControlButton(j);
+//					tabs[j].text(getTabName(j));
+//					add(tabs[j]);
+//				}
+//
+//				select(0);
+//			}
+//
+//			@Override
+//			public void select(int index) {
+//				super.select(index);
+//				if (outsideSp != null) {
+//					selectedTab = index;
+//					title.text(outsideSp.getTabName(index));
+//					LuaOverviewTab.this.layout();
+//				}
+//			}
+//
+//			@Override
+//			protected void layout() {
+//				float posY = y;
+//				float buttonWidth = width() / tabs.length;
+//				for (int i = 0; i < tabs.length; i++) {
+//					tabs[i].setRect(x + i * buttonWidth, posY, buttonWidth, ScrollingListPane.ITEM_HEIGHT);
+//					PixelScene.align(tabs[i]);
+//				}
+//				height = posY - y + ScrollingListPane.ITEM_HEIGHT;
+//			}
+//
+//			@Override
+//			public String getTabName(int index) {
+//				switch (index) {
+//					case 0: return Messages.get(LuaOverviewTab.class, "scripts_title");
+//					case 1: return Messages.get(LuaOverviewTab.class, "dungeon_script_title");
+//				}
+//				return Messages.NO_TEXT_FOUND;
+//			}
+//		};
+//		add(outsideSp);
 	}
 
 	@Override
@@ -151,7 +158,7 @@ public class LuaOverviewTab extends WndEditorSettings.TabComp {
 
 	@Override
 	public Image createIcon() {
-		return Icons.RENAME_ON.get();
+		return Icons.SCROLL_COLOR.get();
 	}
 
 	@Override
@@ -176,8 +183,7 @@ public class LuaOverviewTab extends WndEditorSettings.TabComp {
 			scrollingListPane.addItemNoLayouting(new RedButton(Messages.get(LuaOverviewTab.class, "open_dungeon_script")) {
 				@Override
 				protected void onClick() {
-					if (Dungeon.dungeonScript.pathToScript == null) Dungeon.dungeonScript.pathToScript = "";
-					IDEWindow.showWindow(Dungeon.dungeonScript);
+					IDEWindow.showWindow(Dungeon.customDungeon.dungeonScriptPath, newPath -> Dungeon.customDungeon.dungeonScriptPath = newPath, DungeonScript.class);
 				}
 			});
 
@@ -185,17 +191,29 @@ public class LuaOverviewTab extends WndEditorSettings.TabComp {
 
 		scrollingListPane.nowLayout();
 	}
-
+	
+	@Override
+	public void setVisible(boolean flag) {
+		super.setVisible(flag);
+		if (flag) {
+			//called when tab is shown
+			//update list as new scrips might have been added
+			updateList();
+		}
+	}
+	
 	private class ScriptItem extends ScrollingListPane.ListItem {
 
 		protected final LuaScript script;
 
 		protected RenderedTextBlock description;
 		protected IconButton delete;
+		
+		private Set<LuaCustomObject> objsWithScripts;
 
 		public ScriptItem(LuaScript script) {
-			super(createIcon(script), script.pathFromRoot);
-			title.setHighlighting(false);
+			super(createIcon(script), script.getPath());
+			label.setHighlighting(false);
 
 			this.script = script;
 
@@ -204,34 +222,55 @@ public class LuaOverviewTab extends WndEditorSettings.TabComp {
 			description.setHighlighting(false);
 			add(description);
 
+			objsWithScripts = new HashSet<>(3);
 			StringBuilder builder = new StringBuilder();
-			for (CustomObject obj : CustomObject.customObjects.values()) {
-				if (script.pathFromRoot.equals(obj.pathToScript)) builder.append(obj.name).append('\n');
+			String path = script.getPath();
+			for (CustomObject obj : CustomObjectManager.allUserContents.values()) {
+				if (obj instanceof LuaCustomObject) {
+					if (path.equals(((LuaCustomObject) obj).getLuaScriptPath())) {
+						builder.append(obj.getName()).append('\n');
+						objsWithScripts.add((LuaCustomObject) obj);
+					}
+				}
 			}
-			for (LevelScheme ls : Dungeon.customDungeon.levelSchemes()) {
-				if (ls.luaScript != null && script.pathFromRoot.equals(ls.luaScript.pathToScript)) builder.append(ls.getName()).append('\n');
-			}
-			int l = builder.length();
-			if (l != 0) builder.delete(l - 1, l);
+			int length = builder.length();
+			if (length != 0) builder.delete(length - 1, length);
 			String usedIn = builder.toString();
 
 			delete = new IconButton(Icons.TRASH.get()) {
 				@Override
 				protected void onClick() {
-					EditorScene.show(new WndOptionsCondensed(Messages.get(LuaOverviewTab.class, "delete_confirm_title", script.pathFromRoot),
-							Messages.get(LuaOverviewTab.class, "delete_confirm_body", script.pathFromRoot)
-									+ (usedIn.isEmpty() ? "" : Messages.get(LuaOverviewTab.class, "delete_confirm_used_in", usedIn)),
+					EditorScene.show(new WndOptionsCondensed(Messages.get(LuaOverviewTab.class, "delete_confirm_title", "script.pathFromRoot"),
+							Messages.get(LuaOverviewTab.class, "delete_confirm_body", "script.pathFromRoot")
+									+ (objsWithScripts.isEmpty() ? "" : Messages.get(LuaOverviewTab.class, "delete_confirm_used_in", usedIn)),
 							Messages.get(HeroSelectScene.class, "daily_yes"), Messages.get(HeroSelectScene.class, "daily_no")) {
 						@Override
 						protected void onSelect(int index) {
 							if (index == 0) {
-								if (CustomDungeonSaves.deleteScriptFile(script.pathFromRoot)) {
+								if (CustomDungeonSaves.deleteScriptFile(script.getPath())) {
 									updateList();
-									if (Level.class.isAssignableFrom(script.type)) {
+								}
+								for (LuaCustomObject lco : objsWithScripts) {
+									
+									lco.setLuaScriptPath(null);
+									
+									if (lco instanceof LuaLevelScript) {
+										int id = lco.getIdentifier();
 										for (LevelScheme ls : Dungeon.customDungeon.levelSchemes()) {
-											if (ls.luaScript != null && script.pathFromRoot.equals(ls.luaScript.pathToScript))
-												ls.luaScript = null;
+											if (ls.luaScriptID == id) {
+												((LuaLevelScript) lco).validate(ls);
+											}
 										}
+										continue;
+									}
+									
+									CustomObjectManager.loadScript(lco);
+									lco.reloadSprite();
+									
+									try {
+										CustomDungeonSaves.storeCustomObject(lco);
+									} catch (IOException e) {
+										Game.reportException(e);
 									}
 								}
 							}
@@ -249,7 +288,7 @@ public class LuaOverviewTab extends WndEditorSettings.TabComp {
 
 		@Override
 		protected void onClick() {
-			IDEWindow.showWindow(new LuaCodeHolder(script));
+			IDEWindow.showWindow(script.getPath(), null, script.type);
 		}
 
 		@Override
@@ -257,7 +296,7 @@ public class LuaOverviewTab extends WndEditorSettings.TabComp {
 			super.layout();
 
 			icon.y = y + 2;
-			iconLabel.y = icon.y + (icon.height - iconLabel.height()) / 2f + 0.5f;
+			iconLabel.y = icon.y + (icon.height() - iconLabel.height()) / 2f + 0.5f;
 			PixelScene.align(iconLabel);
 
 			label.setPos(label.left(), y + 4);
@@ -281,7 +320,7 @@ public class LuaOverviewTab extends WndEditorSettings.TabComp {
 	private static Image createIcon(LuaScript script) {
 		if (Level.class.isAssignableFrom(script.type)) return Icons.STAIRS.get();
 		if (DungeonScript.class.isAssignableFrom(script.type)) return Icons.NEWS.get();
-		return Reference.objectToImage(Reflection.newInstance(script.type));
+		return EditorUtilities.imageOf(Reflection.newInstance(script.type), true);
 	}
 
 
@@ -300,7 +339,7 @@ public class LuaOverviewTab extends WndEditorSettings.TabComp {
 
 			this.index = index;
 
-			line = new ColorBlock(1, 1, 0xFF222222);
+			line = new ColorBlock(1, 1, ColorBlock.SEPARATOR_COLOR);
 			add(line);
 
 			nameInput = new TextInput(Chrome.get(Chrome.Type.TOAST_WHITE), false, 7, PixelScene.uiCamera.zoom) {
@@ -410,8 +449,8 @@ public class LuaOverviewTab extends WndEditorSettings.TabComp {
 
 			nameInput.setRect(x + 1, y + 2, width * 3 / 10, height - 4);
 
-			delete.setRect(width - delete.icon().width - 2, y + (height - delete.icon().height) * 0.5f, delete.icon().width(), delete.icon().height());
-			more.setRect(delete.left() - more.icon().width() - 3,  y + (height - more.icon().height) * 0.5f, more.icon().width(), more.icon().height());
+			delete.setRect(width - delete.icon().width() - 2, y + (height - delete.icon().height()) * 0.5f, delete.icon().width(), delete.icon().height());
+			more.setRect(delete.left() - more.icon().width() - 3,  y + (height - more.icon().height()) * 0.5f, more.icon().width(), more.icon().height());
 
 			float posX = nameInput.right() + 2;
 			valueInput.setRect(posX, y + 2, more.left() - 4 - posX, height - 4);

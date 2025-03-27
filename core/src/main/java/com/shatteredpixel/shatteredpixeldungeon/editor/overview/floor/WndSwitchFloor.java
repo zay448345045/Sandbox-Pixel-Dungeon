@@ -16,12 +16,13 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndGameInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptions;
-import com.shatteredpixel.shatteredpixeldungeon.windows.WndTitledMessage;
+import com.watabou.NotAllowedInLua;
 import com.watabou.input.KeyBindings;
 import com.watabou.input.KeyEvent;
 
 import java.io.IOException;
 
+@NotAllowedInLua
 public class WndSwitchFloor extends Window {
 
     private static final int MARGIN = 2;
@@ -32,21 +33,20 @@ public class WndSwitchFloor extends Window {
 
     public WndSwitchFloor() {
         instance = this;
-        resize(Math.min(WndTitledMessage.WIDTH_MAX, (int) (PixelScene.uiCamera.width * 0.9)), (int) (PixelScene.uiCamera.height * 0.8f));
+        resize(WindowSize.WIDTH_LARGE.get(), WindowSize.HEIGHT_SMALL.get());
 
-        listPane = new LevelListPane() {
-
+        listPane = new LevelListPane(new LevelListPane.Selector() {
             @Override
             public void onSelect(LevelSchemeLike levelScheme, LevelListPane.ListItem listItem) {
                 if (levelScheme instanceof LevelScheme) {
                     LevelScheme ls = (LevelScheme) levelScheme;
                     if (ls.getType() == CustomLevel.class) {
                         hide();
-                        selectLevelScheme(ls, listItem, this);
+                        selectLevelScheme(ls, listItem, listPane);
                     } else onEdit(ls, listItem);
                 }
             }
-        };
+        });
         add(listPane);
 
         createFloor = new RedButton(Messages.get(WndSwitchFloor.class, "new_floor")) {
@@ -134,7 +134,7 @@ public class WndSwitchFloor extends Window {
                 return;
             }
             EditorScene.open(f);
-        } else listPane.onEdit(levelScheme, listItem);
+        } else listPane.selector.onEdit(levelScheme, listItem);
     }
 
 }

@@ -23,6 +23,7 @@ package com.shatteredpixel.shatteredpixeldungeon.items.potions;
 
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Fire;
@@ -39,11 +40,28 @@ import com.shatteredpixel.shatteredpixeldungeon.items.ItemStatusHandler;
 import com.shatteredpixel.shatteredpixeldungeon.items.Recipe;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.AquaBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfHoneyedHealing;
-import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.*;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.ExoticPotion;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.PotionOfCleansing;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.PotionOfCorrosiveGas;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.PotionOfShroudingFog;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.PotionOfSnapFreeze;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.PotionOfStormClouds;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Catalog;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
-import com.shatteredpixel.shatteredpixeldungeon.plants.*;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Blindweed;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Earthroot;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Fadeleaf;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Firebloom;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Icecap;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Mageroyal;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Plant;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Rotberry;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Sorrowmoss;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Starflower;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Stormvine;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Sungrass;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Swiftthistle;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
@@ -134,7 +152,11 @@ public class Potion extends Item {
 		handler = CustomDungeon.getDungeon() != null ? CustomDungeon.getDungeon().getPotionColors() :
 				new ItemStatusHandler<>((Class<? extends Potion>[]) Generator.Category.POTION.classes, colors);
 	}
-	
+
+	public static void clearColors() {
+		handler = null;
+	}
+
 	public static void save( Bundle bundle ) {
 		handler.save( bundle );
 	}
@@ -264,7 +286,7 @@ public class Potion extends Item {
 	public final void doDrink(Hero hero) {
 		drink(hero);
 	}
-	
+
 	protected void drink( Hero hero ) {
 		
 		detach( hero.belongings.backpack );
@@ -277,8 +299,11 @@ public class Potion extends Item {
 		
 		hero.sprite.operate( hero.pos );
 
-		if (!anonymous && Random.Float() < talentChance){
-			Talent.onPotionUsed(curUser, curUser.pos, talentFactor);
+		if (!anonymous) {
+			Catalog.countUse(getClass());
+			if (Random.Float() < talentChance) {
+				Talent.onPotionUsed(hero, hero.pos, talentFactor);
+			}
 		}
 	}
 	
@@ -290,14 +315,17 @@ public class Potion extends Item {
 			
 		} else  {
 
-			//aqua brew specifically doesn't press cells, so it can disarm traps
-			if (!(this instanceof AquaBrew)){
+			//aqua brew and storm clouds specifically don't press cells, so they can disarm traps
+			if (!(this instanceof AquaBrew) && !(this instanceof PotionOfStormClouds)){
 				Dungeon.level.pressCell( cell );
 			}
 			shatter( cell );
 
-			if (!anonymous && Random.Float() < talentChance){
-				Talent.onPotionUsed(curUser, cell, talentFactor);
+			if (!anonymous) {
+				Catalog.countUse(getClass());
+				if (Random.Float() < talentChance) {
+					Talent.onPotionUsed(curUser, cell, talentFactor);
+				}
 			}
 			
 		}
@@ -333,6 +361,7 @@ public class Potion extends Item {
 			
 			if (Dungeon.hero != null && Dungeon.hero.isAlive()) {
 				Catalog.setSeen(getClass());
+				Statistics.itemTypesDiscovered.add(getClass());
 			}
 		}
 	}
@@ -351,10 +380,16 @@ public class Potion extends Item {
 	public String name() {
 		return isKnown() ? super.name() : Messages.get(this, color);
 	}
-	
+
 	@Override
 	public String info() {
-		return isKnown() ? desc() : Messages.get(this, "unknown_desc");
+		//skip custom notes if anonymized and un-Ided
+		return (anonymous && !isIdentified()) ? super.desc() : super.info();
+	}
+
+	@Override
+	public String desc() {
+		return isKnown() ? super.desc() : Messages.get(this, "unknown_desc");
 	}
 	
 	@Override
@@ -376,7 +411,7 @@ public class Potion extends Item {
 	}
 	
 	public static boolean allKnown() {
-		return handler.known().size() == Generator.Category.POTION.classes.length;
+		return handler != null && handler.known().size() == Generator.Category.POTION.classes.length;
 	}
 	
 	protected int splashColor(){
@@ -512,7 +547,7 @@ public class Potion extends Item {
 				forceHealing = true;
 				result = new PotionOfHealing();
 			}
-			
+
 			if (seeds.size() == 1){
 				result.identify();
 			}

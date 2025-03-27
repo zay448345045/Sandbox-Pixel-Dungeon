@@ -25,7 +25,13 @@ import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.BlobImmunity;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.FlavourBuff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Haste;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Invisibility;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vulnerable;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Weakness;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ArmorAbility;
@@ -79,7 +85,7 @@ public class Feint extends ArmorAbility {
 			return;
 		}
 
-		if (Dungeon.hero.rooted){
+		if (hero.rooted){
 			PixelScene.shake( 1, 1f );
 			GLog.w(Messages.get(this, "bad_location"));
 			return;
@@ -192,6 +198,7 @@ public class Feint extends ArmorAbility {
 				}
 				if (Dungeon.hero.hasTalent(Talent.EXPOSE_WEAKNESS)) {
 					Buff.prolong(enemy, Vulnerable.class, 2f * Dungeon.hero.pointsInTalent(Talent.EXPOSE_WEAKNESS));
+					Buff.prolong(enemy, Weakness.class, 2f * Dungeon.hero.pointsInTalent(Talent.EXPOSE_WEAKNESS));
 				}
 				if (Dungeon.hero.hasTalent(Talent.COUNTER_ABILITY)) {
 					Buff.prolong(Dungeon.hero, Talent.CounterAbilityTacker.class, 3f);
@@ -210,8 +217,8 @@ public class Feint extends ArmorAbility {
 		}
 
 		@Override
-		public CharSprite sprite() {
-			CharSprite s = super.sprite();
+		public CharSprite createSprite() {
+			CharSprite s = super.createSprite();
 			((AfterImageSprite)s).updateArmor();
 			return s;
 		}

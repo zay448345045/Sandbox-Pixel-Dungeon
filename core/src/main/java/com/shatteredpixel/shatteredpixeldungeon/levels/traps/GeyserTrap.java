@@ -56,7 +56,7 @@ public class GeyserTrap extends Trap {
 		Sample.INSTANCE.play(Assets.Sounds.GAS, 1f, 0.75f);
 
 		Blob[] fires = Dungeon.level.blobs.get(Fire.class);
-		PathFinder.buildDistanceMap( pos, BArray.not( Dungeon.level.solid, null ), 2 );
+		PathFinder.buildDistanceMapForEnvironmentals( pos, BArray.not( Dungeon.level.solid, null ), 2 );
 		for (int i = 0; i < PathFinder.distance.length; i++) {
 			if (PathFinder.distance[i] == 2 && Random.Int(3) > 0){
 				Dungeon.level.setCellToWater(true, i);
@@ -77,7 +77,7 @@ public class GeyserTrap extends Trap {
 
 				//does the equivalent of a bomb's damage against fiery enemies.
 				if (Char.hasProp(ch, Char.Property.FIERY)){
-					int dmg = Char.combatRoll(5 + scalingDepth(), 10 + scalingDepth()*2);
+					int dmg = Random.NormalIntRange(5 + scalingDepth(), 10 + scalingDepth()*2);
 					dmg *= 0.67f;
 					if (!ch.isImmune(GeyserTrap.class)){
 						ch.damage(dmg, this);
@@ -125,7 +125,7 @@ public class GeyserTrap extends Trap {
 
 			//does the equivalent of a bomb's damage against fiery enemies.
 			if (Char.hasProp(ch, Char.Property.FIERY)){
-				int dmg = Char.combatRoll(5 + scalingDepth(), 10 + scalingDepth()*2);
+				int dmg = Random.NormalIntRange(5 + scalingDepth(), 10 + scalingDepth()*2);
 				if (!ch.isImmune(GeyserTrap.class)){
 					ch.damage(dmg, this);
 				}

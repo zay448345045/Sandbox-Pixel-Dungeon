@@ -25,6 +25,7 @@ import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.spells.ClericSpell;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Ghost;
 import com.shatteredpixel.shatteredpixeldungeon.items.food.MysteryMeat;
 import com.shatteredpixel.shatteredpixeldungeon.items.wands.Wand;
@@ -88,7 +89,7 @@ public class GreatCrab extends Crab {
 		if (enemySeen
 				&& state != SLEEPING
 				&& paralysed == 0
-				&& src instanceof Wand
+				&& (src instanceof Wand || src instanceof ClericSpell)
 				&& enemy == Dungeon.hero
 				&& enemy.invisible == 0){
 			GLog.n( Messages.get(this, "noticed") );
@@ -131,7 +132,7 @@ public class GreatCrab extends Crab {
 			//of two potential wander positions, picks the one closest to the hero
 			int pos1 = super.randomDestination();
 			int pos2 = super.randomDestination();
-			PathFinder.buildDistanceMap(Dungeon.hero.pos, Dungeon.level.getPassableVar(GreatCrab.this));
+			PathFinder.buildDistanceMap(Dungeon.hero.pos, Dungeon.level.getPassableVar(GreatCrab.this), GreatCrab.this);
 			if (PathFinder.distance[pos2] < PathFinder.distance[pos1]){
 				return pos2;
 			} else {

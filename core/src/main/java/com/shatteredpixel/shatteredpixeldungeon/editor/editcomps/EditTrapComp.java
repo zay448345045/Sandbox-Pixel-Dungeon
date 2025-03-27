@@ -2,31 +2,38 @@ package com.shatteredpixel.shatteredpixeldungeon.editor.editcomps;
 
 import com.shatteredpixel.shatteredpixeldungeon.Chrome;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.CustomGameObjectClass;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
-import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.mobs.FistSelector;
-import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.Mobs;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.Traps;
-import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.MobItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.TrapItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.other.RandomItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.other.RandomItemDistrComp;
-import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ItemContainerWithLabel;
-import com.shatteredpixel.shatteredpixeldungeon.editor.ui.SimpleWindow;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ContainerWithLabel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledButtonWithIconAndText;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledCheckBox;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.Spinner;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerIntegerModel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.StyledSpinner;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
-import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
-import com.shatteredpixel.shatteredpixeldungeon.levels.traps.*;
+import com.shatteredpixel.shatteredpixeldungeon.levels.traps.GatewayTrap;
+import com.shatteredpixel.shatteredpixeldungeon.levels.traps.PitfallTrap;
+import com.shatteredpixel.shatteredpixeldungeon.levels.traps.RageTrap;
+import com.shatteredpixel.shatteredpixeldungeon.levels.traps.SummoningTrap;
+import com.shatteredpixel.shatteredpixeldungeon.levels.traps.Trap;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.CellSelector;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.BuffIcon;
+import com.shatteredpixel.shatteredpixeldungeon.ui.BuffIndicator;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ItemSlot;
+import com.shatteredpixel.shatteredpixeldungeon.ui.QuickSlotButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.StyledButton;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndBag;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.ui.Component;
@@ -39,12 +46,12 @@ public class EditTrapComp extends DefaultEditComp<Trap> {
     protected StyledCheckBox searchable, searchableByMagic, revealedWhenTriggered, disarmedByActivation;
     protected StyledButton gatewayTelePos;
     protected Spinner radius, pitfallDelay;
-    protected ItemContainer<MobItem> summonMobs;
-    protected RedButton randomTrap;
+    protected ContainerWithLabel.ForMobs summonMobs;
+    protected Component randomTrap;
 
     private final TrapItem trapItem;//used for linking the item with the sprite in the toolbar
 
-    private Component[] comps;
+    private Component[] rectComps, linearComps;
 
     public EditTrapComp(Trap item) {
         super(item);
@@ -62,24 +69,35 @@ public class EditTrapComp extends DefaultEditComp<Trap> {
 
         if (obj instanceof RandomItem.RandomTrap) {
 
-            randomTrap = new RedButton(EditItemComp.label("edit_random")) {
-                @Override
-                protected void onClick() {
-                    RandomItemDistrComp randomItemDistrComp = new RandomItemDistrComp((RandomItem<?>) obj) {
-                        @Override
-                        protected void showAddItemWnd(Consumer<Item> onSelect) {
-                            EditorScene.selectItem(createSelector(onSelect));
-                        }
+            randomTrap = new Component() {
+                private RandomItemDistrComp distr = new RandomItemDistrComp((RandomItem<?>) obj) {
+                    @Override
+                    protected void updateParent() {
+                        updateObj();
+                    }
 
-                        @Override
-                        protected WndBag.ItemSelector createSelector(Consumer<Item> onSelect) {
-                            return createSelector(TrapItem.class, false, Traps.bag.getClass(), onSelect);
-                        }
-                    };
-                    SimpleWindow w = new SimpleWindow((int) Math.ceil(width), (int) (PixelScene.uiCamera.height * 0.75));
-                    w.initComponents(randomItemDistrComp.createTitle(), randomItemDistrComp, randomItemDistrComp.getOutsideSp(), 0f, 0.5f);
-                    w.offset(EditorUtilies.getParentWindow(EditTrapComp.this).getOffset());
-                    EditorScene.show(w);
+                    @Override
+                    protected void showAddItemWnd(Consumer<Item> onSelect) {
+                        EditorScene.selectItem(createSelector(onSelect));
+                    }
+
+                    @Override
+                    protected WndBag.ItemSelector createSelector(Consumer<Item> onSelect) {
+                        return createSelector(TrapItem.class, false, Traps.bag().getClass(), onSelect);
+                    }
+                };
+                private Component outsideSp = distr.getOutsideSp();
+
+                {
+                    add(distr);
+                    add(outsideSp);
+                }
+
+                @Override
+                protected void layout() {
+                    distr.setRect(x, y, width, 0);
+                    outsideSp.setRect(x, distr.bottom() + 2, width, 6);
+                    height = distr.height() + outsideSp.height() + 3;
                 }
             };
             add(randomTrap);
@@ -96,7 +114,7 @@ public class EditTrapComp extends DefaultEditComp<Trap> {
             add(visible);
 
             active = new StyledCheckBox(Messages.get(this, "active"));
-            active.icon(EditorUtilies.createSubIcon(ItemSpriteSheet.Icons.RING_ACCURACY));
+            active.icon(EditorUtilities.createSubIcon(ItemSpriteSheet.Icons.RING_ACCURACY));
             active.icon().scale.set(ItemSpriteSheet.SIZE / active.icon().width());
             active.checked(obj.active);
             active.addChangeListener(v -> {
@@ -117,7 +135,7 @@ public class EditTrapComp extends DefaultEditComp<Trap> {
             add(searchable);
 
             searchableByMagic = new StyledCheckBox(Messages.get(this, "searchable_by_magic"));
-            searchableByMagic.icon(EditorUtilies.createSubIcon(ItemSpriteSheet.Icons.SCROLL_MAGICMAP));
+            searchableByMagic.icon(EditorUtilities.createSubIcon(ItemSpriteSheet.Icons.SCROLL_MAGICMAP));
             searchableByMagic.icon().scale.set(ItemSpriteSheet.SIZE / searchableByMagic.icon().width());
             searchableByMagic.checked(obj.canBeSearchedByMagic);
             searchableByMagic.addChangeListener(v -> {
@@ -135,7 +153,7 @@ public class EditTrapComp extends DefaultEditComp<Trap> {
             add(revealedWhenTriggered);
 
             disarmedByActivation = new StyledCheckBox(Messages.get(this, "disarmed_by_activation"));
-            disarmedByActivation.icon(new ItemSprite(ItemSpriteSheet.STONE_DISARM));
+            disarmedByActivation.icon(new ItemSprite(ItemSpriteSheet.STONE_DETECT));
             disarmedByActivation.checked(obj.disarmedByActivation);
             disarmedByActivation.addChangeListener(v -> {
                 obj.disarmedByActivation = v;
@@ -157,8 +175,8 @@ public class EditTrapComp extends DefaultEditComp<Trap> {
                     }
                 };
                 if (telePos == -1) gatewayTelePos.text(Messages.get(this, "gateway_trap_random"));
-                else gatewayTelePos.text(Messages.get(this, "gateway_trap_pos", EditorUtilies.cellToString(telePos)));
-                Image teleIcon = EditorUtilies.createSubIcon(ItemSpriteSheet.Icons.SCROLL_TELEPORT);
+                else gatewayTelePos.text(Messages.get(this, "gateway_trap_pos", EditorUtilities.cellToString(telePos)));
+                Image teleIcon = EditorUtilities.createSubIcon(ItemSpriteSheet.Icons.SCROLL_TELEPORT);
                 teleIcon.scale.set(12 / Math.max(teleIcon.width(), teleIcon.height()));
                 gatewayTelePos.icon(teleIcon);
                 add(gatewayTelePos);
@@ -194,43 +212,18 @@ public class EditTrapComp extends DefaultEditComp<Trap> {
             }
 
             if (obj instanceof SummoningTrap) {
-                summonMobs = new ItemContainerWithLabel<MobItem>(FistSelector.createMobItems(((SummoningTrap) obj).spawnMobs), this, Messages.get(EditTrapComp.class, "summon_mobs")) {
-                    @Override
-                    public boolean itemSelectable(Item item) {
-                        return item instanceof MobItem;
-                    }
-
-                    @Override
-                    protected void doAddItem(MobItem item) {
-                        super.doAddItem(item);
-                        ((SummoningTrap) obj).spawnMobs.add(item.mob());
-                    }
-
-                    @Override
-                    protected boolean removeSlot(ItemContainer<MobItem>.Slot slot) {
-                        if (super.removeSlot(slot)) {
-                            ((SummoningTrap) obj).spawnMobs.remove(((MobItem) slot.item()).mob());
-                            return true;
-                        }
-                        return false;
-                    }
-
-                    @Override
-                    public Class<? extends Bag> preferredBag() {
-                        return Mobs.bag.getClass();
-                    }
-                };
+                summonMobs = new ContainerWithLabel.ForMobs(((SummoningTrap) obj).spawnMobs, this, Messages.get(EditTrapComp.class, "summon_mobs"));
                 add(summonMobs);
             }
         }
 
         if (PixelScene.landscape()) {
-            comps = new Component[]{
+            rectComps = new Component[] {
                     visible, active, disarmedByActivation,
                     pitfallDelay, radius, revealedWhenTriggered,
                     searchable, searchableByMagic, gatewayTelePos};
         } else {
-            comps = new Component[]{
+            rectComps = new Component[] {
                     visible, active,
                     pitfallDelay, radius,
                     searchable, searchableByMagic,
@@ -238,15 +231,66 @@ public class EditTrapComp extends DefaultEditComp<Trap> {
                     gatewayTelePos};
         }
 
+        linearComps = new Component[] {
+                summonMobs, randomTrap
+        };
 
+        initializeCompsForCustomObjectClass();
+
+    }
+
+    @Override
+    protected void updateStates() {
+        super.updateStates();
+        if (visible != null) visible.checked(obj.visible);
+        if (active != null) active.checked(obj.active);
+        if (disarmedByActivation != null) disarmedByActivation.checked(obj.disarmedByActivation);
+        if (revealedWhenTriggered != null) revealedWhenTriggered.checked(obj.revealedWhenTriggered);
+        if (searchable != null) searchable.checked(obj.canBeSearched);
+        if (searchableByMagic != null) searchableByMagic.checked(obj.canBeSearchedByMagic);
+
+        if (pitfallDelay != null) pitfallDelay.setValue(((PitfallTrap) obj).delay);
+        if (radius != null) {
+            if (obj instanceof PitfallTrap) radius.setValue(((PitfallTrap) obj).radius);
+            else if (obj instanceof RageTrap) radius.setValue(((RageTrap) obj).radius);
+        }
+        if (gatewayTelePos != null) {
+            int telePos = ((GatewayTrap) obj).telePos;
+            if (telePos == -1) gatewayTelePos.text(Messages.get(this, "gateway_trap_random"));
+            else gatewayTelePos.text(Messages.get(this, "gateway_trap_pos", EditorUtilities.cellToString(telePos)));
+        }
+
+        if (summonMobs != null) summonMobs.updateState(((SummoningTrap) obj).spawnMobs);
+    }
+
+    @Override
+    protected void onInheritStatsClicked(boolean flag, boolean initializing) {
+        if (flag && !initializing) {
+            obj.copyStats((Trap) CustomObjectManager.getLuaClass(((CustomGameObjectClass) obj).getIdentifier()));
+        }
+
+        for (Component c : rectComps) {
+            if (c != null) c.visible = c.active = !flag;
+        }
+
+        for (Component c : linearComps) {
+            if (c != null) c.visible = c.active = !flag;
+        }
+
+//        if (rename != null) rename.setVisible(!flag);
+
+        ((CustomGameObjectClass) obj).setInheritStats(flag);
+        
+        super.onInheritStatsClicked(flag, initializing);
     }
 
     @Override
     protected void layout() {
         super.layout();
-        layoutCompsInRectangles(comps);
-        if (summonMobs != null) layoutCompsLinear(summonMobs);
-        if (randomTrap != null) layoutCompsLinear(randomTrap);
+        layoutCompsInRectangles(rectComps);
+        layoutCompsLinear(linearComps);
+
+        layoutCustomObjectEditor();
     }
 
     @Override
@@ -265,7 +309,7 @@ public class EditTrapComp extends DefaultEditComp<Trap> {
     }
 
     @Override
-    protected void updateObj() {
+	public void updateObj() {
         if (!obj.active && !obj.visible) {
             visible.checked(true);
             return;
@@ -304,6 +348,13 @@ public class EditTrapComp extends DefaultEditComp<Trap> {
         if (a instanceof SummoningTrap) {
             if (!EditMobComp.isMobListEqual(((SummoningTrap) a).spawnMobs, ((SummoningTrap) b).spawnMobs)) return false;
         }
+        if (a instanceof RandomItem) {
+            if (!a.equals(b)) return false;
+        }
+        
+        if (a instanceof CustomGameObjectClass) {
+            if (((CustomGameObjectClass) a).getInheritStats() != ((CustomGameObjectClass) b).getInheritStats()) return false;
+        }
         return true;
     }
 
@@ -321,7 +372,7 @@ public class EditTrapComp extends DefaultEditComp<Trap> {
                 if (trap.telePos == -1) {
                     gatewayTelePos.text(Messages.get(EditTrapComp.class, "gateway_trap_random"));
                 } else {
-                    gatewayTelePos.text(Messages.get(EditTrapComp.class, "gateway_trap_pos", EditorUtilies.cellToString(trap.telePos)));
+                    gatewayTelePos.text(Messages.get(EditTrapComp.class, "gateway_trap_pos", EditorUtilities.cellToString(trap.telePos)));
                 }
 
                 EditorScene.reshowWindows();

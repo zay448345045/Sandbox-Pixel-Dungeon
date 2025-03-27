@@ -8,18 +8,22 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.TileItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.ActionPartModify;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.Undo;
-import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.*;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.ArrowCellActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.BarrierActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.CheckpointActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.HeapActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.MobActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.PlantActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.TileModify;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.TrapActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.levels.traps.Trap;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.plants.Plant;
-import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
-import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndTabbed;
-import com.shatteredpixel.shatteredpixeldungeon.windows.WndTitledMessage;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.ui.Component;
 
@@ -55,7 +59,7 @@ public class EditCompWindowTabbed extends WndTabbed {
         if (tileItem != null) actionPartModifyList.add(new TileModify(tileItem.cell()));
 
 
-        width = Math.min(WndTitledMessage.WIDTH_MAX, (int) (PixelScene.uiCamera.width * 0.9));
+        width = WindowSize.WIDTH_LARGE.get();
 
         comps = new LinkedHashMap<>();
 
@@ -219,7 +223,7 @@ public class EditCompWindowTabbed extends WndTabbed {
 
     private void initComp(DefaultEditComp<?> comp) {
 
-        TabBody body = new TabBody(comp, comp.getObj());
+        TabBody body = new TabBody(comp);
         TabBtn tabBtn = new TabBtn(comp.getIcon(), comp.getObj());
         comps.put(comp.getObj(), new Wrapper(body, tabBtn));
         add(tabBtn);
@@ -232,8 +236,8 @@ public class EditCompWindowTabbed extends WndTabbed {
         for (Wrapper wrapper : comps.values()) {
             h = Math.max(h, wrapper.body.getPreferredHeight() + 1);
         }
-        float maxHeightNoOffset = PixelScene.uiCamera.height * 0.9f - tabHeight()-10;
-        int offset = EditorUtilies.getMaxWindowOffsetYForVisibleToolbar();
+        float maxHeightNoOffset = WindowSize.HEIGHT_LARGE.get() - tabHeight()-10;
+        int offset = EditorUtilities.getMaxWindowOffsetYForVisibleToolbar();
         if (h > maxHeightNoOffset) {
             if (h > maxHeightNoOffset + offset) h = maxHeightNoOffset + offset;
             else offset = (int) Math.ceil(h - maxHeightNoOffset);
@@ -329,7 +333,7 @@ public class EditCompWindowTabbed extends WndTabbed {
     }
 
     @Override
-    public void select(Tab tab) {
+    protected void select(Tab tab) {
         Object obj = ((TabBtn) tab).obj;
         if (selectedObject != obj) {
             super.select(tab);
@@ -391,11 +395,8 @@ public class EditCompWindowTabbed extends WndTabbed {
         private Runnable layouter;
         private ScrollPane sp;
 
-        private final Object obj;
-
-        public TabBody(DefaultEditComp<?> content, Object obj) {
-            super(Icons.get(Icons.CLOSE));
-            this.obj = obj;
+        public TabBody(DefaultEditComp<?> content) {
+            super();
 
             add(content);
             this.content = content;

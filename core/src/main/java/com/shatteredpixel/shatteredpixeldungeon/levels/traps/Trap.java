@@ -25,9 +25,11 @@ import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.GameObject;
 import com.shatteredpixel.shatteredpixeldungeon.actors.DefaultStatsCache;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.CustomGameObjectClass;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Copyable;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.TrapItem;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Bestiary;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.watabou.noosa.Image;
@@ -60,6 +62,7 @@ public abstract class Trap extends GameObject implements Copyable<Trap> {
 	public int shape;
 
 	public int pos;
+	public boolean reclaimed = false; //if this trap was spawned by reclaim trap
 
 	public boolean visible;
 	public boolean active = true;
@@ -100,6 +103,8 @@ public abstract class Trap extends GameObject implements Copyable<Trap> {
 			}
 			if (disarmedByActivation) disarm();
 			if (revealedWhenTriggered) Dungeon.level.discover(pos);
+			Bestiary.setSeen(getClass());
+			Bestiary.countEncounter(getClass());
 			activate();
 		}
 	}
@@ -115,7 +120,7 @@ public abstract class Trap extends GameObject implements Copyable<Trap> {
 	//If the trap is part of the level, it should use the true depth
 	//If it's not part of the level (e.g. effect from reclaim trap), use scaling depth
 	protected int scalingDepth(){
-		return Dungeon.level.traps.get(pos) == this ? Dungeon.depth : Dungeon.scalingDepth();
+		return (reclaimed || Dungeon.level.traps.get(pos) != this) ? Dungeon.scalingDepth() : Dungeon.depth;
 	}
 
 	public String name(){
@@ -131,14 +136,21 @@ public abstract class Trap extends GameObject implements Copyable<Trap> {
 	}
 
 	public Image getSprite() {
-		return EditorUtilies.getTerrainFeatureTexture((active ? color : Trap.BLACK) + (shape * 16) + (visible ? 0 : 128));
+		return EditorUtilities.getTerrainFeatureTexture((active ? color : Trap.BLACK) + (shape * 16) + (visible ? 0 : 128));
 	}
 
 	@Override
-	public int sparseArrayKey() {
+	public final int sparseArrayKey() {
 		return pos;
 	}
-
+	
+	@Override
+	public void initAsInventoryItem() {
+		super.initAsInventoryItem();
+		pos = -1;
+		visible = true;
+	}
+	
 	private static final String POS	= "pos";
 	private static final String VISIBLE	= "visible";
 	private static final String ACTIVE = "active";
@@ -181,5 +193,23 @@ public abstract class Trap extends GameObject implements Copyable<Trap> {
 		Bundle bundle = new Bundle();
 		bundle.put("TRAP",this);
 		return  (Trap) bundle.get("TRAP");
+	}
+
+	@Override
+	public void copyStats(GameObject template) {
+		if (template == null) return;
+		if (getClass() != template.getClass()) return;
+		Bundle bundle = new Bundle();
+		bundle.put("OBJ", template);
+		bundle.getBundle("OBJ").put(CustomGameObjectClass.INHERIT_STATS, true);
+
+		int pos = this.pos;
+//		boolean replaceSprite = spriteClass != ((Mob) template).spriteClass;
+		restoreFromBundle(bundle.getBundle("OBJ"));
+		this.pos = pos;
+
+//		if (replaceSprite && sprite != null) {
+//			EditorScene.replaceMobSprite(this, ((Mob) template).spriteClass);
+//		}
 	}
 }

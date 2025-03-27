@@ -44,7 +44,7 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.CustomTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.ui.BossHealthBar;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.Group;
+import com.watabou.noosa.Image;
 import com.watabou.noosa.Tilemap;
 import com.watabou.noosa.audio.Music;
 import com.watabou.utils.Bundle;
@@ -185,7 +185,7 @@ public class HallsBossLevel extends Level {
 
 		//ensures a path to the exit exists
 		int realEntrance = entrance(), realExit = exit();
-		return (PathFinder.getStep(entrance(), realEntrance == realExit || realExit == 0 ? exitCell : realExit, getPassableVar()) != -1);
+		return (PathFinder.getStep(entrance(), realEntrance == realExit || realExit == 0 ? exitCell : realExit, getPassableVar(), null) != -1);
 	}
 
 	@Override
@@ -382,13 +382,6 @@ public class HallsBossLevel extends Level {
 		}
 	}
 
-	@Override
-	public Group addVisuals () {
-		super.addVisuals();
-		HallsLevel.addHallsVisuals( this, visuals );
-		return visuals;
-	}
-
 	public static class CenterPieceVisuals extends CustomTilemap implements CustomTerrain {
 
 		{
@@ -442,6 +435,11 @@ public class HallsBossLevel extends Level {
 					WALL_DECO, WALL_DECO, EMPTY_SP, EMPTY_SP, EMPTY_SP, EMPTY_SP, EMPTY_SP, WALL_DECO, WALL_DECO,
 					WALL_DECO, WALL_DECO, EMPTY_SP, EMPTY_SP, EMPTY_SP, EMPTY_SP, EMPTY_SP, WALL_DECO, WALL_DECO
 			};
+		}
+		
+		@Override
+		public Image fullImage() {
+			return new Image(Assets.Environment.HALLS_BOSS_LEVEL_CUSTOM_TILE_ICON);
 		}
 	}
 

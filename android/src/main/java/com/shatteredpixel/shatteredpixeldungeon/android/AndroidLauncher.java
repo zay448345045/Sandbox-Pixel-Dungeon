@@ -24,14 +24,19 @@ package com.shatteredpixel.shatteredpixeldungeon.android;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.view.ViewConfiguration;
 import android.widget.Toast;
@@ -53,22 +58,31 @@ import com.shatteredpixel.shatteredpixeldungeon.services.news.NewsImpl;
 import com.shatteredpixel.shatteredpixeldungeon.services.updates.UpdateImpl;
 import com.shatteredpixel.shatteredpixeldungeon.services.updates.Updates;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Button;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Consumer;
 import com.watabou.utils.FileUtils;
 
+import java.io.ByteArrayOutputStream;
+
+@NotAllowedInLua
 public class AndroidLauncher extends AndroidApplication {
 
 	public static final boolean FILE_ACCESS_ENABLED_ON_ANDROID_11 = false;//GPlay doesn't like apps that want to do this
 
-	static final int REQUEST_DIRECTORY = 123, REQUEST_READ_EXTERNAL_STORAGE = 124;
+	static final int REQUEST_DIRECTORY = 123, REQUEST_READ_EXTERNAL_STORAGE = 124, REQUEST_IMAGE_IMPORT = 125;
 	public static final int REQUEST_CODE_ANDROID_IDE_WINDOW = 1;
 	public static final int REQUEST_CODE_RETURN_TO_LIBGDX = 2;
 	static Consumer<FileHandle> selectFileCallback;
+	static Consumer<Object> importImageFileCallback;
 	
 	public static AndroidApplication instance;
 	
 	public static AndroidPlatformSupport support;
+	
+	
+	private BroadcastReceiver batteryStatusReceiver;
+	static int curBatteryPercentage;
 	
 	@SuppressLint("SetTextI18n")
 	@Override
@@ -88,9 +102,9 @@ public class AndroidLauncher extends AndroidApplication {
 			else if (!file.file().canRead()) error = "Cannot read the file. Please make sure to GRANT the PERMISSION!";
 			if (error == null) {
 				try {
-					FileHandle fileDest = FileUtils.getFileHandle(FileUtils.getFileTypeForCustomDungeons(),
+					FileHandle fileDest = FileUtils.getFileHandleWithDefaultPath(FileUtils.getFileTypeForCustomDungeons(),
 							CustomDungeonSaves.DUNGEON_FOLDER + file.name());
-					FileHandle destDungeon = FileUtils.getFileHandle(FileUtils.getFileTypeForCustomDungeons(),
+					FileHandle destDungeon = FileUtils.getFileHandleWithDefaultPath(FileUtils.getFileTypeForCustomDungeons(),
 							CustomDungeonSaves.DUNGEON_FOLDER + file.nameWithoutExtension());
 
 					//copies the file into the dungeon folder so it can be auto-imported when opening the dungeon selection
@@ -182,6 +196,16 @@ public class AndroidLauncher extends AndroidApplication {
 		support.updateSystemUI();
 
 		Button.longClick = ViewConfiguration.getLongPressTimeout()/1000f;
+		
+		batteryStatusReceiver = new BroadcastReceiver() {
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+				int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+				curBatteryPercentage = (int) ((level / (float)scale) * 100);
+			}
+		};
+		registerReceiver(batteryStatusReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
 
 		initialize(new SandboxPixelDungeon(support), config);
 		
@@ -193,6 +217,15 @@ public class AndroidLauncher extends AndroidApplication {
 	}
 
 	@Override
+	protected void onPause() {
+		super.onPause();
+		
+		if (batteryStatusReceiver != null) {
+			unregisterReceiver(batteryStatusReceiver);
+		}
+	}
+	
+	@Override
 	protected void onResume() {
 		//prevents weird rare cases where the app is running twice
 		if (instance != this){
@@ -200,6 +233,10 @@ public class AndroidLauncher extends AndroidApplication {
 				finishAndRemoveTask();
 			} else {
 				finish();
+			}
+		} else {
+			if (batteryStatusReceiver != null) {
+				registerReceiver(batteryStatusReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
 			}
 		}
 		super.onResume();
@@ -237,7 +274,20 @@ public class AndroidLauncher extends AndroidApplication {
 			} else
 				Toast.makeText(this, "Invalid file: Only " + CustomDungeonSaves.EXPORT_FILE_EXTENSION + " files are permitted!", Toast.LENGTH_SHORT).show();
 //			selectFileCallback.accept(convertUriToFileHandle(data.getData()));
+			selectFileCallback = null;
         }
+		if (requestCode == REQUEST_IMAGE_IMPORT && resultCode == Activity.RESULT_OK) {
+			try {
+				Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), data.getData());
+				ByteArrayOutputStream stream = new ByteArrayOutputStream(1024);
+				bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+				byte[] bytes = stream.toByteArray();
+				importImageFileCallback.accept(bytes);
+			} catch (Exception e) {
+				importImageFileCallback.accept(e);
+			}
+			importImageFileCallback = null;
+		}
 		else if (requestCode == REQUEST_CODE_ANDROID_IDE_WINDOW) {
 		}
 		else if (requestCode == REQUEST_CODE_RETURN_TO_LIBGDX) {

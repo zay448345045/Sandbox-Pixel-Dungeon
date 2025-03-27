@@ -24,14 +24,25 @@ package com.shatteredpixel.shatteredpixeldungeon.items.artifacts;
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.CorrosiveGas;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AllyBuff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AscensionChallenge;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Burning;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Invisibility;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicImmune;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Regeneration;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Belongings;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
-import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.spells.Stasis;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.DirectableAlly;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.DwarfKing;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Wraith;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.YogDzewa;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.NPC;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Barrier;
 import com.shatteredpixel.shatteredpixeldungeon.editor.quests.GhostQuest;
@@ -41,14 +52,13 @@ import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.ShaftParticle;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.Armor;
-import com.shatteredpixel.shatteredpixeldungeon.items.armor.glyphs.AntiMagic;
-import com.shatteredpixel.shatteredpixeldungeon.items.armor.glyphs.Brimstone;
 import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.RingOfEnergy;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfRetribution;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.Weapon;
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.MeleeWeapon;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Catalog;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.AlchemyScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.CellSelector;
@@ -63,7 +73,11 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.ItemButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
-import com.shatteredpixel.shatteredpixeldungeon.windows.*;
+import com.shatteredpixel.shatteredpixeldungeon.windows.IconTitle;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndBag;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoItem;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndQuest;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndUseItem;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
@@ -93,8 +107,8 @@ public class DriedRose extends Artifact {
 	private GhostHero ghost = null;
 	private int ghostID = 0;
 	
-	private MeleeWeapon weapon = null;
-	private Armor armor = null;
+	protected MeleeWeapon weapon = null;
+	protected Armor armor = null;
 
 	public int droppedPetals = 0;
 
@@ -198,17 +212,28 @@ public class DriedRose extends Artifact {
 
 		} else if (action.equals(AC_DIRECT)){
 			if (ghost == null && ghostID != 0){
-				Actor a = Actor.findById(ghostID);
-				if (a != null){
-					ghost = (GhostHero)a;
-				} else {
-					ghostID = 0;
-				}
+				findGhost();
 			}
-			if (ghost != null) GameScene.selectCell(ghostDirector);
+			if (ghost != null && ghost != Stasis.getStasisAlly()){
+				GameScene.selectCell(ghostDirector);
+			}
 			
 		} else if (action.equals(AC_OUTFIT)){
 			GameScene.show( new WndGhostHero(this) );
+		}
+	}
+
+	private void findGhost(){
+		Actor a = Actor.findById(ghostID);
+		if (a != null){
+			ghost = (GhostHero)a;
+		} else {
+			if (Stasis.getStasisAlly() instanceof GhostHero){
+				ghost = (GhostHero) Stasis.getStasisAlly();
+				ghostID = ghost.id();
+			} else {
+				ghostID = 0;
+			}
 		}
 	}
 	
@@ -269,12 +294,7 @@ public class DriedRose extends Artifact {
 	public String status() {
 		if (ghost == null && ghostID != 0){
 			try {
-				Actor a = Actor.findById(ghostID);
-				if (a != null) {
-					ghost = (GhostHero) a;
-				} else {
-					ghostID = 0;
-				}
+				findGhost();
 			} catch ( ClassCastException e ){
 				SandboxPixelDungeon.reportException(e);
 				ghostID = 0;
@@ -313,7 +333,9 @@ public class DriedRose extends Artifact {
 		} else if (ghost.HP < ghost.HT) {
 			int heal = Math.round((1 + level()/3f)*amount);
 			ghost.HP = Math.min( ghost.HT, ghost.HP + heal);
-			ghost.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(heal), FloatingText.HEALING);
+			if (ghost.sprite != null) {
+				ghost.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(heal), FloatingText.HEALING);
+			}
 			updateQuickslot();
 		}
 	}
@@ -335,11 +357,11 @@ public class DriedRose extends Artifact {
 		return super.upgrade();
 	}
 	
-	public Weapon ghostWeapon(){
+	public final Weapon ghostWeapon(){
 		return weapon;
 	}
 	
-	public Armor ghostArmor(){
+	public final Armor ghostArmor(){
 		return armor;
 	}
 
@@ -385,12 +407,7 @@ public class DriedRose extends Artifact {
 			spend( TICK );
 			
 			if (ghost == null && ghostID != 0){
-				Actor a = Actor.findById(ghostID);
-				if (a != null){
-					ghost = (GhostHero)a;
-				} else {
-					ghostID = 0;
-				}
+				findGhost();
 			}
 
 			if (ghost != null && !ghost.isAlive()){
@@ -487,6 +504,8 @@ public class DriedRose extends Artifact {
 
 		@Override
 		public boolean doPickUp(Hero hero, int pos) {
+			Catalog.setSeen(getClass());
+			Statistics.itemTypesDiscovered.add(getClass());
 			DriedRose rose = hero.belongings.getItem( DriedRose.class );
 
 			if (rose == null){
@@ -499,6 +518,7 @@ public class DriedRose extends Artifact {
 			} else {
 
 				rose.upgrade();
+				Catalog.countUse(rose.getClass());
 				if (rose.level() == rose.levelCap) {
 					GLog.p( Messages.get(this, "maxlevel") );
 				} else
@@ -588,6 +608,11 @@ public class DriedRose extends Artifact {
 		public void aggro(Char ch) {
 			directableAlly.aggroOverride(ch);
 		}
+		
+		@Override
+		public void beckon(int cell) {
+			directableAlly.beckonOverride(cell);
+		}
 
 		@Override
 		public DirectableAlly getDirectableAlly() {
@@ -655,7 +680,7 @@ public class DriedRose extends Artifact {
 			if (rose != null && rose.weapon != null){
 				dmg += rose.weapon.damageRoll(this);
 			} else {
-				dmg += Char.combatRoll(0, 5);
+				dmg += Random.NormalIntRange(0, 5);
 			}
 			
 			return dmg;
@@ -664,13 +689,16 @@ public class DriedRose extends Artifact {
 		@Override
 		public int attackProc(Char enemy, int damage) {
 			damage = super.attackProc(enemy, damage);
-			if (rose != null && rose.weapon != null) {
-				damage = rose.weapon.proc( this, enemy, damage );
-				if (!enemy.isAlive() && enemy == Dungeon.hero){
-					Dungeon.fail(this);
-					GLog.n( Messages.capitalize(Messages.get(Char.class, "kill", name())) );
+			if (rose != null) {
+				if (rose.weapon != null) {
+					damage = rose.weapon.proc(this, enemy, damage);
+					if (!enemy.isAlive() && enemy == Dungeon.hero) {
+						Dungeon.fail(this);
+						GLog.n(Messages.capitalize(Messages.get(Char.class, "kill", name())));
+					}
 				}
 			}
+
 			return damage;
 		}
 		
@@ -684,13 +712,6 @@ public class DriedRose extends Artifact {
 		
 		@Override
 		public void damage(int dmg, Object src) {
-			//TODO improve this when I have proper damage source logic
-			if (rose != null && rose.armor != null && rose.armor.hasGlyph(AntiMagic.class, this)
-					&& AntiMagic.RESISTS.contains(src.getClass())){
-				dmg -= AntiMagic.drRoll(this, rose.armor.buffedLvl());
-				dmg = Math.max(dmg, 0);
-			}
-			
 			super.damage( dmg, src );
 			
 			//for the rose status indicator
@@ -700,10 +721,6 @@ public class DriedRose extends Artifact {
 		@Override
 		public float speed() {
 			float speed = super.speed();
-			
-			if (rose != null && rose.armor != null){
-				speed = rose.armor.speedFactor(this, speed);
-			}
 
 			//moves 2 tiles at a time when returning to the hero
 			if (state == WANDERING
@@ -727,46 +744,24 @@ public class DriedRose extends Artifact {
 		}
 		
 		@Override
-		public float stealth() {
-			float stealth = super.stealth();
-			
-			if (rose != null && rose.armor != null){
-				stealth = rose.armor.stealthFactor(this, stealth);
-			}
-			
-			return stealth;
-		}
-		
-		@Override
 		public int drRoll() {
 			int dr = super.drRoll();
 			if (rose != null && rose.armor != null){
-				dr += Char.combatRoll( rose.armor.DRMin(), rose.armor.DRMax());
+				dr += Random.NormalIntRange( rose.armor.DRMin(), rose.armor.DRMax());
 			}
 			if (rose != null && rose.weapon != null){
-				dr += Char.combatRoll( 0, rose.weapon.defenseFactor( this ));
+				dr += Random.NormalIntRange( 0, rose.weapon.defenseFactor( this ));
 			}
 			return dr;
 		}
 
-		//used in some glyph calculations
-		public Armor armor(){
-			if (rose != null){
-				return rose.armor;
-			} else {
-				return null;
-			}
-		}
-
 		@Override
-		public boolean isImmune(Class effect) {
-			if (effect == Burning.class
-					&& rose != null
-					&& rose.armor != null
-					&& rose.armor.hasGlyph(Brimstone.class, this)){
-				return true;
+		public int glyphLevel(Class<? extends Armor.Glyph> cls) {
+			if (rose != null && rose.armor != null && rose.armor.hasGlyph(cls, this)){
+				return Math.max(super.glyphLevel(cls), rose.armor.buffedLvl());
+			} else {
+				return super.glyphLevel(cls);
 			}
-			return super.isImmune(effect);
 		}
 
 		@Override
@@ -795,6 +790,7 @@ public class DriedRose extends Artifact {
 		@Override
 		public void destroy() {
 			updateRose();
+			//TODO stasis?
 			if (rose != null) {
 				rose.ghost = null;
 				rose.charge = 0;
@@ -1048,6 +1044,15 @@ public class DriedRose extends Artifact {
 							}
 						});
 					}
+				}
+
+				@Override
+				protected boolean onLongClick() {
+					if (item() != null && item().name() != null){
+						GameScene.show(new WndInfoItem(item()));
+						return true;
+					}
+					return false;
 				}
 			};
 			btnArmor.setRect( btnWeapon.right() + BTN_GAP, btnWeapon.top(), BTN_SIZE, BTN_SIZE );

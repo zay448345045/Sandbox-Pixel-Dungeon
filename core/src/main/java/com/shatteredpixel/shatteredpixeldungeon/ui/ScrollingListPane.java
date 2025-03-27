@@ -22,8 +22,13 @@
 package com.shatteredpixel.shatteredpixeldungeon.ui;
 
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
-import com.watabou.noosa.*;
+import com.watabou.noosa.BitmapText;
+import com.watabou.noosa.ColorBlock;
+import com.watabou.noosa.Image;
+import com.watabou.noosa.MovieClip;
+import com.watabou.noosa.Scene;
 import com.watabou.noosa.ui.Component;
 
 import java.util.ArrayList;
@@ -40,12 +45,11 @@ public class ScrollingListPane extends ScrollPane {
 
 
     protected boolean validClick() {
-        Group p = parent;
-        while (p != null && !(p instanceof Window)) {
-            p = p.parent;
-        }
+        Window w = EditorUtilities.getParentWindow(this);
         Scene s = SandboxPixelDungeon.scene();
-        return !(s instanceof PixelScene) || p == null||((PixelScene) s).isAtFront((Window) p);
+        return !(s instanceof PixelScene)
+                || w == null
+                || ((PixelScene) s).isAtFront(w);
     }
 
     @Override
@@ -167,7 +171,7 @@ public class ScrollingListPane extends ScrollPane {
             label = PixelScene.renderTextBlock(icon == null ? 9 : 7);
             add(label);
 
-            line = new ColorBlock(1, 1, 0xFF222222);
+            line = new ColorBlock(1, 1, ColorBlock.SEPARATOR_COLOR);
             add(line);
 
             label.text(text);
@@ -257,7 +261,7 @@ public class ScrollingListPane extends ScrollPane {
             label.hardlight(Window.TITLE_COLOR);
             add(label);
 
-            line = new ColorBlock(1, 1, 0xFF222222);
+            line = new ColorBlock(1, 1, ColorBlock.SEPARATOR_COLOR);
             add(line);
 
         }
@@ -277,7 +281,7 @@ public class ScrollingListPane extends ScrollPane {
 
     }
 
-    public static abstract class ListButton extends ListItem {
+    public static abstract class ListButton extends ListItem implements Runnable {
 
         protected StyledButton button;
 
@@ -299,6 +303,11 @@ public class ScrollingListPane extends ScrollPane {
             button.setRect(x + (width - Math.max(width * 0.8f, button.reqWidth())) * 0.5f, y + Math.max(0, (height - button.reqHeight() - 2) * 0.5f),
                     Math.max(width * 0.8f, button.reqWidth()), Math.min(height, button.reqHeight() + 2));
             PixelScene.align(button);
+        }
+
+        @Override
+        public void run() {
+            button.onClick();
         }
 
         protected abstract StyledButton createButton();

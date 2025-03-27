@@ -40,6 +40,7 @@ import com.shatteredpixel.shatteredpixeldungeon.sprites.MirrorSprite;
 import com.shatteredpixel.shatteredpixeldungeon.ui.BuffIndicator;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
+import com.watabou.utils.Random;
 
 public class MirrorImage extends NPC {
 	
@@ -150,7 +151,7 @@ public class MirrorImage extends NPC {
 	public int drRoll() {
 		int dr = super.drRoll();
 		if (hero != null && hero.belongings.weapon() != null){
-			return dr + Char.combatRoll(0, hero.belongings.weapon().defenseFactor(this)/2);
+			return dr + Random.NormalIntRange(0, hero.belongings.weapon().defenseFactor(this)/2);
 		} else {
 			return dr;
 		}
@@ -181,14 +182,14 @@ public class MirrorImage extends NPC {
 	}
 	
 	@Override
-	public CharSprite sprite() {
-		CharSprite s = super.sprite();
+	public CharSprite createSprite() {
+		CharSprite s = super.createSprite();
 		
 		hero = (Hero)Actor.findById(heroID);
 		if (hero != null) {
 			armTier = hero.tier();
-			((MirrorSprite)s).updateArmor( hero );
 		}
+		((MirrorSprite)s).updateArmor( hero );
 		return s;
 	}
 
@@ -196,7 +197,7 @@ public class MirrorImage extends NPC {
 	public boolean shouldSpriteBeVisible() {
 		return Dungeon.level.heroFOV[pos];
 	}
-	
+
 	{
 		immunities.add( ToxicGas.class );
 		immunities.add( CorrosiveGas.class );

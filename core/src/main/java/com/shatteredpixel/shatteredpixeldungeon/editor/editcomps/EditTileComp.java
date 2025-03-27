@@ -7,6 +7,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.WellWater;
 import com.shatteredpixel.shatteredpixeldungeon.editor.CoinDoor;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Sign;
+import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.TileVarianceSpinner;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.WellWaterSpinner;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.transitions.TransitionEditPart;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.FindInBag;
@@ -25,18 +26,23 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.ActionPart;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.Undo;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.BlobActionPart;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.SignActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ContainerWithLabel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledCheckBox;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.Spinner;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerIntegerModel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.Consumer;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
+import com.shatteredpixel.shatteredpixeldungeon.levels.CavesBossLevel;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
 import com.shatteredpixel.shatteredpixeldungeon.levels.features.LevelTransition;
+import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.quest.RitualSiteRoom;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.special.MagicalFireRoom;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.DungeonScene;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.CustomTilemap;
+import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTileSheet;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollingListPane;
@@ -57,18 +63,34 @@ public class EditTileComp extends DefaultEditComp<TileItem> {
     private RedButton addTransition;
     private RedButton editSignText;
     private StyledCheckBox signBurnOnRead;
+    private StyledCheckBox gateBroken;
     private WellWaterSpinner wellWaterSpinner;
     private EditBlobComp.VolumeSpinner volumeSpinner;
     private EditBlobComp.SacrificialFirePrize sacrificialFirePrize;
     private Spinner coinDoorCost;
+    private TileVarianceSpinner tileVariance;
 
     private List<ScrollingListPane.ListItem> customParticles;
+
+    //for custom tiles
+    private ContainerWithLabel.ForMobs summonMobs;
 
     public EditTileComp(TileItem item) {
         super(item);
 
         final int cell = item.cell();
         if (cell != -1) {
+            
+            if (TileVarianceSpinner.numVariantsForTerrain(Dungeon.level.visualMap[cell]) > 1) {
+                tileVariance = new TileVarianceSpinner(Dungeon.level.visualMap[cell], cell);
+                tileVariance.addChangeListener(() -> {
+                    Dungeon.level.setTileVarianceAt(cell, (int) tileVariance.getValue());
+                    DungeonScene.updateMap(cell);
+                    updateObj();
+                });
+                add(tileVariance);
+            }
+            
             if (TileItem.isEntranceTerrainCell(item.terrainType()) || TileItem.isExitTerrainCell(item.terrainType())) {
 
                 addTransition = new RedButton(Messages.get(EditTileComp.class, "add_transition"), 9) {
@@ -203,6 +225,26 @@ public class EditTileComp extends DefaultEditComp<TileItem> {
                 }
             }
 
+            CustomTilemapAndPosWrapper customTileWrapper = findCustomTile();
+            if (customTileWrapper != null) {
+                CustomTilemap customTile = customTileWrapper.customTilemap;
+                if (customTile instanceof RitualSiteRoom.RitualMarker) {
+                    RitualSiteRoom.RitualMarker marker = (RitualSiteRoom.RitualMarker) customTile;
+                    summonMobs = new ContainerWithLabel.ForMobs(marker.summons, this, EditMobComp.label("summon_mob"));
+                    add(summonMobs);
+                }
+                if (customTile instanceof CavesBossLevel.MetalGate) {
+                    CavesBossLevel.MetalGate gate = (CavesBossLevel.MetalGate) customTile;
+                    gateBroken = new StyledCheckBox(Messages.get(EditCustomTileComp.class, "broken"));
+                    gateBroken.checked(gate.isBroken());
+                    gateBroken.addChangeListener(v -> {
+                        gate.setBroken(v);
+                        updateObj();
+                    });
+                    add(gateBroken);
+                }
+            }
+
         }
 
         if (item.terrainType() == Terrain.COIN_DOOR) {
@@ -233,29 +275,46 @@ public class EditTileComp extends DefaultEditComp<TileItem> {
         transitionEdit = addTransition(obj.terrainType(), transition, Dungeon.level.levelScheme, t -> {
             Dungeon.level.transitions.remove(transition.cell());
             EditorScene.remove(transition);
-        });
+        }, this::updateObj);
         add(transitionEdit);
         addTransition.setVisible(false);
 
         layout();
         updateObj();//for resize
     }
-
+    
+    @Override
+    public void updateObj() {
+        if (obj.cell() != -1) {
+            obj.image = DungeonTileSheet.getVisualForSpinner(obj.terrainType(), Dungeon.level.getTileVarianceAt(obj.cell()));
+        }
+        super.updateObj();
+    }
+    
     public static TransitionEditPart addTransition(int terrainType, LevelTransition transition,
-                                                   LevelScheme levelScheme, Consumer<LevelTransition> deleteTransition) {
+                                                   LevelScheme levelScheme, Consumer<LevelTransition> deleteTransition, Runnable updateParent) {
         String suggestion;
-        if (TileItem.isEntranceTerrainCell(terrainType))
+        if (transition.destLevel != null) {
+            suggestion = transition.destLevel;
+        }
+        else if (TileItem.isEntranceTerrainCell(terrainType)) {
             suggestion = levelScheme.getDefaultAbove();
+        }
         else {
             suggestion = levelScheme.getChasm();
             if (suggestion == null) suggestion = levelScheme.getDefaultBelow();
         }
-        if (transition.destLevel != null) suggestion = transition.destLevel;
-        return new TransitionEditPart(transition, EditorUtilies.getLevelScheme(suggestion), terrainType == -12345 ? null : !TileItem.isEntranceTerrainCell(terrainType),
+        
+        return new TransitionEditPart(transition, EditorUtilities.getLevelScheme(suggestion), terrainType == -12345 ? null : !TileItem.isEntranceTerrainCell(terrainType),
                 levelScheme.getDepth()) {
             @Override
             protected void deleteTransition(LevelTransition transition) {
                 deleteTransition.accept(transition);
+            }
+            
+            @Override
+            protected void layoutParent() {
+                updateParent.run();
             }
         };
     }
@@ -263,13 +322,22 @@ public class EditTileComp extends DefaultEditComp<TileItem> {
     @Override
     protected void layout() {
         super.layout();
-        layoutCompsInRectangles(signBurnOnRead);
+        layoutOneRectCompInRow(tileVariance);
+        layoutCompsInRectangles(signBurnOnRead, gateBroken);
         layoutCompsLinear(//transitionEdit is later instantiated
-                transitionEdit, addTransition, editSignText, wellWaterSpinner, volumeSpinner, sacrificialFirePrize, coinDoorCost
+                transitionEdit, addTransition, editSignText, wellWaterSpinner, volumeSpinner, sacrificialFirePrize, summonMobs, coinDoorCost
         );
         if (customParticles != null && !customParticles.isEmpty()) {
-            layoutCompsLinear(customParticles.toArray(EditorUtilies.EMPTY_COMP_ARRAY));
+            layoutCompsLinear(customParticles.toArray(EditorUtilities.EMPTY_COMP_ARRAY));
         }
+    }
+
+    @Override
+    protected void updateStates() {
+        super.updateStates();
+        
+        if (gateBroken != null) gateBroken.checked(((CavesBossLevel.MetalGate) obj.getObject()).isBroken());
+        if (summonMobs != null) summonMobs.updateState(((RitualSiteRoom.RitualMarker) obj.getObject()).summons);
     }
 
     protected static final class CustomTilemapAndPosWrapper {
@@ -355,11 +423,11 @@ public class EditTileComp extends DefaultEditComp<TileItem> {
 
         //TODO make own statistic page
         if (obj.terrainType() == Terrain.LOCKED_DOOR || obj.terrainType() == Terrain.SECRET_LOCKED_DOOR)
-            desc = EditorUtilies.addIronKeyDescription(desc, level);
+            desc = EditorUtilities.addIronKeyDescription(desc, level);
         else if (obj.terrainType() == Terrain.CRYSTAL_DOOR || obj.terrainType() == Terrain.SECRET_CRYSTAL_DOOR)
-            desc = EditorUtilies.addCrystalKeyDescription(desc, level);
-        else if (obj.terrainType() == Terrain.LOCKED_EXIT) desc = EditorUtilies.addSkeletonKeyDescription(desc, level);
-        else if (obj.terrainType() == Terrain.COIN_DOOR) desc = EditorUtilies.addCoinDoorDescription(desc, level);
+            desc = EditorUtilities.addCrystalKeyDescription(desc, level);
+        else if (obj.terrainType() == Terrain.LOCKED_EXIT) desc = EditorUtilities.addSkeletonKeyDescription(desc, level);
+        else if (obj.terrainType() == Terrain.COIN_DOOR) desc = EditorUtilities.addCoinDoorDescription(desc, level);
 
         if (obj.cell() >= 0) {
             for (Blob blob : Dungeon.level.blobs.values()) {

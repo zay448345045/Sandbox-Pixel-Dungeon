@@ -108,6 +108,16 @@ public class StyledButton extends Button {
 
 	}
 	
+	public float getMinimumHeight(float width) {
+		if (icon == null) {
+			if (multiline) text.maxWidth((int) (width - bg.marginHor() - 2));
+			return text.height() + bg.marginVer();
+		} else {
+			if (multiline) text.maxWidth((int) (width - bg.marginHor() - 2 - icon.width() - 2));
+			return Math.max(icon.height(), text.height()) + bg.marginVer();
+		}
+	}
+	
 	@Override
 	protected void onPointerDown() {
 		bg.brightness( 1.2f );
@@ -158,9 +168,14 @@ public class StyledButton extends Button {
 	}
 
 	public void alpha(float value){
-		if (icon != null) icon.alpha(value);
-		if (bg != null)   bg.alpha(value);
-		if (text != null) text.alpha(value);
+		if (icon != null)   icon.alpha(value);
+		if (bg != null)     bg.alpha(value);
+		if (text != null)   text.alpha(value);
+	}
+
+	public float alpha(){
+		if (icon != null)   return icon.alpha();
+		else                return bg.alpha();
 	}
 	
 	public float reqWidth() {

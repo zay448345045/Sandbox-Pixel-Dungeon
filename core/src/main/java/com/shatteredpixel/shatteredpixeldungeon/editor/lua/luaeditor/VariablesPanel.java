@@ -24,8 +24,9 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.editor.lua.luaeditor;
 
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.LuaManager;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.LuaManager;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.watabou.NotAllowedInLua;
 import com.watabou.idewindowactions.CodeInputPanelInterface;
 import com.watabou.idewindowactions.LuaScript;
 import org.luaj.vm2.LuaTable;
@@ -34,6 +35,7 @@ import org.luaj.vm2.LuaValue;
 import java.util.ArrayList;
 import java.util.List;
 
+@NotAllowedInLua
 public class VariablesPanel extends CodeInputPanel {
 
 	private final String tableName;
@@ -41,6 +43,10 @@ public class VariablesPanel extends CodeInputPanel {
 	public VariablesPanel(String label, String tableName) {
 		title.text(label);
 		this.tableName = tableName;
+		
+		adder.setVisible(false);
+		remover.setVisible(false);
+		expandAndFold.setVisible(true);
 	}
 
 
@@ -66,8 +72,7 @@ public class VariablesPanel extends CodeInputPanel {
 		adder.setVisible(false);
 		remover.setVisible(false);
 
-		fold.setVisible(false);
-		expand.setVisible(true);
+		expanded = false;
 
 		layoutParent();
 	}
@@ -164,8 +169,7 @@ public class VariablesPanel extends CodeInputPanel {
 	public void setCode(boolean forceChange, String code) {
 		super.setCode(forceChange, code);
 		if (textInputText != null) {
-			expand.setVisible(body == null);
-			fold.setVisible(body != null);
+			expanded = body != null;
 
 			adder.setVisible(false);
 			remover.setVisible(false);

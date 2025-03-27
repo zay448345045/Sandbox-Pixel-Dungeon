@@ -27,6 +27,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.mobs.ItemSelectables;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomLevel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ItemSelector;
 import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
 import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.RatSkull;
@@ -123,7 +124,7 @@ public class Statue extends Mob implements MobBasedOnDepth, ItemSelectables.Weap
 			} else {
 				weapon = (MeleeWeapon) Generator.randomUsingDefaults(Generator.Category.WEAPON);
 			}
-			levelGenStatue = useDecks;
+			levelGenStatue = useDecks || Dungeon.level instanceof CustomLevel;
 			weapon.cursed = false;
 			weapon.enchant(Enchantment.random());
 		}
@@ -142,15 +143,6 @@ public class Statue extends Mob implements MobBasedOnDepth, ItemSelectables.Weap
 		super.restoreFromBundle( bundle );
 		weapon = (Weapon)bundle.get( WEAPON );
 	}
-	
-	@Override
-	protected boolean act() {
-		if (levelGenStatue && Dungeon.level.visited[pos]) {
-			Notes.add( Notes.Landmark.STATUE );
-		}
-		return super.act();
-	}
-	
 	@Override
 	public int damageRoll() {
 		return (int) (weapon.damageRoll(this) * statsScale);
@@ -173,7 +165,7 @@ public class Statue extends Mob implements MobBasedOnDepth, ItemSelectables.Weap
 
 	@Override
 	public int drRoll() {
-		return super.drRoll() + Char.combatRoll(0, Dungeon.depth + weapon.defenseFactor(this));
+		return super.drRoll() + Random.NormalIntRange(0, Dungeon.depth + weapon.defenseFactor(this));
 	}
 
 	@Override
@@ -221,9 +213,14 @@ public class Statue extends Mob implements MobBasedOnDepth, ItemSelectables.Weap
 	}
 
 	@Override
+	public Notes.Landmark landmark() {
+		return levelGenStatue ? Notes.Landmark.STATUE : null;
+	}
+
+	@Override
 	public void destroy() {
-		if (levelGenStatue && !CustomDungeon.isEditing()) {
-			Notes.remove( Notes.Landmark.STATUE );
+		if (landmark() != null) {
+			Notes.remove( landmark() );
 		}
 		super.destroy();
 	}
@@ -235,14 +232,17 @@ public class Statue extends Mob implements MobBasedOnDepth, ItemSelectables.Weap
 
 	@Override
 	public boolean reset() {
-		state = PASSIVE;
 		return true;
 	}
 
 	@Override
-	public String description() {
-		if (customDesc != null) return super.description();
-		return Messages.get(this, "desc", weapon == null ? "___" : weapon().name());
+	public String desc() {
+		if (customDesc != null) return super.desc();
+		String desc = Messages.get(this, "desc");
+		if (weapon != null || CustomDungeon.isEditing()){
+			desc += "\n\n" + Messages.get(this, "desc_weapon", weapon == null ? "___" : weapon().name());
+		}
+		return desc;
 	}
 
 	{

@@ -9,6 +9,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Invisibility;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MindVision;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelScheme;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelSchemeLike;
@@ -19,7 +20,11 @@ import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfMagicMappi
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.levels.features.LevelTransition;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
-import com.shatteredpixel.shatteredpixeldungeon.scenes.*;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.CellSelector;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.HeroSelectScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.InterlevelScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.scrollofdebug.WndScrollOfDebug;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Button;
 import com.watabou.noosa.Camera;
@@ -47,7 +52,7 @@ public class SideControlPane extends Component {
             buttons[0] = new StartBtn();
             buttons[1] = new PipetteBtn();
             buttons[2] = new FillBtn();
-            buttons[3] = new ToggleZoneViewBtn();
+            if (!EditorScene.isEditingRoomLayout) buttons[3] = new ToggleZoneViewBtn();
         } else {
             buttons = new SideControlButton[9];
             buttons[0] = new ExitBtn();
@@ -62,7 +67,8 @@ public class SideControlPane extends Component {
         }
 
         for (Component button : buttons) {
-            add(button);
+            if (button != null)
+                add(button);
         }
     }
 
@@ -81,9 +87,11 @@ public class SideControlPane extends Component {
 
         float posY = y;
         for (int i = 0; i < buttons.length; i++) {
-            buttons[i].setPos(x, posY);
-            PixelScene.align(buttons[i]);
-            posY = buttons[i].bottom();
+            if (buttons[i] != null && buttons[i].visible) {
+                buttons[i].setPos(x, posY);
+                PixelScene.align(buttons[i]);
+                posY = buttons[i].bottom();
+            }
         }
         width = WIDTH;
         height = posY - y;
@@ -165,7 +173,7 @@ public class SideControlPane extends Component {
 
         @Override
         protected String hoverText() {
-            return Messages.titleCase(Messages.get(this, "label"));//tzz
+            return Messages.titleCase(Messages.get(this, "label"));
         }
     }
 
@@ -256,6 +264,9 @@ public class SideControlPane extends Component {
         @Override
         protected void onClick() {
 //          GameScene.scene.destroy(); ???
+
+            CustomObjectManager.loadUserContentFromFiles();
+
             EditorScene.start();
             EditorScene.openDifferentLevel = false;
             WndSelectDungeon.openDungeon(Dungeon.customDungeon.getName());
@@ -329,6 +340,7 @@ public class SideControlPane extends Component {
             else {
                 Buff b = Dungeon.hero.buff(Invisibility.class);
                 if (b != null) b.detach();
+                Dungeon.hero.invisible = 0;
             }
         }
     }

@@ -6,7 +6,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.TrapItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ItemsWithChanceDistrComp;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.KindofMisc;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.Armor;
@@ -111,7 +111,7 @@ public interface RandomItem<T extends GameObject> {
     class RandomItemAny extends Item implements RandomItem<Item> {
 
         {
-            image = ItemSpriteSheet.SOMETHING;
+            image = ItemSpriteSheet.RANDOM_ITEM;
         }
 
         //can only have one item per slot, and no RandomItem
@@ -146,7 +146,7 @@ public interface RandomItem<T extends GameObject> {
             if (Random.Float() >= internalRandomItem.lootChance()) return null;
             List<Item> result = internalRandomItem.generateLoot();
             if (result == null || result.isEmpty()) return null;
-            Item[] array = result.toArray(EditorUtilies.EMPTY_ITEM_ARRAY);
+            Item[] array = result.toArray(EditorUtilities.EMPTY_ITEM_ARRAY);
             if (reservedQuickslot > 0 && array[0].defaultAction() != null && !(array[0] instanceof Key))
                 array[0].reservedQuickslot = reservedQuickslot;
             return array;
@@ -182,7 +182,7 @@ public interface RandomItem<T extends GameObject> {
     class RandomWeapon extends Weapon implements RandomItem<Weapon> {
 
         {
-            image = ItemSpriteSheet.SOMETHING;
+            image = ItemSpriteSheet.RANDOM_ITEM;
         }
 
         //can only have one item per slot, and no RandomItem
@@ -262,7 +262,7 @@ public interface RandomItem<T extends GameObject> {
     class RandomMeleeWeapon extends MeleeWeapon implements RandomItem<MeleeWeapon> {
 
         {
-            image = ItemSpriteSheet.SOMETHING;
+            image = ItemSpriteSheet.RANDOM_ITEM;
         }
 
         //can only have one item per slot, and no RandomItem
@@ -327,7 +327,7 @@ public interface RandomItem<T extends GameObject> {
     class RandomArmor extends Armor implements RandomItem<Armor> {
 
         {
-            image = ItemSpriteSheet.SOMETHING;
+            image = ItemSpriteSheet.RANDOM_ITEM;
         }
 
         //can only have one item per slot, and no RandomItem
@@ -396,7 +396,7 @@ public interface RandomItem<T extends GameObject> {
     class RandomRing extends Ring implements RandomItem<Ring> {
 
         {
-            image = ItemSpriteSheet.SOMETHING;
+            image = ItemSpriteSheet.RANDOM_ITEM;
         }
 
         //can only have one item per slot, and no RandomItem
@@ -467,7 +467,7 @@ public interface RandomItem<T extends GameObject> {
     class RandomArtifact extends Artifact implements RandomItem<Artifact> {
 
         {
-            image = ItemSpriteSheet.SOMETHING;
+            image = ItemSpriteSheet.RANDOM_ITEM;
         }
 
         //can only have one item per slot, and no RandomItem
@@ -533,7 +533,7 @@ public interface RandomItem<T extends GameObject> {
     class RandomEqMiscItem extends KindofMisc implements RandomItem<KindofMisc> {
 
         {
-            image = ItemSpriteSheet.SOMETHING;
+            image = ItemSpriteSheet.RANDOM_ITEM;
         }
 
         //can only have one item per slot, and no RandomItem
@@ -603,7 +603,7 @@ public interface RandomItem<T extends GameObject> {
     class RandomWand extends Wand implements RandomItem<Wand> {
 
         {
-            image = ItemSpriteSheet.SOMETHING;
+            image = ItemSpriteSheet.RANDOM_ITEM;
         }
 
         //can only have one item per slot, and no RandomItem
@@ -687,7 +687,7 @@ public interface RandomItem<T extends GameObject> {
     class RandomBag extends Bag implements RandomItem<Bag> {
 
         {
-            image = ItemSpriteSheet.SOMETHING;
+            image = ItemSpriteSheet.RANDOM_ITEM;
         }
 
         //can only have one item per slot, and no RandomItem
@@ -752,7 +752,7 @@ public interface RandomItem<T extends GameObject> {
     class RandomTrinket extends Trinket implements RandomItem<Trinket> {
 
         {
-            image = ItemSpriteSheet.SOMETHING;
+            image = ItemSpriteSheet.RANDOM_ITEM;
         }
 
         //can only have one item per slot, and no RandomItem
@@ -815,6 +815,11 @@ public interface RandomItem<T extends GameObject> {
         @Override
         protected int upgradeEnergyCost() {
             return 0;
+        }
+
+        @Override
+        public String statsDesc() {
+            return "";
         }
     }
 
@@ -885,14 +890,17 @@ public interface RandomItem<T extends GameObject> {
         @Override
         public ModifyResult initRandoms() {
             //super already assigns the values
-            return overrideResult(super.initRandoms(), trap -> {
+            ModifyResult result = overrideResult(super.initRandoms(), trap -> {
                 Trap t = (Trap) trap;
                 t.pos = pos;
                 Dungeon.level.setTrap(t, t.pos);
-                Dungeon.level.map[t.pos] = t.visible ? Terrain.TRAP : Terrain.SECRET_TRAP;
-                Dungeon.level.secret[t.pos] = !t.visible;
+                Dungeon.level.setTerrain(t.pos, t.visible ? Terrain.TRAP : Terrain.SECRET_TRAP);
                 return true;
             });
+            if (ModifyResult.isRemovingFully(result)) {
+                Dungeon.level.setTerrain(pos, Terrain.EMPTY);
+            }
+            return result;
         }
     }
 }

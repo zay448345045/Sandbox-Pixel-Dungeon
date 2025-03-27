@@ -21,7 +21,14 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.scenes;
 
-import com.shatteredpixel.shatteredpixeldungeon.*;
+import com.shatteredpixel.shatteredpixeldungeon.Assets;
+import com.shatteredpixel.shatteredpixeldungeon.Badges;
+import com.shatteredpixel.shatteredpixeldungeon.Chrome;
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
+import com.shatteredpixel.shatteredpixeldungeon.Rankings;
+import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
+import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.effects.BannerSprites;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Fireball;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Document;
@@ -33,6 +40,7 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.StyledButton;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndError;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndHardNotification;
+import com.watabou.NotAllowedInLua;
 import com.watabou.glwrap.Blending;
 import com.watabou.input.ControllerHandler;
 import com.watabou.noosa.Camera;
@@ -43,10 +51,17 @@ import com.watabou.noosa.audio.Music;
 import com.watabou.utils.FileUtils;
 
 import java.util.Collections;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+@NotAllowedInLua
 public class WelcomeScene extends PixelScene {
 
-	private static final int LATEST_UPDATE = SandboxPixelDungeon.v2_4_0;
+	private static final int LATEST_UPDATE = SandboxPixelDungeon.v3_0_0;
 
 	//used so that the game does not keep showing the window forever if cleaning fails
 	private static boolean triedCleaningTemp = false;
@@ -77,6 +92,9 @@ public class WelcomeScene extends PixelScene {
 		if (SandboxPixelDungeon.versionCode != previousVersion && previousVersion > 0){
 			updateVersion(previousVersion);
 		}
+		
+		loadGamesInProgress();
+		
 		if (SandboxPixelDungeon.versionCode == previousVersion && !SPDSettings.intro() || true) {
 			SandboxPixelDungeon.switchNoFade(TitleScene.class);
 			return;
@@ -159,6 +177,8 @@ public class WelcomeScene extends PixelScene {
 
 		float buttonY = Math.min(topRegion + (PixelScene.landscape() ? 60 : 120), h - 24);
 
+		float buttonAreaWidth = landscape() ? PixelScene.MIN_WIDTH_L-6 : PixelScene.MIN_WIDTH_P-2;
+		float btnAreaLeft = (Camera.main.width - buttonAreaWidth) / 2f;
 		if (previousVersion != 0 && !SPDSettings.intro()){
 			StyledButton changes = new StyledButton(Chrome.Type.GREY_BUTTON_TR, Messages.get(TitleScene.class, "changes")){
 				@Override
@@ -168,15 +188,15 @@ public class WelcomeScene extends PixelScene {
 					SandboxPixelDungeon.switchScene(ChangesScene.class);
 				}
 			};
-			okay.setRect(title.x, buttonY, (title.width()/2)-2, 20);
+			okay.setRect(btnAreaLeft, buttonY, (buttonAreaWidth/2)-1, 20);
 			add(okay);
 
-			changes.setRect(okay.right()+2, buttonY, (title.width()/2)-2, 20);
+			changes.setRect(okay.right()+1, buttonY, okay.width(), 20);
 			changes.icon(Icons.get(Icons.CHANGES));
 			add(changes);
 		} else {
 			okay.text(Messages.get(TitleScene.class, "enter"));
-			okay.setRect(title.x, buttonY, title.width(), 20);
+			okay.setRect(btnAreaLeft, buttonY, buttonAreaWidth, 20);
 			okay.icon(Icons.get(Icons.ENTER));
 			add(okay);
 		}
@@ -193,7 +213,7 @@ public class WelcomeScene extends PixelScene {
 				//TODO: change the messages here in accordance with the type of patch.
 				message = Messages.get(this, "patch_intro");
 				message += "\n";
-				message += "\n" + Messages.get(this, "patch_balance");
+				//message += "\n" + Messages.get(this, "patch_balance");
 				message += "\n" + Messages.get(this, "patch_bugfixes");
 				message += "\n" + Messages.get(this, "patch_translations");
 
@@ -204,8 +224,9 @@ public class WelcomeScene extends PixelScene {
 		}
 
 		text.text(message, Math.min(w-20, 300));
-		float textSpace = okay.top() - topRegion - 4;
-		text.setPos((w - text.width()) / 2f, (topRegion + 2) + (textSpace - text.height())/2);
+		float titleBottom = title.y + title.height();
+		float textSpace = okay.top() - titleBottom - 4;
+		text.setPos((w - text.width()) / 2f, (titleBottom + 2) + (textSpace - text.height())/2);
 		add(text);
 
 		if (SPDSettings.intro() && ControllerHandler.isControllerConnected()){
@@ -221,7 +242,7 @@ public class WelcomeScene extends PixelScene {
 			});
 		}
 	}
-
+	
 	private void placeTorch( float x, float y ) {
 		Fireball fb = new Fireball();
 		fb.setPos( x, y );
@@ -275,8 +296,26 @@ public class WelcomeScene extends PixelScene {
 			Journal.saveGlobal(true);
 
 		}
+		
+		GamesInProgress.moveOldSavesToNewLocation();
 
 		SPDSettings.version(SandboxPixelDungeon.versionCode);
+	}
+	
+	private void loadGamesInProgress() {
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		
+		Future<Boolean> generator = executor.submit(() -> {
+			GamesInProgress.checkAll();
+			return true;
+		});
+		
+		try {
+			// Wait for 20 seconds
+			generator.get(20, TimeUnit.SECONDS);
+		} catch (InterruptedException | ExecutionException | TimeoutException ex) {
+			Game.reportException(ex);
+		}
 	}
 	
 }

@@ -2,9 +2,11 @@
 -keepnames class com.shatteredpixel.** { *; }
 -keepnames class com.watabou.** { *; }
 
-# keep members of classes that are instantiated via reflection
--keepclassmembers class * extends com.watabou.glscripts.Script
--keepclassmembers class * implements com.watabou.utils.Bundlable
+-keep class net.bytebuddy.** { *; }
+
+# keep classes that are instantiated via reflection
+-keep class * extends com.watabou.glscripts.Script
+-keep class * implements com.watabou.utils.Bundlable
 
 # retained to support meaningful stack traces
 # note that the mapping file must be referenced in order to make sense of line numbers
@@ -29,7 +31,8 @@
     public <methods>;
 }
 -keepclassmembers class * {
-    @com.shatteredpixel.shatteredpixeldungeon.editor.lua.KeepProguard *;
+    @com.shatteredpixel.shatteredpixeldungeon.editor.lua.annotations.KeepProguard *;
+    public static final *;
 }
 
 # libGDX stuff
@@ -60,6 +63,43 @@
     float   reportRayFixture(long, float, float, float, float, float);
 }
 
+
+#Byte Buddy
+-keepclassmembers class * {
+    @net.bytebuddy.implementation.bind.annotation.RuntimeType *;
+}
+-keep class net.bytebuddy.implementation.bind.annotation.** {
+    public <fields>;
+    public <methods>;
+}
+-keep class com.android.dx.cf.direct.DirectClassFile {
+    public <fields>;
+    public <methods>;
+}
+-keep class com.android.dx.cf.direct.StdAttributeFactory {
+    public <fields>;
+    public <methods>;
+}
+-keep class com.android.dx.dex.DexOptions {
+    public <fields>;
+    public <methods>;
+}
+-keep class com.android.dx.dex.cf.CfOptions {
+    public <fields>;
+    public <methods>;
+}
+-keep class com.android.dx.dex.cf.CfTranslator {
+    public <fields>;
+    public <methods>;
+}
+-keep class com.android.dx.dex.file.ClassDefItem {
+    public <fields>;
+    public <methods>;
+}
+-keep class com.android.dx.dex.file.DexFile {
+    public <fields>;
+    public <methods>;
+}
 
 
 #The Android Gradle plugin said I should add this, and because it wouldn't work otherwise, I added this without knowing why it is necessary...
@@ -111,3 +151,24 @@
 -dontwarn org.apache.bcel.generic.ReturnInstruction
 -dontwarn org.apache.bcel.generic.StackInstruction
 -dontwarn org.apache.bcel.generic.Type
+-dontwarn edu.umd.cs.findbugs.annotations.SuppressFBWarnings
+-dontwarn javax.annotation.Nonnull
+
+
+
+
+-dontwarn com.sun.jna.FunctionMapper
+-dontwarn com.sun.jna.JNIEnv
+-dontwarn com.sun.jna.Library
+-dontwarn com.sun.jna.Native
+-dontwarn com.sun.jna.NativeLibrary
+-dontwarn com.sun.jna.Platform
+-dontwarn java.lang.instrument.ClassDefinition
+-dontwarn java.lang.instrument.ClassFileTransformer
+-dontwarn java.lang.instrument.IllegalClassFormatException
+-dontwarn java.lang.instrument.Instrumentation
+-dontwarn java.lang.instrument.UnmodifiableClassException
+-dontwarn javax.annotation.meta.TypeQualifierDefault
+-dontwarn javax.annotation.meta.TypeQualifierNickname
+-dontwarn javax.annotation.meta.When
+-dontwarn com.sun.jna.LastErrorException

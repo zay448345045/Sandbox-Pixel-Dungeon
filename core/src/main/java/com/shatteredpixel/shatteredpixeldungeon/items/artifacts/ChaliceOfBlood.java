@@ -30,6 +30,7 @@ import com.shatteredpixel.shatteredpixeldungeon.effects.FloatingText;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.ShadowParticle;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.wands.WandOfLivingEarth;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Catalog;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.plants.Earthroot;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
@@ -96,7 +97,7 @@ public class ChaliceOfBlood extends Artifact {
 		}
 	}
 
-	private void prick(Hero hero){
+	protected void prick(Hero hero){
 		int damage = 5 + 3*(level()*level());
 
 		Earthroot.Armor armor = hero.buff(Earthroot.Armor.class);
@@ -130,6 +131,7 @@ public class ChaliceOfBlood extends Artifact {
 			GLog.n( Messages.get(this, "ondeath") );
 		} else {
 			upgrade();
+			Catalog.countUse(getClass());
 		}
 	}
 
@@ -145,7 +147,7 @@ public class ChaliceOfBlood extends Artifact {
 		super.level(value);
 	}
 
-	private void updateSprite(int level){
+	protected void updateSprite(int level){
 		if (level >= 6)
 			image = ItemSpriteSheet.ARTIFACT_CHALICE3;
 		else if (level >= 2)

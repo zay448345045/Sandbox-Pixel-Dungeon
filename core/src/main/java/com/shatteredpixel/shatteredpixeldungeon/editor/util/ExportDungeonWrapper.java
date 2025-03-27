@@ -3,11 +3,14 @@ package com.shatteredpixel.shatteredpixeldungeon.editor.util;
 import com.badlogic.gdx.files.FileHandle;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.EditorItemBag;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObject;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.EditorInventory;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomLevel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelScheme;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
+import com.watabou.NotAllowedInLua;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.FileUtils;
@@ -18,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@NotAllowedInLua
 public class ExportDungeonWrapper implements Bundlable {
 
     private CustomDungeon dungeon;
@@ -41,7 +45,7 @@ public class ExportDungeonWrapper implements Bundlable {
     @Override
     public void restoreFromBundle(Bundle bundle) {
 
-        EditorItemBag.callStaticInitializers();
+        EditorInventory.callStaticInitializers();
 
         dungeon = (CustomDungeon) bundle.get(DUNGEON);
         dungeonInfo = dungeon.createInfo();
@@ -100,28 +104,34 @@ public class ExportDungeonWrapper implements Bundlable {
         }
 
         FileHandle customTiles = FileUtils.getFileHandle(
-                CustomDungeonSaves.DUNGEON_FOLDER + dungeon.getName().replace(' ', '_') + "/" + CustomTileLoader.EXTRA_FILES);
+                CustomDungeonSaves.DUNGEON_FOLDER + dungeon.getName().replace(' ', '_') + "/" + CustomDungeonSaves.EXTRA_FILES);
         if (customTiles.exists() && customTiles.isDirectory() && customTiles.list().length > 0) {
             bundle.put(FILES, new AdditionalFileInfo(customTiles));
         }
     }
 
     public static CustomDungeonSaves.Info doImport(FileHandle file) {
+        CustomDungeonSaves.Info result = null;
         try {
+            CustomDungeonSaves.curDirectory = null;
             Bundle b = FileUtils.bundleFromStream(file.read());
-            if (b.contains(CustomDungeonSaves.EXPORT)) return ((ExportDungeonWrapper) b.get(CustomDungeonSaves.EXPORT)).doImport();
+            if (b.contains(CustomDungeonSaves.EXPORT)) {
+                result = ((ExportDungeonWrapper) b.get(CustomDungeonSaves.EXPORT)).doImport();
+            }
             else if (b.contains(CustomDungeonSaves.BUGGED)) {
                 AdditionalFileInfo mainFile = (AdditionalFileInfo) b.get(CustomDungeonSaves.BUGGED);
                 mainFile.doImport(CustomDungeonSaves.DUNGEON_FOLDER);
+                result = null;
             }
-            return null;
+            CustomDungeonSaves.curDirectory = null;
+            CustomObjectManager.loadUserContentFromFiles();
         } catch (IOException ex) {
             SandboxPixelDungeon.reportException(ex);
-            return null;
         }
+        return result;
     }
 
-    public CustomDungeonSaves.Info doImport() {
+    private CustomDungeonSaves.Info doImport() {
 
         if (dungeon.maybeFixIncorrectNameEnding()) {
             dungeonInfo.name += " ";
@@ -130,7 +140,8 @@ public class ExportDungeonWrapper implements Bundlable {
         try {
             FileUtils.setDefaultFileType(FileUtils.getFileTypeForCustomDungeons());
 
-            if (FileUtils.getFileHandle(CustomDungeonSaves.DUNGEON_FOLDER + dungeon.getName().replace(' ', '_')).exists()) return null;
+            FileHandle destDir = FileUtils.getFileHandle(CustomDungeonSaves.DUNGEON_FOLDER + dungeon.getName().replace(' ', '_'));
+            if (destDir.exists() && destDir.child(CustomDungeonSaves.LEVEL_FOLDER).exists()) return null;
 
             CustomDungeonSaves.saveDungeon(dungeon);
 
@@ -145,6 +156,10 @@ public class ExportDungeonWrapper implements Bundlable {
             if (customTiles != null) {
                 customTiles.doImport(
                         CustomDungeonSaves.DUNGEON_FOLDER + dungeon.getName().replace(' ', '_') + "/");
+            }
+            
+            for (CustomObject obj : CustomObjectManager.allUserContents.values()) {
+                CustomDungeonSaves.storeCustomObject(obj);
             }
 
             return dungeonInfo;

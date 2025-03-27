@@ -43,10 +43,17 @@ public abstract class ChampionEnemy extends Buff {
 
 	{
 		type = buffType.POSITIVE;
+		revivePersists = true;
 	}
 
 	protected int color;
-
+	
+	@Override
+	public void initAsInventoryItem() {
+		super.initAsInventoryItem();
+		permanent = false; //for description
+	}
+	
 	@Override
 	public int icon() {
 		return BuffIndicator.CORRUPT;
@@ -166,7 +173,7 @@ public abstract class ChampionEnemy extends Buff {
 					passable[ch.pos] = ch == target;
 				}
 
-				PathFinder.buildDistanceMap(enemy.pos, passable, 4);
+				PathFinder.buildDistanceMapForEnvironmentals(enemy.pos, passable, 4);
 
 				return PathFinder.distance[target.pos] <= 4;
 			}
@@ -213,7 +220,7 @@ public abstract class ChampionEnemy extends Buff {
 					passable[ch.pos] = ch == target;
 				}
 
-				PathFinder.buildDistanceMap(enemy.pos, passable, 2);
+				PathFinder.buildDistanceMapForEnvironmentals(enemy.pos, passable, 2);
 
 				return PathFinder.distance[target.pos] <= 2;
 			}

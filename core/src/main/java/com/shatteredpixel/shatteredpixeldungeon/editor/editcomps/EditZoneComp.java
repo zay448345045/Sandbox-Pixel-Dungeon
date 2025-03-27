@@ -3,7 +3,15 @@ package com.shatteredpixel.shatteredpixeldungeon.editor.editcomps;
 import com.shatteredpixel.shatteredpixeldungeon.Chrome;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Amok;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Blindness;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Dread;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Foresight;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Light;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalSight;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.SoulMark;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Terror;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.TileSprite;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.mobs.BuffListContainer;
@@ -14,7 +22,6 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.TileItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.other.PermaGas;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelScheme;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.Zone;
-import com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.WndEditorSettings;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.level.ChangeRegion;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.level.WndSelectMusic;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.level.ZoneMobSettings;
@@ -28,14 +35,19 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.ui.WndColorPicker;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerTextIconModel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerTextModel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.StyledSpinner;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
 import com.shatteredpixel.shatteredpixeldungeon.levels.features.LevelTransition;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.GnollSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.BuffIcon;
+import com.shatteredpixel.shatteredpixeldungeon.ui.BuffIndicator;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.StyledButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndGameInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptions;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndTextInput;
@@ -87,7 +99,7 @@ public class EditZoneComp extends DefaultEditComp<Zone> {
         StyledCheckBox teleportTo = new StyledCheckBox(Messages.get(EditZoneComp.class, "teleport_to"));
         teleportTo.checked(zone.canTeleportTo);
         teleportTo.addChangeListener(v -> zone.canTeleportTo = v);
-        Image teleIcon = EditorUtilies.createSubIcon(ItemSpriteSheet.Icons.SCROLL_TELEPORT);
+        Image teleIcon = EditorUtilities.createSubIcon(ItemSpriteSheet.Icons.SCROLL_TELEPORT);
         teleIcon.scale.set(ItemSpriteSheet.SIZE / Math.max(teleIcon.width(), teleIcon.height()));
         teleportTo.icon(teleIcon);
 
@@ -103,7 +115,7 @@ public class EditZoneComp extends DefaultEditComp<Zone> {
 
         StyledSpinner grassVisuals = new StyledSpinner(new SpinnerTextIconModel(true, zone.grassType.index, (Object[]) Zone.GrassType.values()) {
             @Override
-            protected Image getIcon(Object value) {
+            protected Image displayIcon(Object value) {
                 switch ((Zone.GrassType) value) {
                     case NONE:
                         return new Image();
@@ -136,7 +148,7 @@ public class EditZoneComp extends DefaultEditComp<Zone> {
             }
             @Override
             protected void onClick() {
-                SimpleWindow w = new SimpleWindow(WndEditorSettings.calclulateWidth(), WndEditorSettings.calclulateHeight());
+                SimpleWindow w = new SimpleWindow(Window.WindowSize.WIDTH_LARGE.get(), Window.WindowSize.HEIGHT_LARGE.get());
                 ZoneMobSettings ms = new ZoneMobSettings(zone);
                 w.initComponents(ms.createTitle(), ms, ms.getOutsideSp(), 0f, 0.5f);
                 EditorScene.show(w);
@@ -144,7 +156,7 @@ public class EditZoneComp extends DefaultEditComp<Zone> {
         };
         mobRotation.multiline = true;
 
-        Image icon = EditorUtilies.createSubIcon(ItemSpriteSheet.Icons.SCROLL_LULLABY);
+        Image icon = EditorUtilities.createSubIcon(ItemSpriteSheet.Icons.SCROLL_LULLABY);
         icon.scale.set(1.8f);
         String musicLabel = Messages.get(ChangeRegion.class, "music");
         StyledButton music = new StyledButtonWithIconAndText(Chrome.Type.GREY_BUTTON_TR, musicLabel) {
@@ -178,7 +190,7 @@ public class EditZoneComp extends DefaultEditComp<Zone> {
             List<String> zones = new ArrayList<>(chasm.zones);
             if (!zones.isEmpty()) Collections.sort(zones, (a, b) -> a.compareTo(b));
             zones.add(0, null);
-            data = zones.toArray(EditorUtilies.EMPTY_STRING_ARRAY);
+            data = zones.toArray(EditorUtilities.EMPTY_STRING_ARRAY);
             if (zone.chasmDestZone != null) {
                 index++;
                 for (; index < data.length; index++) {
@@ -290,7 +302,8 @@ public class EditZoneComp extends DefaultEditComp<Zone> {
         }
         add(chasmDest);
 
-        rename.visible = delete.visible = true;
+        rename.setVisible(true);
+        delete.setVisible(true);
     }
 
     @Override
@@ -301,7 +314,7 @@ public class EditZoneComp extends DefaultEditComp<Zone> {
     }
 
     private void addTransition(LevelTransition transition) {
-        transitionEdit = EditTileComp.addTransition(-12345, transition, Dungeon.level.levelScheme, t -> obj.zoneTransition = null);
+        transitionEdit = EditTileComp.addTransition(-12345, transition, Dungeon.level.levelScheme, t -> obj.zoneTransition = null, this::updateObj);
         add(transitionEdit);
         obj.zoneTransition = transition;
         addTransition.setVisible(false);
@@ -352,14 +365,14 @@ public class EditZoneComp extends DefaultEditComp<Zone> {
                 if (positive && !text.isEmpty()) {
                     for (String floorN : Dungeon.level.levelScheme.zones) {
                         if (floorN.equals(text)) {
-                            EditorUtilies.showDuplicateNameWarning();
+                            EditorUtilities.showDuplicateNameWarning();
                             return;
                         }
                     }
                     if (!text.equals(obj.getName())) {
                         Dungeon.customDungeon.renameZone(obj, text);
                         WndZones.WndSelectZone.updateList();
-                        Window oldW = EditorUtilies.getParentWindow(rename);
+                        Window oldW = EditorUtilities.getParentWindow(rename);
                         if (oldW != null) {
                             oldW.hide();
                             EditorScene.show(new EditCompWindow(obj));
@@ -380,7 +393,7 @@ public class EditZoneComp extends DefaultEditComp<Zone> {
             @Override
             protected void onSelect(int index) {
                 if (index == 0) {
-                    Window oldW = EditorUtilies.getParentWindow(delete);
+                    Window oldW = EditorUtilities.getParentWindow(delete);
                     if (oldW != null) {
                         oldW.hide();//important to hide before deletion
                     }

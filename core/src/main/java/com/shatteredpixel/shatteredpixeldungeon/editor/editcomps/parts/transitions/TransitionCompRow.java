@@ -2,6 +2,7 @@ package com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.transiti
 
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
+import com.shatteredpixel.shatteredpixeldungeon.editor.TileSprite;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.EditTileComp;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.TileItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelScheme;
@@ -9,13 +10,16 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.WndEditorSe
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.Undo;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.TileModify;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.FoldableCompWithAdd;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
 import com.shatteredpixel.shatteredpixeldungeon.levels.features.LevelTransition;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoCell;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.ui.Component;
 
+@NotAllowedInLua
 public class TransitionCompRow extends FoldableCompWithAdd {
 
     public static final int CELL_DEFAULT_ENTRANCE = -3, CELL_DEFAULT_EXIT = -4;
@@ -33,17 +37,33 @@ public class TransitionCompRow extends FoldableCompWithAdd {
             title.text(Messages.get(TransitionCompRow.class, cell == CELL_DEFAULT_ENTRANCE ? "entrance" : "exit"));
         else
             title.text(Messages.get(TransitionCompRow.class, (TileItem.isEntranceTerrainCell(levelScheme.getLevel().map[cell]) ? "entrance" : "exit"))
-                    + EditorUtilies.appendCellToString(cell, levelScheme.getLevel()));
+                    + EditorUtilities.appendCellToString(cell, levelScheme.getLevel()));
 
         LevelTransition transition;
         if (cell < 0) {
-            if (cell == CELL_DEFAULT_ENTRANCE)
-                transition = levelScheme.getEntranceTransitionRegular();
-            else transition = levelScheme.getExitTransitionRegular();
-        } else transition = levelScheme.getLevel().transitions.get(cell);
+			transition = cell == CELL_DEFAULT_ENTRANCE
+                    ? levelScheme.getEntranceTransitionRegular()
+                    : levelScheme.getExitTransitionRegular();
+        } else {
+            transition = levelScheme.getLevel().transitions.get(cell);
+        }
+        if (cell < 0 || levelScheme.getLevel() != Dungeon.level || levelScheme.getLevel() == null) {
+            icon = cell == CELL_DEFAULT_ENTRANCE
+                    ? new TileSprite(Level.tilesTex(levelScheme), Terrain.ENTRANCE)
+                    : new TileSprite(Level.tilesTex(levelScheme), Terrain.EXIT);
+        } else {
+            icon = WndInfoCell.cellImage(levelScheme.getLevel(), cell);
+        }
+        
+        if (icon != null) {
+            icon.scale.set(BUTTON_HEIGHT / icon.height());
+            add(icon);
+        }
         if (transition != null) {
             onAdd(transition, false);
             showBody(transition.showDetailsInEditor);
+        } else {
+            expandAndFold.setVisible(false);
         }
 
         if (saveForUndo) tileModify = new TileModify(transition, cell);
@@ -87,9 +107,11 @@ public class TransitionCompRow extends FoldableCompWithAdd {
     protected Component createBody(Object param) {
 
         int terrainType;
-        if (cell < 0)
+        if (cell < 0) {
             terrainType = cell == CELL_DEFAULT_ENTRANCE ? Terrain.ENTRANCE : Terrain.EXIT;
-        else terrainType = levelScheme.getLevel().map[cell];
+        } else {
+            terrainType = levelScheme.getLevel().map[cell];
+        }
 
         LevelTransition transition = (LevelTransition) param;
 
@@ -106,7 +128,7 @@ public class TransitionCompRow extends FoldableCompWithAdd {
                 if (levelScheme.getLevel() == Dungeon.level)
                     EditorScene.remove(transition);
             }
-        });
+        }, this::layoutParent);
     }
 
     @Override

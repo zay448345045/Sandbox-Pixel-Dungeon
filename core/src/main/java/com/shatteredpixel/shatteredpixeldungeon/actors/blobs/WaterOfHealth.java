@@ -22,7 +22,8 @@
 package com.shatteredpixel.shatteredpixeldungeon.actors.blobs;
 
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
-import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Healing;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Hunger;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.effects.BlobEmitter;
@@ -36,6 +37,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.Waterskin;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfHealing;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfRemoveCurse;
+import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.VialOfBlood;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Notes.Landmark;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
@@ -55,13 +57,19 @@ public class WaterOfHealth extends WellWater {
 		hero.belongings.uncurseEquipped();
 		hero.buff( Hunger.class ).satisfy( Hunger.STARVING );
 
-		hero.HP = hero.HT;
-		hero.sprite.emitter().start( Speck.factory( Speck.HEALING ), 0.4f, 4 );
-		hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(hero.HT), FloatingText.HEALING);
+		if (VialOfBlood.delayBurstHealing(hero)){
+			Healing healing = Buff.affect(hero, Healing.class);
+			healing.setHeal(hero.HT, 0, VialOfBlood.maxHealPerTurn(hero));
+			healing.applyVialEffect();
+		} else {
+			hero.HP = hero.HT;
+			hero.sprite.emitter().start(Speck.factory(Speck.HEALING), 0.4f, 4);
+			hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(hero.HT), FloatingText.HEALING);
+		}
 		
 		CellEmitter.get( hero.pos ).start( ShaftParticle.FACTORY, 0.2f, 3 );
 
-		Dungeon.hero.interrupt();
+		hero.interrupt();
 	
 		GLog.p( Messages.get(this, "procced") );
 		
@@ -91,14 +99,14 @@ public class WaterOfHealth extends WellWater {
 	}
 	
 	@Override
-	protected Landmark record() {
+	public Landmark landmark() {
 		return Landmark.WELL_OF_HEALTH;
 	}
 	
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.start( Speck.factory( Speck.HEALING ), 0.5f, 0 );
+		emitter.pour( Speck.factory( Speck.HEALING ), 0.5f );
 	}
 	
 	@Override

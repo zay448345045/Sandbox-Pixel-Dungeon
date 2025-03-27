@@ -3,10 +3,18 @@ package com.shatteredpixel.shatteredpixeldungeon.editor.editcomps;
 import com.shatteredpixel.shatteredpixeldungeon.Chrome;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.CustomGameObjectClass;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.ReorderHeapComp;
+import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.customizables.ChangeCustomizable;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.customizables.ChangeItemCustomizable;
-import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.items.*;
+import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.items.AugmentationSpinner;
+import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.items.ChargeSpinner;
+import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.items.CurseButton;
+import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.items.DurabilitySpinner;
+import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.items.LevelSpinner;
+import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.items.WndChooseEnchant;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.transitions.ChooseDestLevelComp;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.Items;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.Mobs;
@@ -17,10 +25,27 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.inv.other.RandomItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.other.RandomItemDistrComp;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelScheme;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelSchemeLike;
-import com.shatteredpixel.shatteredpixeldungeon.editor.ui.*;
-import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.*;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
-import com.shatteredpixel.shatteredpixeldungeon.items.*;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.IconTitleWithSubIcon;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ItemContainerWithLabel;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ItemSelector;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StringInputComp;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledButtonWithIconAndText;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledCheckBox;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledItemSelector;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.AbstractSpinnerModel;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerEnumModel;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerIntegerModel;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerLikeButton;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerTextIconModel;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.StyledSpinner;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
+import com.shatteredpixel.shatteredpixeldungeon.items.Ankh;
+import com.shatteredpixel.shatteredpixeldungeon.items.BrokenSeal;
+import com.shatteredpixel.shatteredpixeldungeon.items.EnergyCrystal;
+import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
+import com.shatteredpixel.shatteredpixeldungeon.items.Gold;
+import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
+import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.Armor;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.ClassArmor;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.Artifact;
@@ -28,7 +53,11 @@ import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
 import com.shatteredpixel.shatteredpixeldungeon.items.bombs.Bomb;
 import com.shatteredpixel.shatteredpixeldungeon.items.bombs.FakeTenguShocker;
 import com.shatteredpixel.shatteredpixeldungeon.items.journal.CustomDocumentPage;
-import com.shatteredpixel.shatteredpixeldungeon.items.keys.*;
+import com.shatteredpixel.shatteredpixeldungeon.items.keys.CrystalKey;
+import com.shatteredpixel.shatteredpixeldungeon.items.keys.GoldenKey;
+import com.shatteredpixel.shatteredpixeldungeon.items.keys.IronKey;
+import com.shatteredpixel.shatteredpixeldungeon.items.keys.Key;
+import com.shatteredpixel.shatteredpixeldungeon.items.keys.SkeletonKey;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.Potion;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.Ring;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
@@ -48,11 +77,20 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.CellSelector;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ItemSlot;
+import com.shatteredpixel.shatteredpixeldungeon.ui.QuickSlotButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.StyledButton;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.ui.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 
 public class EditItemComp extends DefaultEditComp<Item> {
 
@@ -73,6 +111,7 @@ public class EditItemComp extends DefaultEditComp<Item> {
     protected DurabilitySpinner durabilitySpinner;
     protected StyledItemSelector magesStaffWand;
     protected StyledCheckBox hasSeal;
+    protected SpinnerLikeButton classArmorTier;
 
     protected StyledCheckBox autoIdentify;
     protected StyledCheckBox cursedKnown;
@@ -90,7 +129,7 @@ public class EditItemComp extends DefaultEditComp<Item> {
     protected StringInputComp docPageText, docPageTitle;
     protected ChooseDestLevelComp keylevel;
     protected StyledButton keyCell;
-    protected StyledButton randomItem;
+    protected Component randomItem;
 
     protected ItemContainer<Item> bagItems;
 
@@ -115,7 +154,7 @@ public class EditItemComp extends DefaultEditComp<Item> {
 
     private void initComps(Item item) {
 
-        rename.visible = rename.active = true;
+        rename.setVisible(!(item instanceof CustomGameObjectClass) || !((CustomGameObjectClass) item).getInheritStats());
 
         if (heap != null) {
             reorderHeapComp = new ReorderHeapComp(item, heap);
@@ -216,7 +255,7 @@ public class EditItemComp extends DefaultEditComp<Item> {
                 rollTrinkets = new ItemContainerWithLabel<Trinket>(cata.rolledTrinkets, this, label("roll_trinkets")) {
                     @Override
                     protected void showSelectWindow() {
-                        ItemSelector.showSelectWindow(this, ItemSelector.NullTypeSelector.DISABLED, Trinket.class, Items.bag, new HashSet<>(0));
+                        ItemSelector.showSelectWindow(this, ItemSelector.NullTypeSelector.DISABLED, Trinket.class, Items.bag(), new HashSet<>(0));
                     }
                 };
                 add(rollTrinkets);
@@ -355,6 +394,50 @@ public class EditItemComp extends DefaultEditComp<Item> {
                 add(hasSeal);
             }
 
+            if (item instanceof ClassArmor) {
+                ClassArmor armor = (ClassArmor) item;
+                AbstractSpinnerModel model =  new SpinnerIntegerModel(1, 5, armor.tier, true) {
+                    @Override
+                    protected Image displayIcon(Object value) {
+                        if (value instanceof Integer) {
+                            switch (((int) value)) {
+                                case 1: return new ItemSprite(ItemSpriteSheet.ARMOR_CLOTH);
+                                case 2: return new ItemSprite(ItemSpriteSheet.ARMOR_LEATHER);
+                                case 3: return new ItemSprite(ItemSpriteSheet.ARMOR_MAIL);
+                                case 4: return new ItemSprite(ItemSpriteSheet.ARMOR_SCALE);
+                                case 5: return new ItemSprite(ItemSpriteSheet.ARMOR_PLATE);
+                            }
+                        }
+                        return super.displayIcon(value);
+                    }
+
+                    @Override
+                    protected String displayString(Object value) {
+                        return " ";
+                    }
+
+                };
+                classArmorTier = new SpinnerLikeButton(model, label("tier")) {
+                    @Override
+                    protected float getValueIconHeight() {
+                        return 13;
+                    }
+                };
+                classArmorTier.addChangeListener(() -> {
+                    armor.tier = (int) model.getValue();
+                    updateObj();
+                });
+                add(classArmorTier);
+
+                chargeSpinner = new ChargeSpinner(armor) {
+                    @Override
+                    protected void onChange() {
+                        updateObj();
+                    }
+                };
+                add(chargeSpinner);
+            }
+
             if (item instanceof Ankh) {
                 blessed = new StyledCheckBox(label("blessed"));
                 blessed.icon(Icons.TALENT.get());
@@ -417,7 +500,7 @@ public class EditItemComp extends DefaultEditComp<Item> {
 
                     @Override
                     public Class<? extends Bag> preferredBag() {
-                        return Mobs.bag.getClass();
+                        return Mobs.bag().getClass();
                     }
                 };
                 add(summonMobs);
@@ -436,7 +519,7 @@ public class EditItemComp extends DefaultEditComp<Item> {
                     }
 
                     @Override
-                    protected Image getIcon(Object value) {
+                    protected Image displayIcon(Object value) {
                         return new ItemSprite(CustomDocumentPage.getImage(types.indexOf(value)));
                     }
                 }, Messages.get(EditHeapComp.class, "type"), 6);
@@ -482,7 +565,7 @@ public class EditItemComp extends DefaultEditComp<Item> {
                         }
                     };
                     if (cell == -1) keyCell.text(Messages.get(EditItemComp.class, "key_cell_any"));
-                    else keyCell.text(Messages.get(EditItemComp.class, "key_cell_fixed", EditorUtilies.cellToString(cell)));
+                    else keyCell.text(Messages.get(EditItemComp.class, "key_cell_fixed", EditorUtilities.cellToString(cell)));
                     add(keyCell);
                 } else keyCell = null;
 
@@ -495,10 +578,10 @@ public class EditItemComp extends DefaultEditComp<Item> {
                     }
 
                     @Override
-                    public void selectObject(Object object) {
+                    public void selectObject(LevelSchemeLike object) {
                         super.selectObject(object);
                         if (object instanceof LevelScheme) {
-                            k.levelName = EditorUtilies.getCodeName((LevelScheme) object);
+                            k.levelName = EditorUtilities.getCodeName((LevelScheme) object);
                         }
                         if (keyCell != null) {
                             boolean canChangeKeyCell = Dungeon.level.name.equals(k.levelName);
@@ -562,22 +645,56 @@ public class EditItemComp extends DefaultEditComp<Item> {
             }
 
         } else {
-            randomItem = new RedButton(label("edit_random")) {
+            rename.setVisible(false);
+            randomItem = new Component() {
+                private RandomItemDistrComp distr = new RandomItemDistrComp((RandomItem<?>) item) {
+                    @Override
+                    protected void updateParent() {
+                        updateObj();
+                    }
+                };
+                private Component outsideSp = distr.getOutsideSp();
+
+                {
+                    add(distr);
+                    add(outsideSp);
+                }
+
                 @Override
-                protected void onClick() {
-                    RandomItemDistrComp randomItemDistrComp = new RandomItemDistrComp((RandomItem<?>) item);
-                    SimpleWindow w = new SimpleWindow((int) Math.ceil(width), (int) (PixelScene.uiCamera.height * 0.75));
-                    w.initComponents(randomItemDistrComp.createTitle(), randomItemDistrComp, randomItemDistrComp.getOutsideSp(), 0f, 0.5f);
-                    w.offset(EditorUtilies.getParentWindow(EditItemComp.this).getOffset());
-                    EditorScene.show(w);
+                protected void layout() {
+                    distr.setRect(x, y, width, 0);
+                    outsideSp.setRect(x, distr.bottom() + 2, width, 6);
+                    height = distr.height() + outsideSp.height() + 3;
                 }
             };
             add(randomItem);
         }
 
         rectComps = new Component[]{quantity, quickslotPos, numChoosableTrinkets, shockerDuration, chargeSpinner, wandRecharging, levelSpinner, durabilitySpinner,
-                augmentationSpinner, curseBtn, permaCursed, cursedKnown, autoIdentify, enchantBtn, magesStaffWand, hasSeal, blessed, igniteBombOnDrop, docPageType, spreadIfLoot, exactItemInRecipe};
+                augmentationSpinner, curseBtn, permaCursed, cursedKnown, autoIdentify, enchantBtn, magesStaffWand, hasSeal, classArmorTier, blessed, igniteBombOnDrop, docPageType, spreadIfLoot, exactItemInRecipe};
         linearComps = new Component[]{rollTrinkets, summonMobs, docPageTitle, docPageText, bagItems, randomItem, keylevel, keyCell};
+
+        initializeCompsForCustomObjectClass();
+    }
+
+    @Override
+    protected void onInheritStatsClicked(boolean flag, boolean initializing) {
+        if (flag && !initializing) {
+            obj.copyStats((Item) CustomObjectManager.getLuaClass(((CustomGameObjectClass) obj).getIdentifier()));
+        }
+
+        for (Component c : rectComps) {
+            if (c != null) c.visible = c.active = !flag;
+        }
+        for (Component c : linearComps) {
+            if (c != null) c.visible = c.active = !flag;
+        }
+
+        if (rename != null) rename.setVisible(!flag && !(obj instanceof RandomItem));
+
+        ((CustomGameObjectClass) obj).setInheritStats(flag);
+        
+        super.onInheritStatsClicked(flag, initializing);
     }
 
     @Override
@@ -585,6 +702,8 @@ public class EditItemComp extends DefaultEditComp<Item> {
         super.layout();
         layoutCompsInRectangles(rectComps);
         layoutCompsLinear(linearComps);
+
+        layoutCustomObjectEditor();
     }
 
     @Override
@@ -628,17 +747,7 @@ public class EditItemComp extends DefaultEditComp<Item> {
 
     @Override
     protected void onRenameClicked() {
-        Window parent = EditorUtilies.getParentWindow(this);
-        SimpleWindow w = new SimpleWindow(parent.camera().width - 10, parent.camera().height - 10) {
-            @Override
-            public void hide() {
-                super.hide();
-                updateObj();
-            }
-        };
-        ChangeItemCustomizable cc = new ChangeItemCustomizable(EditItemComp.this);
-        w.initComponents(cc.createTitle(), cc, null, 0f, 0.5f);
-        EditorScene.show(w);
+        ChangeCustomizable.showAsWindow(this, w -> new ChangeItemCustomizable(w, this));
     }
 
     static String label(String key) {
@@ -684,7 +793,9 @@ public class EditItemComp extends DefaultEditComp<Item> {
         super.updateObj();
     }
 
-    private void updateStates() {
+    @Override
+    protected void updateStates() {
+        super.updateStates();
         if (quantity != null)               quantity.setValue(obj.quantity());
         if (quickslotPos != null)           quickslotPos.setValue(obj.reservedQuickslot);
         if (curseBtn != null)               curseBtn.checked(obj.cursed);
@@ -693,6 +804,7 @@ public class EditItemComp extends DefaultEditComp<Item> {
         if (wandRecharging != null)         wandRecharging.setValue(((Wand) obj).rechargeRule);
         if (durabilitySpinner != null)      durabilitySpinner.updateValue(obj);
         if (augmentationSpinner != null)    augmentationSpinner.updateValue(obj);
+        if (classArmorTier != null)         classArmorTier.setValue(((ClassArmor) obj).tier);
         if (autoIdentify != null)           autoIdentify.checked(obj.identifyOnStart);
         if (cursedKnown != null)            cursedKnown.checked(obj.getCursedKnownVar());
         if (permaCursed != null)            permaCursed.checked(obj.permaCurse);
@@ -711,7 +823,19 @@ public class EditItemComp extends DefaultEditComp<Item> {
         if (keyCell != null) {
             int cell = ((Key) obj).cell;
             if (cell == -1) keyCell.text(label("key_cell_any"));
-            else keyCell.text(Messages.get(EditItemComp.class, "key_cell_fixed", EditorUtilies.cellToString(cell)));
+            else keyCell.text(Messages.get(EditItemComp.class, "key_cell_fixed", EditorUtilities.cellToString(cell)));
+        }
+
+        if (bagItems != null) bagItems.setItemList(((Bag)obj).items);
+        if (rollTrinkets != null) rollTrinkets.setItemList(((TrinketCatalyst)obj).rolledTrinkets);
+        if (summonMobs != null) {
+            List<MobItem> asMobItems = new ArrayList<>();
+            if (((WandOfSummoning) obj).summonTemplate != null) {
+                for (Mob m : ((WandOfSummoning) obj).summonTemplate) {
+                    asMobItems.add(new MobItem(m));
+                }
+            }
+            summonMobs.setItemList(asMobItems);
         }
     }
 
@@ -735,7 +859,7 @@ public class EditItemComp extends DefaultEditComp<Item> {
                 if (key.cell == -1)
                     keyCell.text(label("key_cell_any"));
                 else
-                    keyCell.text(Messages.get(EditItemComp.class, "key_cell_fixed", EditorUtilies.cellToString(key.cell)));
+                    keyCell.text(Messages.get(EditItemComp.class, "key_cell_fixed", EditorUtilities.cellToString(key.cell)));
 
                 EditorScene.reshowWindows();
             }
@@ -789,6 +913,7 @@ public class EditItemComp extends DefaultEditComp<Item> {
             } else {
                 if (aa.glyph != bb.glyph) return false;
             }
+            if (aa.tier != bb.tier) return false;
         }
         if (a instanceof MissileWeapon) {
             if (((MissileWeapon) a).baseUses != ((MissileWeapon) b).baseUses) return false;
@@ -820,8 +945,8 @@ public class EditItemComp extends DefaultEditComp<Item> {
             CustomDocumentPage ap = (CustomDocumentPage) a;
             CustomDocumentPage bp = (CustomDocumentPage) b;
             if (ap.type != bp.type) return false;
-            if ((ap.title == null ? "" : ap.title).equals(bp.title == null ? "" : bp.title)) return false;
-            if ((ap.text == null ? "" : ap.text).equals(bp.text == null ? "" : bp.text)) return false;
+            if (!(ap.title == null ? "" : ap.title).equals(bp.title == null ? "" : bp.title)) return false;
+            if (!(ap.text == null ? "" : ap.text).equals(bp.text == null ? "" : bp.text)) return false;
         }
         if (a instanceof TrinketCatalyst) {
             if (((TrinketCatalyst) a).numChoosableTrinkets != ((TrinketCatalyst) b).numChoosableTrinkets) return false;
@@ -833,6 +958,10 @@ public class EditItemComp extends DefaultEditComp<Item> {
 
         if (a instanceof MobItem) return EditMobComp.areEqual(((MobItem) a).getObject(), ((MobItem) b).getObject());
         if (a instanceof TrapItem) return EditTrapComp.areEqual(((TrapItem) a).getObject(), ((TrapItem) b).getObject());
+		
+		if (a instanceof CustomGameObjectClass) {
+			if (((CustomGameObjectClass) a).getInheritStats() != ((CustomGameObjectClass) b).getInheritStats()) return false;
+		}
 
         return true;
     }

@@ -27,20 +27,16 @@ package com.shatteredpixel.shatteredpixeldungeon.editor.lua;
 import com.shatteredpixel.shatteredpixeldungeon.Challenges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
-import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Bestiary;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
-import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.MobSpawner;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.LuaCodeHolder;
+import com.shatteredpixel.shatteredpixeldungeon.editor.lua.annotations.KeepProguard;
 import com.shatteredpixel.shatteredpixeldungeon.items.Dewdrop;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
-import org.luaj.vm2.LuaValue;
 
 import java.util.List;
 
 public abstract class DungeonScript extends LuaCodeHolder {
-
-	{
-		clazz = DungeonScript.class;
-	}
 
 	//***************
 	//**** ITEMS ****
@@ -88,10 +84,6 @@ public abstract class DungeonScript extends LuaCodeHolder {
 
 
 	public List<? extends Mob> getMobRotation(int depth ) {
-		return Bestiary.actuallyGetMobRotation_ONLY_FOR_DUNGEON_SCRIPT(depth);
-	}
-
-	final LuaValue currentScript() {
-		return CustomDungeon.isEditing() ? null : script;
+		return MobSpawner.actuallyGetMobRotation_ONLY_FOR_DUNGEON_SCRIPT(depth);
 	}
 }

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net;
 import com.badlogic.gdx.files.FileHandle;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
+import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.server.ServerDungeonList;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.CustomDungeonSaves;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.ExportDungeonWrapper;
@@ -11,6 +12,7 @@ import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndError;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptions;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.DeviceCompat;
@@ -28,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+@NotAllowedInLua
 public final class ServerCommunication {
 
     private static String URL = null;
@@ -45,7 +48,7 @@ public final class ServerCommunication {
                 return false;
             }
 
-            String scriptLoadURL = "https://script.google.com/macros/s/AKfycbwrKEC3IN-d0spHExbHfOHzAYMD2mJh_7x3efW5l2fBYlidcIHNb19_CtGTmRJlrep8Ow/exec";
+            String scriptLoadURL = "https://script.google.com/macros/s/AKfycbxuykWaelTwPHzSdYk131C4e4AzFFl3zlTx7Cenz1FlbcJEwTHo1_I-sbn1UECBGsr10g/exec";
             Net.HttpRequest httpRequest = new Net.HttpRequest(Net.HttpMethods.GET);
             httpRequest.setUrl(scriptLoadURL);
 
@@ -86,7 +89,7 @@ public final class ServerCommunication {
                 }).run();
             }
         }
-        return URL == null ? "https://script.google.com/macros/s/AKfycbz3TNz5F57DZmfIHplSko_VuPnVTVV6ym5cR2ZzB0PqaZBfn7UAikdM9FPG0F2XLNqFzQ/exec" : URL;
+        return URL == null||true ? "https://script.google.com/macros/s/AKfycbzZ5mT897D9QTauIIHThl_i4TietQVG8bY0n4aZKaoAusPBdP1M6zmNOOVwzO4sJ-Gg-Q/exec" : URL;
     }
 
     static String getUUID() {
@@ -142,11 +145,13 @@ public final class ServerCommunication {
             hideWindow();
             if (t instanceof UnknownHostException) Game.scene().addToFront(new WndError(Messages.get(ServerCommunication.class, "no_internet")));
             else
-                Game.scene().addToFront(new WndError(Messages.get(ServerCommunication.class, "error") + ":\n" + t.getClass().getSimpleName() + ": " + t.getMessage()) {
-                    {
-                        setHighlightingEnabled(false);
-                    }
-                });
+                if (DeviceCompat.isDebug()) {
+                    Game.scene().addToFront(new WndError(Messages.get(ServerCommunication.class, "error") + ":\n" + t.getClass().getSimpleName() + ": " + t.getMessage()) {
+                        {
+                            setHighlightingEnabled(false);
+                        }
+                    });
+                }
         }
 
         public void appendMessage(String msg) {
@@ -241,6 +246,10 @@ public final class ServerCommunication {
                                 preview = new DungeonPreview();
                                 preview.restoreFromBundle(bundle);
                                 preview.dungeonFileID = b.getString("dungeonID");
+                                
+                                if (preview.isDebug && !DeviceCompat.isDebug()) {
+                                    continue;
+                                }
 
                             } catch (Exception e) {
                                 preview = new DungeonPreview();
@@ -249,8 +258,9 @@ public final class ServerCommunication {
                             dungeons.add(preview);
                         }
                     }
-                } catch (IOException e) {
-                    Game.runOnRenderThread(() -> callback.failed(e.getMessage() == null ? new IOException(String.valueOf(httpResponse.getStatus().getStatusCode())) : e));
+                } catch (Exception e) {
+                    if (DeviceCompat.isDebug())
+                        Game.runOnRenderThread(() -> callback.failed(e.getMessage() == null ? new IOException(String.valueOf(httpResponse.getStatus().getStatusCode())) : e));
                     return;
                 }
                 //sorting is already done on the backend
@@ -271,7 +281,7 @@ public final class ServerCommunication {
     }
 
     public static void downloadDungeon(String dungeonName, String fileId, OnDungeonReceive callback) {
-        new DownloadDungeonAction(dungeonName, fileId, callback);
+        new DownloadDungeonAction(CustomDungeon.maybeFixIncorrectNameEnding(dungeonName), fileId, callback);
     }
 
     static class UploadDataListener implements Net.HttpResponseListener {
@@ -316,7 +326,7 @@ public final class ServerCommunication {
     }
 
     public static void updateDungeon(DungeonPreview oldDungeonPreview, String newDungeonName, String newDescription, int difficulty, UploadCallback callback) {
-        new UpdateDungeonAction(oldDungeonPreview, newDungeonName, newDescription, difficulty, callback);
+        new UpdateDungeonAction(oldDungeonPreview, CustomDungeon.maybeFixIncorrectNameEnding(newDungeonName), newDescription, difficulty, callback);
     }
 
     public static void reportBug(String dungeonName, String description, UploadCallback callback) {

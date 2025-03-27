@@ -21,8 +21,13 @@
 
 package com.shatteredpixel.shatteredpixeldungeon;
 
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.LuaClassGenerator;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.CustomDungeonSaves;
-import com.shatteredpixel.shatteredpixeldungeon.scenes.*;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.DungeonScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.TitleScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.WelcomeScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.ScrollArea;
@@ -31,6 +36,7 @@ import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.DeviceCompat;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.PlatformSupport;
+import com.watabou.utils.Reflection;
 
 public class SandboxPixelDungeon extends Game {
 
@@ -49,15 +55,35 @@ public class SandboxPixelDungeon extends Game {
 	public static final int v2_2_1 = 755; //iOS was 755 (also called v2.2.2), other platforms were 754
 	public static final int v2_3_2 = 768;
 	public static final int v2_4_0 = 780;
+	public static final int v2_5_4 = 802;
+
+	public static final int v3_0_0 = 831;
 	
 	static {
 		Music.getExternalAudioFile = CustomDungeonSaves::getExternalFile;
 		ScrollArea.checkIfGizmoIsInstanceofWindow = g -> g instanceof Window || g == null && DungeonScene.showingWindow();
 		PathFinder.getArrowCellAt = cell -> Dungeon.level.arrowCells.get(cell);
+		Reflection.makeToUserContentClass = LuaClassGenerator::luaUserContentClass;
 	}
 
 	public SandboxPixelDungeon( PlatformSupport platform ) {
 		super( sceneClass == null ? WelcomeScene.class : sceneClass, platform );
+
+		//pre-v2.5.2
+		com.watabou.utils.Bundle.addAlias(
+				com.shatteredpixel.shatteredpixeldungeon.items.bombs.FlashBangBomb.class,
+				"com.shatteredpixel.shatteredpixeldungeon.items.bombs.ShockBomb" );
+		com.watabou.utils.Bundle.addAlias(
+				com.shatteredpixel.shatteredpixeldungeon.items.bombs.SmokeBomb.class,
+				"com.shatteredpixel.shatteredpixeldungeon.items.bombs.Flashbang" );
+
+		//pre-v2.5.0
+		com.watabou.utils.Bundle.addAlias(
+				com.shatteredpixel.shatteredpixeldungeon.actors.mobs.MobSpawner.class,
+				"com.shatteredpixel.shatteredpixeldungeon.levels.Level$Respawner" );
+		com.watabou.utils.Bundle.addAlias(
+				com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Invulnerability.class,
+				"com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AnkhInvulnerability" );
 
 		//pre-v2.4.0
 		com.watabou.utils.Bundle.addAlias(

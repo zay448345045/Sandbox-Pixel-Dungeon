@@ -1,7 +1,6 @@
 package com.shatteredpixel.shatteredpixeldungeon.editor.overview.floor;
 
 import com.shatteredpixel.shatteredpixeldungeon.Challenges;
-import com.shatteredpixel.shatteredpixeldungeon.Chrome;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Blacksmith;
@@ -17,31 +16,44 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.level.Feeli
 import com.shatteredpixel.shatteredpixeldungeon.editor.quests.BlacksmithQuest;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.FoldableComp;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.FoldableCompWithAdd;
-import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledButtonWithIconAndText;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledCheckBox;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerEnumModel;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerLikeButton;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.levels.RegularLevel;
+import com.shatteredpixel.shatteredpixeldungeon.levels.builders.BranchesBuilder;
+import com.shatteredpixel.shatteredpixeldungeon.levels.builders.Builder;
+import com.shatteredpixel.shatteredpixeldungeon.levels.builders.FigureEightBuilder;
+import com.shatteredpixel.shatteredpixeldungeon.levels.builders.LineBuilder;
+import com.shatteredpixel.shatteredpixeldungeon.levels.builders.LoopBuilder;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.Room;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.quest.BlacksmithRoom;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
-import com.shatteredpixel.shatteredpixeldungeon.scenes.HeroSelectScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
-import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
-import com.shatteredpixel.shatteredpixeldungeon.windows.WndTextInput;
-import com.shatteredpixel.shatteredpixeldungeon.windows.WndTitledMessage;
+import com.shatteredpixel.shatteredpixeldungeon.ui.CheckBox;
+import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
+import com.watabou.NotAllowedInLua;
+import com.watabou.noosa.Image;
 import com.watabou.noosa.ui.Component;
+import com.watabou.utils.Reflection;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.shatteredpixel.shatteredpixeldungeon.editor.overview.floor.WndNewFloor.MARGIN;
 
+@NotAllowedInLua
 public class LevelGenComp extends WndNewFloor.OwnTab {
 
     private ScrollPane sp;
@@ -49,9 +61,10 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
 
     protected RenderedTextBlock title;
 
-    protected StyledButton seed;
+//    protected StyledButton seed;
+//    private String currentSeed;
     protected FeelingSpinner feelingSpinner;
-    private String currentSeed;
+    protected BuilderSpinner builderSpinner;
 
     protected FoldableComp challengeSettings;
 
@@ -68,39 +81,39 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
         title.hardlight(Window.TITLE_COLOR);
         content.add(title);
 
-        if (newLevelScheme.isSeedSet()) currentSeed = DungeonSeed.convertToCode(newLevelScheme.getSeed());
-        seed = new StyledButtonWithIconAndText(Chrome.Type.GREY_BUTTON_TR, "") {
-            {
-                text.align(RenderedTextBlock.CENTER_ALIGN);
-            }
-            @Override
-            protected void onClick() {
-                EditorScene.show( new WndTextInput(Messages.get(HeroSelectScene.class, "custom_seed_title"),
-                        Messages.get(LevelGenComp.class, "enter_seed_prompt"),
-                        currentSeed == null ? "" : currentSeed,
-                        20,
-                        false,
-                        Messages.get(HeroSelectScene.class, "custom_seed_set"),
-                        Messages.get(HeroSelectScene.class, "custom_seed_clear")) {
-                    @Override
-                    public void onSelect(boolean positive, String text) {
-                        text = DungeonSeed.formatText(text);
-                        long s = DungeonSeed.convertFromText(text);
-                        if (positive && s != -1) {
-                            currentSeed = text;
-                            newLevelScheme.setSeed(s);
-                        } else {
-                            currentSeed = null;
-                            newLevelScheme.resetSeed();
-                        }
-                        updateSeedText();
-                    }
-                } );
-            }
-        };
-        seed.icon(new ItemSprite(ItemSpriteSheet.SEED_SUNGRASS));
-        updateSeedText();
-        content.add(seed);
+//        if (newLevelScheme.isSeedSet()) currentSeed = DungeonSeed.convertToCode(newLevelScheme.getSeed());
+//        seed = new StyledButtonWithIconAndText(Chrome.Type.GREY_BUTTON_TR, "") {
+//            {
+//                text.align(RenderedTextBlock.CENTER_ALIGN);
+//            }
+//            @Override
+//            protected void onClick() {
+//                EditorScene.show( new WndTextInput(Messages.get(HeroSelectScene.class, "custom_seed_title"),
+//                        Messages.get(LevelGenComp.class, "enter_seed_prompt"),
+//                        currentSeed == null ? "" : currentSeed,
+//                        20,
+//                        false,
+//                        Messages.get(HeroSelectScene.class, "custom_seed_set"),
+//                        Messages.get(HeroSelectScene.class, "custom_seed_clear")) {
+//                    @Override
+//                    public void onSelect(boolean positive, String text) {
+//                        text = DungeonSeed.formatText(text);
+//                        long s = DungeonSeed.convertFromText(text);
+//                        if (positive && s != -1) {
+//                            currentSeed = text;
+//                            newLevelScheme.setSeed(s);
+//                        } else {
+//                            currentSeed = null;
+//                            newLevelScheme.resetSeed();
+//                        }
+//                        updateSeedText();
+//                    }
+//                } );
+//            }
+//        };
+//        seed.icon(new ItemSprite(ItemSpriteSheet.SEED_SUNGRASS));
+//        updateSeedText();
+//        content.add(seed);
 
         feelingSpinner = new FeelingSpinner(newLevelScheme.getFeeling(), 9, true);
         feelingSpinner.addChangeListener(() -> {
@@ -140,18 +153,6 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
 
                 i = 0;
                 checkBoxes[i++] = new StyledCheckBox[] {
-                        new StyledCheckBox(Messages.titleCase(Messages.get(LevelGenComp.class, "spawn_torch"))) {
-                            {
-                                text.align(RenderedTextBlock.CENTER_ALIGN);
-                                super.checked(newLevelScheme.spawnTorchIfDarkness);
-                            }
-
-                            @Override
-                            public void checked(boolean value) {
-                                super.checked(value);
-                                newLevelScheme.spawnTorchIfDarkness = value;
-                            }
-                        },
                         new StyledCheckBox(Messages.get(LevelGenComp.class, "reduce_view")) {
                             {
                                 text.align(RenderedTextBlock.CENTER_ALIGN);
@@ -208,8 +209,8 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
 
                 for (int i = 0; i < challengeTitles.length; i++) {
                     height += 5;
-                    height = EditorUtilies.layoutCompsLinear(2, this, challengeTitles[i]) + 3;
-                    height = EditorUtilies.layoutStyledCompsInRectangles(
+                    height = EditorUtilities.layoutCompsLinear(2, this, challengeTitles[i]) + 3;
+                    height = EditorUtilities.layoutStyledCompsInRectangles(
                             2, width, Math.min(checkBoxes[i].length, PixelScene.landscape() ? 3 : 2), this, checkBoxes[i]);
                 }
 
@@ -219,6 +220,10 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
         content.add(challengeSettings);
 
         if (newLevelScheme.getName() == null || newLevelScheme.getType() != CustomLevel.class) {
+
+            builderSpinner = new BuilderSpinner(newLevelScheme);
+            content.add(builderSpinner);
+
             sectionItems = new SpawnSectionMore<Item>("items", new ItemContainer<Item>(newLevelScheme.itemsToSpawn) {
 
                 @Override
@@ -252,7 +257,7 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
 
                 @Override
                 public Class<? extends Bag> preferredBag() {
-                    return Mobs.bag.getClass();
+                    return Mobs.bag().getClass();
                 }
 
                 @Override
@@ -317,7 +322,7 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
 
                 @Override
                 public Class<? extends Bag> preferredBag() {
-                    return Mobs.bag.getClass();
+                    return Mobs.bag().getClass();
                 }
 
                 @Override
@@ -365,7 +370,7 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
 
                 @Override
                 public Class<? extends Bag> preferredBag() {
-                    return Rooms.bag.getClass();
+                    return Rooms.bag().getClass();
                 }
 
                 @Override
@@ -423,9 +428,13 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
 
         content.setSize(width, title.bottom() + 4 * MARGIN);
 
-        content.setSize(width, EditorUtilies.layoutStyledCompsInRectangles(MARGIN * 2, width, 2, content, seed, feelingSpinner) + 2);
+        if (builderSpinner == null) {
+            content.setSize(width, EditorUtilities.layoutStyledCompsInRectangles(MARGIN * 2, width, 1, content, feelingSpinner, builderSpinner) + 2);
+        } else {
+            content.setSize(width, EditorUtilities.layoutStyledCompsInRectangles(MARGIN * 2, width, 2, content, feelingSpinner, builderSpinner) + 2);
+        }
 
-        content.setSize(width, EditorUtilies.layoutCompsLinear(MARGIN * 2, content, challengeSettings, sectionItems, sectionMobs, sectionRooms));
+        content.setSize(width, EditorUtilities.layoutCompsLinear(MARGIN * 2, content, challengeSettings, sectionItems, sectionMobs, sectionRooms));
 
         if (sp != null) {
             sp.setSize(width, height);
@@ -433,9 +442,9 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
         }
     }
 
-    protected void updateSeedText() {
-        seed.text( Messages.get(this, "seed") + "\n" + (currentSeed == null ? Messages.get(this, "no_seed") : currentSeed) );
-    }
+//    protected void updateSeedText() {
+//        seed.text( Messages.get(this, "seed") + "\n" + (currentSeed == null ? Messages.get(this, "no_seed") : currentSeed) );
+//    }
 
     protected void onFeelingChange() {}
 
@@ -443,7 +452,12 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
     public String hoverText() {
         return Messages.get(LevelGenComp.class, "title");
     }
-
+    
+    @Override
+    public Image createIcon() {
+        return new ItemSprite(ItemSpriteSheet.RANDOM_ITEM);
+    }
+    
     private interface UpdateTitle {
         void updateTitle(int numSlots);
     }
@@ -493,6 +507,7 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
             setBody(this.container = container);
             container.setSize(LevelGenComp.this.width, -1);
             showBody(false);
+            expandAndFold.setVisible(true);
             setReverseBtnOrder(true);
 
             updateTitle(container.getNumSlots());
@@ -519,16 +534,16 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
 
         protected CheckBox stand, sec, spec;
 
-        public WndRoomSettings(boolean standart, boolean secret, boolean special) {
+        public WndRoomSettings(boolean standard, boolean secret, boolean special) {
 
-            resize(PixelScene.landscape() ? WndTitledMessage.WIDTH_MAX : (int) (PixelScene.uiCamera.width * 0.85f), 100);
+            resize(WindowSize.WIDTH_SMALL.get(), 100);
 
             RenderedTextBlock title = PixelScene.renderTextBlock(Messages.get(LevelGenComp.class, "room_settings_title"), 10);
             title.hardlight(Window.TITLE_COLOR);
             add(title);
 
             stand = new CheckBox(Messages.get(LevelGenComp.class, "room_settings_standard"));
-            stand.checked(standart);
+            stand.checked(standard);
             add(stand);
 
             sec = new CheckBox(Messages.get(LevelGenComp.class, "room_settings_secret"));
@@ -563,7 +578,7 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
 
         public WndMobSettings(boolean spawn) {
 
-            resize(PixelScene.landscape() ? WndTitledMessage.WIDTH_MAX : (int) (PixelScene.uiCamera.width * 0.85f), 100);
+            resize(WindowSize.WIDTH_SMALL.get(), 100);
 
             RenderedTextBlock title = PixelScene.renderTextBlock(Messages.get(LevelGenComp.class, "mob_settings_title"), 10);
             title.hardlight(Window.TITLE_COLOR);
@@ -595,7 +610,7 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
 
         public WndItemSettings(boolean spawn) {
 
-            resize(PixelScene.landscape() ? WndTitledMessage.WIDTH_MAX : (int) (PixelScene.uiCamera.width * 0.85f), 100);
+            resize(WindowSize.WIDTH_SMALL.get(), 100);
 
             RenderedTextBlock title = PixelScene.renderTextBlock(Messages.get(LevelGenComp.class, "item_settings_title"), 10);
             title.hardlight(Window.TITLE_COLOR);
@@ -619,5 +634,40 @@ public class LevelGenComp extends WndNewFloor.OwnTab {
 
         protected abstract void finish();
 
+    }
+
+    public static class BuilderSpinner extends SpinnerLikeButton {
+        public BuilderSpinner(LevelScheme levelScheme) {
+            super(
+                    new SpinnerEnumModel<>(
+                            Values.class,
+                            Values.builderToEnumValue.get(levelScheme.builder == null ? null : levelScheme.builder.getClass()),
+                    v -> levelScheme.builder = v.newBuilderInstance()),
+                    Messages.get(BuilderSpinner.class, "label"));
+        }
+
+        private enum Values {
+            DEFAULT(null),
+            LINE(LineBuilder.class),
+            LOOP(LoopBuilder.class),
+            FIGURE_EIGHT(FigureEightBuilder.class),
+            BRANCHES(BranchesBuilder.class);
+
+            private final Class<? extends Builder> type;
+
+            private static final Map<Class<? extends Builder>, Values> builderToEnumValue = new HashMap<>();
+            static {
+               for (Values v : values())
+                   builderToEnumValue.put(v.type, v);
+            }
+
+			Values(Class<? extends Builder> type) {
+				this.type = type;
+			}
+
+            public Builder newBuilderInstance() {
+                return type == null ? null : Reflection.newInstance(type);
+            }
+        }
     }
 }

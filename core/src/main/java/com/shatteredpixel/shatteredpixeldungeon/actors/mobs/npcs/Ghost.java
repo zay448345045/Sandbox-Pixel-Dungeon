@@ -102,15 +102,16 @@ public class Ghost extends QuestNPC<GhostQuest> {
 	}
 
 	@Override
+	public Notes.Landmark landmark() {
+		return Notes.Landmark.GHOST;
+	}
+
+	@Override
 	protected boolean act() {
 		if (Dungeon.hero.buff(AscensionChallenge.class) != null){
 			die(null);
+			Notes.remove( landmark() );
 			return true;
-		}
-		if (quest != null && quest.type() >= 0) {
-			if (Dungeon.level.heroFOV[pos] && !quest.completed()){
-				Notes.add( Notes.Landmark.GHOST );
-			}
 		}
 		return super.act();
 	}

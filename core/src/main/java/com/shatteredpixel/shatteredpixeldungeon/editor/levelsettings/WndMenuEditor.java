@@ -31,9 +31,11 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndGame;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndSettings;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Game;
 
 //from WndGame
+@NotAllowedInLua
 public class WndMenuEditor extends Window {
 
     private static final int WIDTH = 120;
@@ -61,7 +63,9 @@ public class WndMenuEditor extends Window {
         addButton(curBtn = new RedButton(Messages.get(WndGame.class, "menu")) {
             @Override
             protected void onClick() {
-                if(GamesInProgress.curSlot == GamesInProgress.TEST_SLOT) GamesInProgress.curSlot = 0;
+                if (GamesInProgress.curSlot == GamesInProgress.TEST_SLOT) {
+                    GamesInProgress.curSlot = GamesInProgress.NO_SLOT;
+                }
                 //no need to sve here bc EditorScene autosaves anyway
                 Game.switchScene(TitleScene.class);
             }

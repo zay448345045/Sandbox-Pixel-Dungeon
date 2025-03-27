@@ -23,12 +23,16 @@ package com.shatteredpixel.shatteredpixeldungeon.items;
 
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Barrier;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Healing;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.TileItem;
 import com.shatteredpixel.shatteredpixeldungeon.effects.FloatingText;
+import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.VialOfBlood;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Catalog;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
@@ -49,6 +53,8 @@ public class Dewdrop extends Item {
 	public boolean doPickUp(Hero hero, int pos) {
 		
 		Waterskin flask = hero.belongings.getItem( Waterskin.class );
+		Catalog.setSeen(getClass());
+		Statistics.itemTypesDiscovered.add(getClass());
 		
 		if (flask != null && !flask.isFull()){
 
@@ -78,10 +84,18 @@ public class Dewdrop extends Item {
 				quantity--;
 				totalHealing += lastResult[1];
 				totalShield += lastResult[2];
+				Catalog.countUse(getClass());
 			}
+
 			if (totalHealing > 0 || totalShield > 0 || lastResult[0] == -1) {
 
-				if (totalHealing > 0){
+				if (quantity > 1 && totalHealing > 0 && VialOfBlood.delayBurstHealing(hero)) {
+					Healing healing = Buff.affect(hero, Healing.class);
+					healing.setHeal(totalHealing, 0, VialOfBlood.maxHealPerTurn(hero));
+					healing.applyVialEffect();
+				}
+				else if (totalHealing > 0){
+					hero.HP += totalHealing;
 					hero.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString(totalHealing), FloatingText.HEALING);
 				}
 
@@ -117,7 +131,6 @@ public class Dewdrop extends Item {
 			shield = Math.min(shield, maxShield-curShield);
 		}
 		if (effect > 0 || shield > 0) {
-			hero.HP += effect;
 			if (effect > 0 && shield > 0){
 				return new int[]{3, effect, shield};
 			} else if (effect > 0){

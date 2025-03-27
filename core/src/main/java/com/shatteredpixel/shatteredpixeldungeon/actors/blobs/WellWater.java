@@ -22,6 +22,8 @@
 package com.shatteredpixel.shatteredpixeldungeon.actors.blobs;
 
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Barrier;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
@@ -45,26 +47,19 @@ public abstract class WellWater extends Blob {
 				if (Dungeon.level.insideMap(cell)) {
 					off[cell] = cur[cell];
 					volume += off[cell];
-					if (off[cell] > 0 && Dungeon.level.visited[cell]) {
-						seen = true;
-					}
 				}
 			}
-		}
-		if (seen){
-			Notes.add(record());
-		} else {
-			Notes.remove(record());
 		}
 	}
 	
 	protected boolean affect( int pos ) {
 		
 		Heap heap;
+		Hero hero = Buff.targetHero(Actor.findChar(pos));
 		
-		if (pos == Dungeon.hero.pos && affectHero( Dungeon.hero )) {
+		if (hero != null && affectHero( hero )) {
 			
-			cur[pos] = 0;
+			clear(pos);
 			return true;
 			
 		} else if ((heap = Dungeon.level.heaps.get( pos )) != null) {
@@ -86,7 +81,7 @@ public abstract class WellWater extends Blob {
 				}
 				
 				heap.sprite.link();
-				cur[pos] = 0;
+				clear(pos);
 				
 				return true;
 				
@@ -114,8 +109,6 @@ public abstract class WellWater extends Blob {
 	
 	protected abstract Item affectItem( Item item, int pos );
 	
-	protected abstract Notes.Landmark record();
-	
 	public static void affectCell( int cell ) {
 		
 		Class<? extends WellWater>[] waters = new Class[3];
@@ -124,7 +117,7 @@ public abstract class WellWater extends Blob {
 		waters[2] = WaterOfTransmutation.class;
 		
 		for (Class<? extends WellWater> waterClass : waters) {
-			WellWater water = (WellWater)Dungeon.level.blobs.getOnly( waterClass );
+			WellWater water = Dungeon.level.blobs.getOnly( waterClass );
 			if (water != null &&
 				water.volume > 0 &&
 				water.cur[cell] > 0 &&
@@ -132,6 +125,21 @@ public abstract class WellWater extends Blob {
 				
 				Level.set( cell, Terrain.EMPTY_WELL );
 				GameScene.updateMap( cell );
+
+				if (water.landmark() != null) {
+					if (water.volume <= 0) {
+						Notes.remove(water.landmark());
+					} else {
+						boolean removing = true;
+						for (int i = 0; i < water.cur.length; i++){
+							if (water.cur[i] > 0 && Dungeon.level.visited[i]){
+								removing = false;
+								break;
+							}
+						}
+						if (removing) Notes.remove(water.landmark());
+					}
+				}
 				
 				return;
 			}

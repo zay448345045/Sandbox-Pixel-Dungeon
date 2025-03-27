@@ -22,6 +22,7 @@
 package com.shatteredpixel.shatteredpixeldungeon.windows;
 
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.SPDAction;
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
@@ -30,8 +31,19 @@ import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.HeroSprite;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.BuffIcon;
+import com.shatteredpixel.shatteredpixeldungeon.ui.BuffIndicator;
+import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.StatusPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.TalentButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.TalentsPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
+import com.watabou.input.KeyBindings;
+import com.watabou.input.KeyEvent;
 import com.watabou.noosa.Gizmo;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
@@ -107,6 +119,16 @@ public class WndHero extends WndTabbed {
 	}
 
 	@Override
+	public boolean onSignal(KeyEvent event) {
+		if (event.pressed && KeyBindings.getActionForKey( event ) == SPDAction.HERO_INFO) {
+			onBackPressed();
+			return true;
+		} else {
+			return super.onSignal(event);
+		}
+	}
+
+	@Override
 	public void offset(int xOffset, int yOffset) {
 		super.offset(xOffset, yOffset);
 		talents.layout();
@@ -133,7 +155,7 @@ public class WndHero extends WndTabbed {
 			Hero hero = Dungeon.hero;
 
 			IconTitle title = new IconTitle();
-			title.icon( HeroSprite.avatar(hero.heroClass, hero.tier()) );
+			title.icon( HeroSprite.avatar(hero) );
 			if (hero.name().equals(hero.className()))
 				title.label( Messages.get(this, "title", hero.lvl, hero.className() ).toUpperCase( Locale.ENGLISH ) );
 			else
@@ -301,7 +323,7 @@ public class WndHero extends WndTabbed {
 				txt = PixelScene.renderTextBlock( Messages.titleCase(buff.name()), 8 );
 				txt.setPos(
 						icon.width + GAP,
-						this.y + (icon.height - txt.height()) / 2
+						this.y + (icon.height() - txt.height()) / 2
 				);
 				PixelScene.align(txt);
 				add( txt );
@@ -314,8 +336,8 @@ public class WndHero extends WndTabbed {
 				icon.y = this.y;
 				txt.maxWidth((int)(width - icon.width()));
 				txt.setPos(
-						icon.width + GAP,
-						this.y + (icon.height - txt.height()) / 2
+						icon.width() + GAP,
+						this.y + (icon.height() - txt.height()) / 2
 				);
 				PixelScene.align(txt);
 			}

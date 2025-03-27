@@ -25,9 +25,16 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.CustomDungeonSaves;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
-import com.shatteredpixel.shatteredpixeldungeon.scenes.*;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.DungeonScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.HeroSelectScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.InterlevelScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.RankingsScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.StartScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.TitleScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
@@ -67,7 +74,7 @@ public class WndGame extends Window {
 					GameScene.show( new WndChallenges( Dungeon.challenges, false ) );
 				}
 			} );
-			curBtn.icon(Icons.get(Icons.CHALLENGE_ON));
+			curBtn.icon(Icons.get(Icons.CHALLENGE_COLOR));
 		}
 
 		boolean heroDead = Dungeon.hero == null || !Dungeon.hero.isAlive();
@@ -126,7 +133,12 @@ public class WndGame extends Window {
 				} catch (IOException e) {
 					SandboxPixelDungeon.reportException(e);
 				}
-				if (GamesInProgress.curSlot == GamesInProgress.TEST_SLOT) GamesInProgress.curSlot = 0;
+				if (GamesInProgress.curSlot == GamesInProgress.TEST_SLOT) {
+					GamesInProgress.curSlot = GamesInProgress.NO_SLOT;
+				}
+
+				CustomObjectManager.loadUserContentFromFiles();
+
 				Game.switchScene(TitleScene.class);
 			}
 		});

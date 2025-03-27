@@ -29,7 +29,7 @@ public class LootTableComp extends ItemsWithChanceDistrComp {
     }
 
     protected Component createTitle() {
-        return super.createTitle(Messages.get(LootTableComp.class, "title"));
+        return super.createTitle(Messages.get(LootTableComp.class, "title_loot"));
     }
 
     @Override
@@ -46,7 +46,7 @@ public class LootTableComp extends ItemsWithChanceDistrComp {
 
     @Override
     protected WndBag.ItemSelector createSelector(Consumer<Item> onSelect) {
-        return createSelector(Item.class, true, Items.bag.getClass(), onSelect);
+        return createSelector(Item.class, true, Items.bag().getClass(), onSelect);
     }
 
     @Override

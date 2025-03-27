@@ -30,7 +30,18 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Fire;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.StormCloud;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.ToxicGas;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Bleeding;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Blindness;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Burning;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Cripple;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Frost;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Invisibility;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Light;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LockedFloor;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Ooze;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Roots;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Sleep;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.TileItem;
 import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
 import com.shatteredpixel.shatteredpixeldungeon.effects.FloatingText;
@@ -133,13 +144,7 @@ public abstract class YogFist extends Mob {
 		} else {
 
 			incrementRangedCooldown();
-			if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
-				sprite.zap( enemy.pos );
-				return false;
-			} else {
-				zap();
-				return true;
-			}
+			return doRangedAttack();
 		}
 	}
 
@@ -157,6 +162,16 @@ public abstract class YogFist extends Mob {
 	}
 
 	@Override
+	public void die(Object cause) {
+		super.die(cause);
+		for ( Char c : Actor.chars() ){
+			if (c instanceof YogDzewa){
+				((YogDzewa) c).processFistDeath();
+			}
+		}
+	}
+
+	@Override
 	public abstract void zap();
 
 //	@Override
@@ -166,12 +181,12 @@ public abstract class YogFist extends Mob {
 //
 //	@Override
 //	public int damageRoll() {
-//		return Char.combatRoll( 18, 36 );
+//		return Random.NormalIntRange( 18, 36 );
 //	}
 //
 //	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 15);
+//		return super.drRoll() + Random.NormalIntRange(0, 15);
 //	}
 
 	{
@@ -179,8 +194,8 @@ public abstract class YogFist extends Mob {
 	}
 
 	@Override
-	public String description() {
-		if (customDesc != null) return super.description();
+	public String desc() {
+		if (customDesc != null) return super.desc();
 		return Messages.get(YogFist.class, "desc") + "\n\n" + Messages.get(this, "desc");
 	}
 
@@ -464,7 +479,7 @@ public abstract class YogFist extends Mob {
 
 		@Override
 		public int damageRoll() {
-			return Char.combatRoll( 22, 44 );
+			return Random.NormalIntRange( 22, 44 );
 		}
 
 		@Override
@@ -472,7 +487,7 @@ public abstract class YogFist extends Mob {
 			if (!isInvulnerable(src.getClass()) && !(src instanceof Viscosity.DeferedDamage)){
 				dmg = Math.round( dmg * resist( src.getClass() ));
 				if (dmg >= 0) {
-					Buff.affect(this, Viscosity.DeferedDamage.class).prolong(dmg);
+					Buff.affect(this, Viscosity.DeferedDamage.class).extend(dmg);
 					sprite.showStatus(CharSprite.WARNING, Messages.get(Viscosity.class, "deferred", dmg));
 				}
 			} else{
@@ -519,7 +534,7 @@ public abstract class YogFist extends Mob {
 			Char enemy = this.enemy;
 			if (hit( this, enemy, true )) {
 
-				enemy.damage( Char.combatRoll(10, 20), new LightBeam() );
+				enemy.damage( Random.NormalIntRange(10, 20), new LightBeam() );
 				Buff.prolong( enemy, Blindness.class, Blindness.DURATION/2f );
 
 				if (!enemy.isAlive() && enemy == Dungeon.hero) {
@@ -558,7 +573,7 @@ public abstract class YogFist extends Mob {
 				} while (Dungeon.level.heroFOV[i]
 						|| Dungeon.level.solid[i]
 						|| Actor.findChar(i) != null
-						|| PathFinder.getStep(i, Dungeon.level.exit(), Dungeon.level.getPassableVar(this)) == -1);
+						|| PathFinder.getStep(i, Dungeon.level.exit(), Dungeon.level.getPassableVar(this), this) == -1);
 				ScrollOfTeleportation.appear(this, i);
 				state = WANDERING;
 				GameScene.flash(0x80FFFFFF);
@@ -595,7 +610,7 @@ public abstract class YogFist extends Mob {
 			Char enemy = this.enemy;
 			if (hit( this, enemy, true )) {
 
-				enemy.damage( Char.combatRoll(10, 20), new DarkBolt() );
+				enemy.damage( Random.NormalIntRange(10, 20), new DarkBolt() );
 
 				Light l = enemy.buff(Light.class);
 				if (l != null){
@@ -641,7 +656,7 @@ public abstract class YogFist extends Mob {
 				} while (Dungeon.level.heroFOV[i]
 						|| Dungeon.level.solid[i]
 						|| Actor.findChar(i) != null
-						|| PathFinder.getStep(i, Dungeon.level.exit(), Dungeon.level.getPassableVar(this)) == -1);
+						|| PathFinder.getStep(i, Dungeon.level.exit(), Dungeon.level.getPassableVar(this), this) == -1);
 				ScrollOfTeleportation.appear(this, i);
 				state = WANDERING;
 				GameScene.flash(0, false);

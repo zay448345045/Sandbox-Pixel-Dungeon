@@ -65,7 +65,7 @@ public class CrystalMimic extends Mimic {
 	}
 
 	@Override
-	public String description() {
+	public String desc() {
 		if (alignment == Alignment.NEUTRAL && customDesc == null){
 			String desc = null;
 			if (items != null){
@@ -92,7 +92,7 @@ public class CrystalMimic extends Mimic {
 			}
 			return desc;
 		} else {
-			return super.description();
+			return super.desc();
 		}
 	}
 
@@ -190,7 +190,7 @@ public class CrystalMimic extends Mimic {
 	private class Fleeing extends Mob.Fleeing {
 		@Override
 		protected void escaped() {
-			if (!Dungeon.level.heroFOV[pos] && Dungeon.level.distance(Dungeon.hero.pos, pos) >= 6) {
+			if (!Dungeon.level.heroFOV[pos] && alignment == Alignment.ENEMY &&Dungeon.level.distance(Dungeon.hero.pos, pos) >= 6) {
 				GLog.n(Messages.get(CrystalMimic.class, "escaped"));
 				destroy();
 				sprite.killAndErase();

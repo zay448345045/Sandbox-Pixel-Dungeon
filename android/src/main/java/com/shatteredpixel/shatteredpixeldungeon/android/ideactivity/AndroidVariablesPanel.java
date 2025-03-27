@@ -26,8 +26,9 @@ package com.shatteredpixel.shatteredpixeldungeon.android.ideactivity;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.LuaManager;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.LuaManager;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.watabou.NotAllowedInLua;
 import com.watabou.idewindowactions.CodeInputPanelInterface;
 import com.watabou.idewindowactions.LuaScript;
 import org.luaj.vm2.LuaTable;
@@ -36,6 +37,7 @@ import org.luaj.vm2.LuaValue;
 import java.util.ArrayList;
 import java.util.List;
 
+@NotAllowedInLua
 public class AndroidVariablesPanel extends AndroidCodeInputPanel {
 
 	{
@@ -81,7 +83,7 @@ public class AndroidVariablesPanel extends AndroidCodeInputPanel {
 
 	@Override
 	public String convertToLuaCode() {
-		return tableName + " = {\n" + textInput.getText() + "\n}";
+		return tableName + " = {\n" + text + "\n}";
 	}
 
 	@Override
@@ -102,14 +104,14 @@ public class AndroidVariablesPanel extends AndroidCodeInputPanel {
 	public void applyScript(boolean forceChange, LuaScript fullScript, String cleanedCode) {
 		String newCode = LuaScript.extractTableFromScript(cleanedCode, fullScript.code, tableName, true);
 
-		if (!forceChange && newCode != null && !textInput.getText().toString().isEmpty()) {
+		if (!forceChange && newCode != null && !text.isEmpty()) {
 			//smart insert code
 			StringBuilder writeCode = new StringBuilder();
 
-			LuaTable oldTable = LuaManager.load("return {" + textInput.getText().toString().replaceAll("\\bnil\\b", "\"_\"") + "}").call().checktable();
+			LuaTable oldTable = LuaManager.load("return {" + text.replaceAll("\\bnil\\b", "\"_\"") + "}").call().checktable();
 			LuaTable newTable = LuaManager.load("return {" +       newCode      .replaceAll("\\bnil\\b", "\"_\"") + "}").call().checktable();
 			String cleanedNewCode = LuaScript.cleanLuaCode(newCode);
-			String oldCode = textInput.getText().toString();
+			String oldCode = text;
 			String cleanedOldCode = LuaScript.cleanLuaCode(oldCode);
 			LuaValue[] oldKeys = oldTable.keys();
 			List<String> oldKeysString = new ArrayList<>(oldKeys.length + 1);
@@ -149,7 +151,7 @@ public class AndroidVariablesPanel extends AndroidCodeInputPanel {
 				}
 			}
 
-			textInput.setText(writeCode.toString());
+			setText(writeCode.toString());
 
 		} else {
 			setCode(forceChange, newCode);

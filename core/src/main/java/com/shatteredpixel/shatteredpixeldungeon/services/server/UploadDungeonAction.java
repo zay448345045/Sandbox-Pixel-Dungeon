@@ -32,6 +32,7 @@ import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.server.ServerDungeonList;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.CustomDungeonSaves;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Game;
 
 import java.io.FileNotFoundException;
@@ -40,24 +41,27 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
+@NotAllowedInLua
 public class UploadDungeonAction {
 
 	private final ServerCommunication.UploadCallback callback;
 
 	private int openResponses;
 	private boolean canceled;
+	
+	private DungeonPreview uploadPreview;
 
 	private List<Throwable> errors = new ArrayList<>(2);
 	private List<Net.HttpRequest> openRequests = new ArrayList<>();
 
 	private String folderID;
 
-	//TODO tzz ask if want to include a dungeon before!
+	//TODO maybe ask if want to include a dungeon before!
 	public UploadDungeonAction(String dungeonName, String description, String userName, int difficulty, ServerCommunication.UploadCallback callback) {
 		this.callback = callback;
 		try {
 
-			DungeonPreview uploadPreview = new DungeonPreview();
+			uploadPreview = new DungeonPreview();
 			uploadPreview.title = dungeonName;
 			uploadPreview.description = description;
 			uploadPreview.version = Game.version;
@@ -244,7 +248,8 @@ public class UploadDungeonAction {
 		httpRequest.setUrl(ServerCommunication.getURL()
 				+ "?action=finishUpload"
 				+ "&dungeonID=" + folderID
-				+ "&userID=" + ServerCommunication.getUUID());
+				+ "&userID=" + ServerCommunication.getUUID()
+				+ uploadPreview.writeArgumentsForURL());
 		httpRequest.setHeader("Content-Type", "application/x-www-form-urlencoded");
 		httpRequest.setContent("empty");
 

@@ -49,7 +49,12 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.LotusSprite;
 import com.watabou.noosa.audio.Sample;
-import com.watabou.utils.*;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
+import com.watabou.utils.ColorMath;
+import com.watabou.utils.GameMath;
+import com.watabou.utils.PathFinder;
+import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -195,16 +200,19 @@ public class WandOfRegrowth extends Wand {
 		}
 
 	}
-	
+
 	private int chargeLimit( int heroLvl ){
-		if (level() >= 10){
+		return chargeLimit(  heroLvl, level() );
+	}
+
+	private int chargeLimit( int heroLvl, int wndLvl ){
+		if (wndLvl >= 10){
 			return Integer.MAX_VALUE;
 		} else {
 			//20 charges at base, plus:
 			//2/3.1/4.2/5.5/6.8/8.4/10.4/13.2/18.0/30.8/inf. charges per hero level, at wand level:
 			//0/1  /2  /3  /4  /5  /6   /7   /8   /9   /10
-			float lvl = level();
-			return Math.round(20 + heroLvl * (2+lvl) * (1f + (lvl/(50 - 5*lvl))));
+			return Math.round(20 + heroLvl * (2+wndLvl) * (1f + (wndLvl/(50 - 5*wndLvl))));
 		}
 	}
 
@@ -269,7 +277,8 @@ public class WandOfRegrowth extends Wand {
 
 	@Override
 	protected int chargesPerCast() {
-		if (cursed || charger != null && charger.target.buff(WildMagic.WildMagicTracker.class) != null){
+		if (cursed ||
+				(charger != null && charger.target != null && charger.target.buff(WildMagic.WildMagicTracker.class) != null)){
 			return 1;
 		}
 		//consumes 30% of current charges, rounded up, with a min of 1 and a max of 3.
@@ -284,6 +293,20 @@ public class WandOfRegrowth extends Wand {
 			if (chargeLeft < 10000) desc += " " + Messages.get(this, "degradation", Math.max(chargeLeft, 0));
 		}
 		return desc;
+	}
+
+	@Override
+	public String upgradeStat1(int level) {
+		return Messages.decimalFormat("#.##", 3 + (2+level)/3f);
+	}
+
+	@Override
+	public String upgradeStat2(int level) {
+		if (level >= 10){
+			return "∞";
+		} else {
+			return Integer.toString(chargeLimit(Dungeon.hero.lvl, level));
+		}
 	}
 
 	@Override
@@ -418,7 +441,13 @@ public class WandOfRegrowth extends Wand {
 		public float seedPreservation(){
 			return Math.min( 1f, 0.40f + 0.04f*wandLvl );
 		}
-
+		
+		@Override
+		public void initAsInventoryItem() {
+			super.initAsInventoryItem();
+			setLevel(7);
+		}
+		
 		@Override
 		public boolean canInteract(Char c) {
 			return false;
@@ -465,10 +494,14 @@ public class WandOfRegrowth extends Wand {
 		}
 
 		@Override
-		public String description() {
-			if (customDesc != null) return super.description();
-			int preservation = Math.round(seedPreservation()*100);
-			return Messages.get(this, "desc", wandLvl, preservation, preservation);
+		public String desc() {
+			if (customDesc != null) return super.desc();
+			String desc = Messages.get(this, "desc");
+			if (Actor.chars().contains(this)) {
+				int preservation = Math.round(seedPreservation()*100);
+				desc += "\n\n" + Messages.get(this, "wand_info", wandLvl, preservation, preservation);
+			}
+			return desc;
 		}
 
 		private static final String WAND_LVL = "wand_lvl";

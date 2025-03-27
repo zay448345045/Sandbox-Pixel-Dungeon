@@ -28,6 +28,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.Ratmogrify;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.items.KingsCrown;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Notes;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.RatKingSprite;
@@ -86,6 +87,11 @@ public class RatKing extends NPC {
 	}
 
     @Override
+	public Notes.Landmark landmark() {
+		return Dungeon.customDungeon.isRatKingLevel(Dungeon.levelName) ? Notes.Landmark.RAT_KING : null;
+	}
+
+	@Override
     protected boolean act() {
         if (!Dungeon.customDungeon.isRatKingLevel(Dungeon.levelName)){
             if (pos == Dungeon.level.entrance()){
@@ -122,7 +128,7 @@ public class RatKing extends NPC {
 					@Override
 					public void call() {
 						GameScene.show(new WndOptions(
-								sprite(),
+								createSprite(),
 								Messages.titleCase(name()),
 								Messages.get(RatKing.class, "crown_desc"),
 								Messages.get(RatKing.class, "crown_yes"),
@@ -157,9 +163,9 @@ public class RatKing extends NPC {
 	}
 	
 	@Override
-	public String description() {
+	public String desc() {
 		if (customDesc != null) {
-			return super.description();
+			return super.desc();
 		}
 		if (Dungeon.hero != null && Dungeon.hero.armorAbility instanceof Ratmogrify){
 			return Messages.get(this, "desc_crown");
@@ -168,7 +174,7 @@ public class RatKing extends NPC {
 		} else if (Holiday.getCurrentHoliday() == Holiday.WINTER_HOLIDAYS){
 			return Messages.get(this, "desc_winter");
 		} else {
-			return super.description();
+			return super.desc();
 		}
 	}
 }

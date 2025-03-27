@@ -33,31 +33,23 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Tooltip;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.utils.Holiday;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndJournal;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndJournal;
+import com.watabou.NotAllowedInLua;
 import com.watabou.gltextures.TextureCache;
 import com.watabou.glwrap.Blending;
 import com.watabou.input.ControllerHandler;
 import com.watabou.input.KeyEvent;
 import com.watabou.input.PointerEvent;
-import com.watabou.noosa.BitmapText;
+import com.watabou.noosa.*;
 import com.watabou.noosa.BitmapText.Font;
-import com.watabou.noosa.Camera;
-import com.watabou.noosa.ColorBlock;
-import com.watabou.noosa.Game;
-import com.watabou.noosa.Gizmo;
-import com.watabou.noosa.Image;
-import com.watabou.noosa.Scene;
-import com.watabou.noosa.Visual;
 import com.watabou.noosa.ui.Component;
 import com.watabou.noosa.ui.Cursor;
-import com.watabou.utils.Callback;
-import com.watabou.utils.DeviceCompat;
-import com.watabou.utils.GameMath;
-import com.watabou.utils.PointF;
-import com.watabou.utils.Reflection;
-import com.watabou.utils.Signal;
+import com.watabou.utils.*;
 
 import java.util.ArrayList;
 
+@NotAllowedInLua
 public class PixelScene extends Scene {
 
 	// Minimum virtual display size for mobile portrait orientation
@@ -278,7 +270,7 @@ public class PixelScene extends Scene {
 		}
 	}
 
-	//FIXME this system currently only works for a subset of windows
+	//this system only preserves windows with a public zero-arg constructor
 	private static ArrayList<Class<?extends Window>> savedWindows = new ArrayList<>();
 	private static Class<?extends PixelScene> savedClass = null;
 	
@@ -300,7 +292,7 @@ public class PixelScene extends Scene {
 				try{
 					add(Reflection.newInstanceUnhandled(w));
 				} catch (Exception e){
-					//window has no public zero-arg constructor, just eat the exception
+					//just eat the exception
 				}
 			}
 		}
@@ -398,6 +390,9 @@ public class PixelScene extends Scene {
 						banner.y = align(uiCamera, (uiCamera.height - banner.height) / 2 - banner.height / 2 - 16 - offset);
 						left += BadgeBanner.SIZE * BadgeBanner.DEFAULT_SCALE;
 					}
+
+					WndJournal.last_index = 4;
+					WndJournal.BadgesTab.global = badge.type != Badges.BadgeType.LOCAL;
 
 				}
 			}

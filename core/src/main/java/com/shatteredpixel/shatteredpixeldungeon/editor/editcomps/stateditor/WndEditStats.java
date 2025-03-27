@@ -15,7 +15,7 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.Spinner;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerFloatModel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerIntegerModel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.StyledSpinner;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.stones.StoneOfAugmentation;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.special.SentryRoom;
 import com.shatteredpixel.shatteredpixeldungeon.mechanics.ShadowCaster;
@@ -136,7 +136,8 @@ public class WndEditStats extends MultiWindowTabComp {
 				content.add(dmgMax);
 
 				if (current instanceof Skeleton || current instanceof Warlock || current instanceof Brute || current instanceof DM100
-						|| current instanceof Goo || current instanceof CrystalWisp || current instanceof Eye || current instanceof GnollGuard) {
+						|| current instanceof Goo || current instanceof CrystalWisp || current instanceof Eye || current instanceof GnollGuard
+						|| current instanceof Shaman) {
 					specialDmgMin = new IntegerSpinner(Messages.get(Mob.class, "special_dmg_min"),
 							0, Math.max(10, def.specialDamageRollMin * 10), current.specialDamageRollMin);
 					specialDmgMin.addChangeListener(() -> current.specialDamageRollMin = specialDmgMin.castToInt());
@@ -230,9 +231,9 @@ public class WndEditStats extends MultiWindowTabComp {
 		add(restoreDefaults);
 
 		mainWindowComps = new Component[]{
-				statsScale == null ? viewDistance : statsScale, PixelScene.landscape() ? null : viewDistance, speed, attackSpeed, EditorUtilies.PARAGRAPH_INDICATOR_INSTANCE,
+				statsScale == null ? viewDistance : statsScale, PixelScene.landscape() ? null : viewDistance, speed, attackSpeed, EditorUtilities.PARAGRAPH_INDICATOR_INSTANCE,
 				hp, attackSkill, defenseSkill,
-				armor, dmgMin, dmgMax, specialDmgMin, specialDmgMax, EditorUtilies.PARAGRAPH_INDICATOR_INSTANCE,
+				armor, dmgMin, dmgMax, specialDmgMin, specialDmgMax, EditorUtilities.PARAGRAPH_INDICATOR_INSTANCE,
 				statsScale != null && PixelScene.landscape() ? viewDistance : null, tilesBeforeWakingUp, xp, maxLvl, loot, enchantmentLevel
 		};
 
@@ -304,7 +305,7 @@ public class WndEditStats extends MultiWindowTabComp {
 	@Override
 	protected void layoutOwnContent() {
 		super.layoutOwnContent();
-		content.setSize(width, EditorUtilies.layoutCompsLinear(GAP, content, enchantments, properties));
+		content.setSize(width, EditorUtilities.layoutCompsLinear(GAP, content, enchantments, properties));
 	}
 
 	private void addSpeedViewDistanceSpinner(Mob def, Mob current) {

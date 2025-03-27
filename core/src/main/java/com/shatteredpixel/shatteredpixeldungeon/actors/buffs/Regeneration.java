@@ -23,9 +23,12 @@ package com.shatteredpixel.shatteredpixeldungeon.actors.buffs;
 
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
-import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.HeroMob;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.spells.SpiritForm;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.ChaliceOfBlood;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.RingOfEnergy;
+import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.ChaoticCenser;
+import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.SaltCube;
+import com.watabou.utils.Bundle;
 
 public class Regeneration extends Buff {
 	
@@ -34,39 +37,64 @@ public class Regeneration extends Buff {
 		//healing is much more useful if you get some of it off before taking damage
 		actPriority = HERO_PRIO - 1;
 	}
-	
-	private static final float REGENERATION_DELAY = 10;
+
+	private float partialRegen = 0f;
+
+	private static final float REGENERATION_DELAY = 10; //1HP every 10 turns
 	
 	@Override
 	public boolean act() {
 		if (target.isAlive()) {
 
-			Hero hero = target instanceof HeroMob ? ((HeroMob) target).hero() : (Hero) target;
+			Hero hero = targetHero(target);
 
+			//if other trinkets ever get buffs like this should probably make the buff attaching
+			// behaviour more like wands/rings/artifacts
+			if (ChaoticCenser.averageTurnsUntilGas(hero) != -1){
+				Buff.affect(hero, ChaoticCenser.CenserGasTracker.class);
+			}
+			
 			boolean isStarving = hero.isStarving();
+			
+			if (regenOn() && target.HP < regencap() && !isStarving && Dungeon.curLvlScheme().naturalRegenSpeed > 0) {
+				boolean chaliceCursed = false;
+				int chaliceLevel = -1;
+				if (target.buff(MagicImmune.class) == null) {
+					if (hero.buff(ChaliceOfBlood.chaliceRegen.class) != null) {
+						chaliceCursed = hero.buff(ChaliceOfBlood.chaliceRegen.class).isCursed();
+						chaliceLevel = hero.buff(ChaliceOfBlood.chaliceRegen.class).itemLevel();
+					} else if (hero.buff(SpiritForm.SpiritFormBuff.class) != null
+							&& hero.buff(SpiritForm.SpiritFormBuff.class).artifact() instanceof ChaliceOfBlood) {
+						chaliceLevel = SpiritForm.artifactLevel();
+					}
+				}
 
-			if (target.HP < regencap() && !isStarving && Dungeon.curLvlScheme().naturalRegeneration) {
-				if (regenOn()) {
+				float delay = REGENERATION_DELAY;
+				if (chaliceLevel != -1 && target.buff(MagicImmune.class) == null) {
+					if (chaliceCursed) {
+						delay *= 1.5f;
+					} else {
+						//15% boost at +0, scaling to a 500% boost at +10
+						delay -= 1.33f + chaliceLevel*0.667f;
+						delay /= RingOfEnergy.artifactChargeMultiplier(target);
+					}
+				}
+				delay /= SaltCube.healthRegenMultiplier(hero);
+				delay /= Dungeon.curLvlScheme().naturalRegenSpeed;
+
+				partialRegen += 1f / delay;
+
+				if (partialRegen >= 1) {
 					target.HP += 1;
+					partialRegen--;
 					if (target.HP == regencap() && hero == Dungeon.hero) {
 						hero.resting = false;
 					}
 				}
+
 			}
 
-			ChaliceOfBlood.chaliceRegen regenBuff = hero.buff( ChaliceOfBlood.chaliceRegen.class);
-
-			float delay = REGENERATION_DELAY;
-			if (regenBuff != null && target.buff(MagicImmune.class) == null) {
-				if (regenBuff.isCursed()) {
-					delay *= 1.5f;
-				} else {
-					//15% boost at +0, scaling to a 500% boost at +10
-					delay -= 1.33f + regenBuff.itemLevel()*0.667f;
-					delay /= RingOfEnergy.artifactChargeMultiplier(target);
-				}
-			}
-			spend( delay );
+			spend( TICK );
 			
 		} else {
 			
@@ -87,5 +115,19 @@ public class Regeneration extends Buff {
 			return false;
 		}
 		return true;
+	}
+
+	public static final String PARTIAL_REGEN = "partial_regen";
+
+	@Override
+	public void storeInBundle(Bundle bundle) {
+		super.storeInBundle(bundle);
+		bundle.put(PARTIAL_REGEN, partialRegen);
+	}
+
+	@Override
+	public void restoreFromBundle(Bundle bundle) {
+		super.restoreFromBundle(bundle);
+		partialRegen = bundle.getFloat(PARTIAL_REGEN);
 	}
 }

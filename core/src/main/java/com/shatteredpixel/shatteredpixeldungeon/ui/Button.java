@@ -23,8 +23,13 @@ package com.shatteredpixel.shatteredpixeldungeon.ui;
 
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
-import com.watabou.input.*;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
+import com.watabou.NotAllowedInLua;
+import com.watabou.input.ControllerHandler;
+import com.watabou.input.GameAction;
+import com.watabou.input.KeyBindings;
+import com.watabou.input.KeyEvent;
+import com.watabou.input.PointerEvent;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
@@ -36,7 +41,7 @@ import com.watabou.utils.Signal;
 public class Button extends Component {
 
 	public static float longClick = 0.5f;
-	
+
 	protected PointerArea hotArea;
 	protected Tooltip hoverTip;
 
@@ -44,10 +49,6 @@ public class Button extends Component {
 	protected static Button pressedButton;
 	protected float pressTime;
 	protected boolean clickReady;
-
-	public Button(Object... params) {
-		super(params);
-	}
 
 	@Override
 	protected void createChildren() {
@@ -109,9 +110,14 @@ public class Button extends Component {
 						text += " _(" + KeyBindings.getKeyName(key) + ")_";
 					}
 					hoverTip = new Tooltip(Button.this, text, 80);
-					Button.this.parent.addToFront(hoverTip);
-					Window parentWindow = EditorUtilies.getParentWindow(this);
-					hoverTip.camera = parentWindow == null ? camera() : parentWindow.camera;
+					Window parentWindow = EditorUtilities.getParentWindow(this);
+					if (parentWindow != null) {
+						parentWindow.addToFront(hoverTip);
+						hoverTip.camera = parentWindow.camera;
+					} else {
+						Button.this.add(hoverTip);
+						hoverTip.camera = camera();
+					}
 					alignTooltip(hoverTip);
 				}
 			}
@@ -131,7 +137,7 @@ public class Button extends Component {
 			}
 		};
 		add( hotArea );
-		
+
 		KeyEvent.addKeyListener( keyListener = new Signal.Listener<KeyEvent>() {
 			@Override
 			public boolean onSignal ( KeyEvent event ) {
@@ -155,9 +161,9 @@ public class Button extends Component {
 			}
 		});
 	}
-	
+
 	private Signal.Listener<KeyEvent> keyListener;
-	
+
 	public GameAction keyAction(){
 		return null;
 	}
@@ -170,7 +176,7 @@ public class Button extends Component {
 	@Override
 	public void update() {
 		super.update();
-		
+
 		hotArea.active = visible;
 
 		if (isclickHolding) {
@@ -180,7 +186,7 @@ public class Button extends Component {
 			for (int i = 0; i < clicks; i++) onClick();
 			return;
 		}
-		
+
 		if (pressedButton == this && (pressTime += Game.elapsed) >= longClick) {
 			if (getClicksPerSecondWhenHolding() > 0) {
 				SandboxPixelDungeon.vibrate(50);
@@ -193,6 +199,8 @@ public class Button extends Component {
 					hotArea.reset();
 					clickReady = false; //did a long click, can't do a regular one
 					onPointerUp();
+					
+					hotArea.onConsumeCancelingClick();
 
 					if (SPDSettings.vibration()) {
 						SandboxPixelDungeon.vibrate(50);
@@ -229,12 +237,16 @@ public class Button extends Component {
 	protected int getClicksPerSecondWhenHolding() {
 		return 0;
 	}
-	
+
 	protected void onPointerDown() {}
 	protected void onPointerUp() {}
+	@NotAllowedInLua
 	protected void onClick() {} //left click, default key type
+	@NotAllowedInLua
 	protected void onRightClick() {}
+	@NotAllowedInLua
 	protected void onMiddleClick() {}
+	@NotAllowedInLua
 	protected boolean onLongClick() {
 		return false;
 	}
@@ -264,7 +276,7 @@ public class Button extends Component {
 			hoverTip = null;
 		}
 	}
-	
+
 	@Override
 	protected void layout() {
 		hotArea.x = x;
@@ -272,7 +284,7 @@ public class Button extends Component {
 		hotArea.width = width;
 		hotArea.height = height;
 	}
-	
+
 	@Override
 	public synchronized void destroy () {
 		super.destroy();
@@ -283,5 +295,5 @@ public class Button extends Component {
 	public void givePointerPriority(){
 		hotArea.givePointerPriority();
 	}
-	
+
 }

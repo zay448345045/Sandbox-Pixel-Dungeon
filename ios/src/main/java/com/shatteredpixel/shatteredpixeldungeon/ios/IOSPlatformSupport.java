@@ -30,6 +30,7 @@ import com.badlogic.gdx.graphics.g2d.PixmapPacker;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
+import com.watabou.NotAllowedInLua;
 import com.watabou.input.ControllerHandler;
 import com.watabou.noosa.Game;
 import com.watabou.utils.PlatformSupport;
@@ -42,6 +43,7 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@NotAllowedInLua
 public class IOSPlatformSupport extends PlatformSupport {
 	@Override
 	public void updateDisplaySize() {
@@ -174,18 +176,18 @@ public class IOSPlatformSupport extends PlatformSupport {
 					+ "(?<= )|(?= )|"  + "(?<= )|(?= )|"  + "(?<= )|(?= )|"
 					+ "(?<= )|(?= )|"  + "(?<= )|(?= )|";
 
-	//splits on newlines, underscores, and chinese/japaneses characters
+	//splits on newline (for layout), chinese/japanese (for font choice), and '_'/'**' (for highlighting)
 	private Pattern regularsplitter = Pattern.compile(
-			"(?<=\n)|(?=\n)|(?<=_)|(?=_)|" +
+			"(?<=\n)|(?=\n)|(?<=_)|(?=_)|(?<=\\*\\*)|(?=\\*\\*)|" +
 					HIGHLIGHT_COLORS +
 					"(?<=\\p{InHiragana})|(?=\\p{InHiragana})|" +
 					"(?<=\\p{InKatakana})|(?=\\p{InKatakana})|" +
 					"(?<=\\p{InCJK_Unified_Ideographs})|(?=\\p{InCJK_Unified_Ideographs})|" +
 					"(?<=\\p{InCJK_Symbols_and_Punctuation})|(?=\\p{InCJK_Symbols_and_Punctuation})");
 
-	//additionally splits on words, so that each word can be arranged individually
+	//additionally splits on spaces, so that each word can be laid out individually
 	private Pattern regularsplitterMultiline = Pattern.compile(
-			"(?<= )|(?= )|(?<=\n)|(?=\n)|(?<=_)|(?=_)|" +
+			"(?<= )|(?= )|(?<=\n)|(?=\n)|(?<=_)|(?=_)|(?<=\\*\\*)|(?=\\*\\*)|" +
 					HIGHLIGHT_COLORS +
 					"(?<=\\\\)|(?=\\\\)|(?<=/)|(?=/)|" +
 //					"(?<!\\s)(?=[/\\\\])|(?<=[/\\\\])(?!\\s)|" +//split at / or \ but only if they gave no leading or trailing blank character

@@ -21,7 +21,12 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.scenes;
 
-import com.shatteredpixel.shatteredpixeldungeon.*;
+import com.shatteredpixel.shatteredpixeldungeon.Assets;
+import com.shatteredpixel.shatteredpixeldungeon.Badges;
+import com.shatteredpixel.shatteredpixeldungeon.Chrome;
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.overview.dungeon.WndSelectDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.effects.BadgeBanner;
@@ -33,6 +38,7 @@ import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.StyledButton;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
@@ -40,6 +46,7 @@ import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.tweeners.Delayer;
 import com.watabou.utils.Random;
 
+@NotAllowedInLua
 public class AmuletScene extends PixelScene {
 	
 	private static final int WIDTH			= 120;
@@ -77,10 +84,12 @@ public class AmuletScene extends PixelScene {
 			@Override
 			protected void onClick() {
 				Dungeon.win( winCondition );
-				Dungeon.deleteGame( GamesInProgress.curSlot, true );
+				Dungeon.deleteGame( GamesInProgress.curSlot );
 				Badges.saveGlobal();
 				btnExit.enable(false);
 				btnStay.enable(false);
+
+				CustomObjectManager.loadUserContentFromFiles();
 
 				if (!Dungeon.isLevelTesting()) {
 					AmuletScene.this.add(new Delayer(0.1f) {

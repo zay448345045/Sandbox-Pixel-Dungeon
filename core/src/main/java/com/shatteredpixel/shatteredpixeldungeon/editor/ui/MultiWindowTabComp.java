@@ -5,10 +5,15 @@ import com.shatteredpixel.shatteredpixeldungeon.Chrome;
 import com.shatteredpixel.shatteredpixeldungeon.SPDAction;
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.WndEditorSettings;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Button;
+import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.StyledButton;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndKeyBindings;
 import com.watabou.input.GameAction;
 import com.watabou.input.KeyBindings;
@@ -30,7 +35,7 @@ public abstract class MultiWindowTabComp extends WndEditorSettings.TabComp {
     protected ScrollPane sp;
     protected Component content;
 
-    private SubMenuComp subMenuComp;
+    protected SubMenuComp subMenuComp;
 
     protected Component[] mainWindowComps;
 
@@ -67,7 +72,7 @@ public abstract class MultiWindowTabComp extends WndEditorSettings.TabComp {
 
     protected void layoutOwnContent() {
         content.setSize(width, 0);
-        content.setSize(width, EditorUtilies.layoutStyledCompsInRectangles(GAP, width, content, mainWindowComps));
+        content.setSize(width, EditorUtilities.layoutStyledCompsInRectangles(GAP, width, content, mainWindowComps));
     }
 
     public float preferredHeight(){
@@ -213,13 +218,13 @@ public abstract class MultiWindowTabComp extends WndEditorSettings.TabComp {
 
             if (buttonBack != null) buttonBack.setPos(x, posY + (title.height() - buttonBack.height()) * 0.5f);
 
-            posY += Math.max(title.height(), buttonBack.height());
+            posY = Math.max(title.bottom(), buttonBack == null ? 0 : buttonBack.bottom()) + GAP;
 
-            body.setSize(width, -1);
+            body.setSize(width, 0);
 
             float normalSpHeight;
             if (outsideSp != null) {
-                outsideSp.setSize(width, -1);
+                outsideSp.setSize(width, 0);
                 float outsideSpH = outsideSp.height();
                 outsideSp.setPos(x, y + height - outsideSpH);
                 normalSpHeight = height - posY - (outsideSpH == 0 ? 1 : outsideSpH + GAP);
@@ -271,12 +276,11 @@ public abstract class MultiWindowTabComp extends WndEditorSettings.TabComp {
 
         protected TabControlButton[] tabs;
         protected int currentIndex;
-
-        @Override
-        protected void createChildren() {
+        
+        {
             KeyEvent.addKeyListener(keyListener = keyEvent -> {
                 GameAction action = KeyBindings.getActionForKey(keyEvent);
-
+                
                 if (keyEvent.pressed) {
                     curAction = action;
                     return processKey();

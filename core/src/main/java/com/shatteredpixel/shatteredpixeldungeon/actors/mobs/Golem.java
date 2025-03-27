@@ -56,7 +56,7 @@ public class Golem extends Mob {
 		maxLvl = 22;
 
 		loot = Random.oneOf(Generator.Category.WEAPON, Generator.Category.ARMOR);
-		lootChance = 0.125f; //initially, see lootChance()
+		lootChance = 0.2f; //initially, see lootChance()
 
 		properties.add(Property.INORGANIC);
 		properties.add(Property.LARGE);
@@ -67,7 +67,7 @@ public class Golem extends Mob {
 
 //	@Override
 //	public int damageRoll() {
-//		return Char.combatRoll( 25, 30 );
+//		return Random.NormalIntRange( 25, 30 );
 //	}
 //
 //	@Override
@@ -77,14 +77,14 @@ public class Golem extends Mob {
 //
 //	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 12);
+//		return super.drRoll() + Random.NormalIntRange(0, 12);
 //	}
 
 	@Override
 	public float lootChance() {
-		//each drop makes future drops 1/2 as likely
-		// so loot chance looks like: 1/8, 1/16, 1/32, 1/64, etc.
-		return super.lootChance() * (float)Math.pow(1/2f, Dungeon.LimitedDrops.GOLEM_EQUIP.count);
+		//each drop makes future drops 1/3 as likely
+		// so loot chance looks like: 1/5, 1/15, 1/45, 1/135, etc.
+		return super.lootChance() * (float)Math.pow(1/3f, Dungeon.LimitedDrops.GOLEM_EQUIP.count);
 	}
 
 	@Override
@@ -152,7 +152,9 @@ public class Golem extends Mob {
 		selfTeleCooldown--;
 		enemyTeleCooldown--;
 		if (teleporting){
-			((GolemSprite)sprite).teleParticles(false);
+			if (sprite.extraCode instanceof GolemSprite.TeleParticles)
+				((GolemSprite.TeleParticles) sprite.extraCode).showParticles(false);
+
 			if (Actor.findChar(target) == null && Dungeon.level.openSpace[target]) {
 				ScrollOfTeleportation.appear(this, target);
 				selfTeleCooldown = (int) (maxTeleCooldown * 1.5f);
@@ -206,7 +208,7 @@ public class Golem extends Mob {
 
 	public boolean canTele(int target){
 		if (enemyTeleCooldown > 0) return false;
-		PathFinder.buildDistanceMap(target, BArray.not(Dungeon.level.solid, null), Dungeon.level.distance(pos, target)+1);
+		PathFinder.buildDistanceMapForCharacters(target, BArray.not(Dungeon.level.solid, null), Dungeon.level.distance(pos, target)+1, target);
 		//zaps can go around blocking terrain, but not through it
 		if (PathFinder.distance[pos] == Integer.MAX_VALUE){
 			return false;
@@ -225,7 +227,8 @@ public class Golem extends Mob {
 				spend( 1 / speed() );
 				return moveSprite( oldPos, pos );
 			} else if (!Dungeon.bossLevel() && target != -1 && target != pos && selfTeleCooldown <= 0) {
-				((GolemSprite)sprite).teleParticles(true);
+				if (sprite.extraCode instanceof GolemSprite.TeleParticles)
+					((GolemSprite.TeleParticles) sprite.extraCode).showParticles(true);
 				teleporting = true;
 				spend( 2*TICK );
 			} else {
@@ -251,26 +254,14 @@ public class Golem extends Mob {
 
 				if (distance(enemy) >= 1 && Random.Int(100/distance(enemy)) == 0
 						&& !Char.hasProp(enemy, Property.IMMOVABLE) && canTele(target)){
-					if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
-						sprite.zap( enemy.pos );
-						return false;
-					} else {
-						teleportEnemy();
-						return true;
-					}
+					return doRangedAttack();
 
 				} else if (getCloser( target )) {
 					spend( 1 / speed() );
 					return moveSprite( oldPos,  pos );
 
 				} else if (!Char.hasProp(enemy, Property.IMMOVABLE) && canTele(target)) {
-					if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
-						sprite.zap( enemy.pos );
-						return false;
-					} else {
-						teleportEnemy();
-						return true;
-					}
+					return doRangedAttack();
 
 				} else {
 					spend( TICK );

@@ -54,7 +54,7 @@ public class PotionOfPurity extends Potion {
 	@Override
 	public void shatter( int cell ) {
 		
-		PathFinder.buildDistanceMap( cell, BArray.not( Dungeon.level.solid, null ), DISTANCE );
+		PathFinder.buildDistanceMapForEnvironmentals( cell, BArray.not( Dungeon.level.solid, null ), DISTANCE );
 		
 		ArrayList<Blob> blobs = new ArrayList<>();
 		for (Class c : affectedBlobs){
@@ -92,10 +92,12 @@ public class PotionOfPurity extends Potion {
 	
 	@Override
 	public void apply( Hero hero ) {
-		GLog.w( Messages.get(this, "protected") );
+		if (hero == Dungeon.hero) {
+			GLog.w(Messages.get(this, "protected"));
+			identify();
+		}
 		Buff.prolong( hero, BlobImmunity.class, BlobImmunity.DURATION() );
 		SpellSprite.show(hero, SpellSprite.PURITY);
-		identify();
 	}
 	
 	@Override

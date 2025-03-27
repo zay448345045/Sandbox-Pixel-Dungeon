@@ -4,12 +4,22 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Foliage;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.SacrificialFire;
-import com.shatteredpixel.shatteredpixeldungeon.editor.*;
+import com.shatteredpixel.shatteredpixeldungeon.editor.ArrowCell;
+import com.shatteredpixel.shatteredpixeldungeon.editor.Barrier;
+import com.shatteredpixel.shatteredpixeldungeon.editor.Checkpoint;
+import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
+import com.shatteredpixel.shatteredpixeldungeon.editor.TileSprite;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.EditCustomTileComp;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.EditParticleComp;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.FindInBag;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.WndEditorInv;
-import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.*;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.ArrowCellItem;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.BarrierItem;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.BlobItem;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.CheckpointItem;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.CustomTileItem;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.ParticleItem;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.TileItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.other.CustomParticle;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.other.PermaGas;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomLevel;
@@ -25,7 +35,11 @@ import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Document;
-import com.shatteredpixel.shatteredpixeldungeon.levels.*;
+import com.shatteredpixel.shatteredpixeldungeon.levels.CavesBossLevel;
+import com.shatteredpixel.shatteredpixeldungeon.levels.CityBossLevel;
+import com.shatteredpixel.shatteredpixeldungeon.levels.HallsBossLevel;
+import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
+import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.quest.BlacksmithRoom;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.quest.MassGraveRoom;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.quest.RitualSiteRoom;
@@ -34,17 +48,17 @@ import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.special.DemonSpawne
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.special.MagicalFireRoom;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.special.WeakFloorRoom;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
-import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.DungeonScene;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.CustomTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTerrainTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTileSheet;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollingListPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.windows.IconTitle;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndError;
 import com.watabou.noosa.Image;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import static com.shatteredpixel.shatteredpixeldungeon.editor.overview.floor.WndNewFloor.BUTTON_HEIGHT;
 import static com.shatteredpixel.shatteredpixeldungeon.levels.Terrain.*;
@@ -91,34 +105,36 @@ public enum Tiles {
     //TODO Icon zeige in inv an, ob brennbar, oder Schlüssel?? -> muss über ListItem gemacht werden!
 
 
-    public static final EditorItemBag bag = new EditorItemBag("name", 0) {
+    public static final EditorItemBag bag = new EditorItemBag() {
         @Override
         public Item findItem(FindInBag src) {
 
             Item result = super.findItem(src);
             if (result != null) return result;
-
-            if (src.getType() == FindInBag.Type.CUSTOM_TILE) {
+            
+            FindInBag.Type type = src.getType();
+            Object value = src.getValue();
+            if (type == FindInBag.Type.CUSTOM_TILE || type == FindInBag.Type.SIMPLE_CUSTOM_TILE) {
                 for (Item i : customTileBag.items) {
                     if (i instanceof CustomTileItem) {
                         CustomTilemap customTile = ((CustomTileItem) i).getObject();
                         if (customTile instanceof CustomTileLoader.UserCustomTile
-                                && src.getValue().equals(((CustomTileLoader.UserCustomTile) customTile).identifier)) return i;
+                                && value.equals(((CustomTileLoader.UserCustomTile) customTile).getIdentifier())) return i;
                     }
                 }
                 return null;
             }
-            if (src.getType() == FindInBag.Type.PARTICLE) {
+            if (type == FindInBag.Type.PARTICLE) {
                 int id;
-                if (src.getValue() instanceof CustomParticle.ParticleProperty) id = ((CustomParticle.ParticleProperty) src.getValue()).particleID();
-                else id = (int) src.getValue();
+                if (value instanceof CustomParticle.ParticleProperty) id = ((CustomParticle.ParticleProperty) value).particleID();
+                else id = (int) value;
                 for (Item i : particleBag.items) {
                     if (i instanceof ParticleItem && ((ParticleItem) i).getObject().particleID() == id) return i;
                 }
                 return null;
             }
-            if (src.getType() == FindInBag.Type.TILE) {
-                int val = (int) src.getValue();
+            if (type == FindInBag.Type.TILE) {
+                int val = (int) value;
                 if (val == Terrain.CUSTOM_DECO_EMPTY) {
                     val = EMPTY_DECO;
                 }
@@ -235,14 +251,18 @@ public enum Tiles {
         bag.items.add(particleBag = new ParticleBag());
     }
 
-    private static final Map<String, CustomTileLoader.UserCustomTile> ownCustomTiles = new HashMap<>();
 
-    public static CustomTileLoader.UserCustomTile getCustomTile(String fileName) {
-        return ownCustomTiles.get(fileName);
+    public static CustomTileLoader.OwnCustomTile getCustomTile(String fileName) {
+        return CustomTileLoader.OwnCustomTile.ownCustomTiles.get(fileName);
+    }
+    
+    public static CustomTileLoader.SimpleCustomTile getCustomTile(int id) {
+        return CustomTileLoader.SimpleCustomTile.simpleCustomTiles.get(id);
     }
 
     public static void clearCustomTiles() {
-        ownCustomTiles.clear();
+        CustomTileLoader.OwnCustomTile.ownCustomTiles.clear();
+        CustomTileLoader.SimpleCustomTile.simpleCustomTiles.clear();
         customTileBag.items.clear();
         customTileBag.items.add(new CustomTileItem(new MassGraveRoom.Bones(), -1));
         customTileBag.items.add(new CustomTileItem(new RitualSiteRoom.RitualMarker(), -1));
@@ -256,6 +276,7 @@ public enum Tiles {
         customTileBag.items.add(new CustomTileItem(new GooBossRoom.GooNest54(), -1));
         customTileBag.items.add(new CustomTileItem(new GooBossRoom.GooNest55(), -1));
         customTileBag.items.add(new CustomTileItem(new CavesBossLevel.TrapTile(), -1));
+        customTileBag.items.add(new CustomTileItem(new CavesBossLevel.MetalGate(), -1));
         customTileBag.items.add(new CustomTileItem(new CityBossLevel.KingsThrone(), -1));
 //        customTileBag.items.add(new CustomTileItem(new SewerBossExitRoom.SewerExit(), -1));
 //        customTileBag.items.add(new CustomTileItem(new SewerBossExitRoom.SewerExitOverhang(), -1));
@@ -274,12 +295,12 @@ public enum Tiles {
     }
 
     public static void addCustomTile(CustomTileLoader.UserCustomTile customTile) {
-        ownCustomTiles.put(customTile.identifier, customTile);
+        customTile.addIntoStaticMap();
         customTileBag.items.add(new CustomTileItem(customTile, -1));
     }
 
     public static void removeCustomTile(CustomTileLoader.UserCustomTile customTile) {
-        ownCustomTiles.remove(customTile.identifier);
+        customTile.removeFromStaticMap();
         Item toRemove = null;
         for (Item i : customTileBag.items) {
             if (i instanceof CustomTileItem && ((CustomTileItem) i).getObject() == customTile) {
@@ -315,9 +336,8 @@ public enum Tiles {
     public static class WndCreateCustomTile extends Window {
 
         protected IconTitle title;
-        protected RenderedTextBlock info;
 
-        protected StringInputComp identifier, name, desc;
+        protected StringInputComp name, desc;
         protected Spinner imageTerrain, realTerrain, region;
         protected RedButton create, cancel;
 
@@ -330,21 +350,6 @@ public enum Tiles {
 
             this.title = new IconTitle(new Image(), title);
             add(this.title);
-
-            if (customTile == null) {
-                identifier = new StringInputComp(Messages.get(WndCreateCustomTile.class, "identifier_label"), null, 100, false, "???") {
-                    @Override
-                    protected void onChange() {
-                        updateLayout();
-                    }
-                };
-                identifier.setHighlightingEnabled(false);
-                add(identifier);
-            } else {
-                info = PixelScene.renderTextBlock(Messages.get(WndCreateCustomTile.class, "identifier_label", customTile.identifier),6);
-                info.setHighlighting(false);
-                add(info);
-            }
 
             name = new StringInputComp(Messages.get(WndCreateCustomTile.class, "name_label"), null, 100, false, customTile == null ? "???" : customTile.name) {
                 @Override
@@ -425,7 +430,7 @@ public enum Tiles {
             };
             add(cancel);
 
-            width = PixelScene.landscape() ? 215 : Math.min(160, (int) (PixelScene.uiCamera.width * 0.9));
+            width = WindowSize.WIDTH_LARGE_M.get();
             updateLayout();
         }
 
@@ -434,16 +439,6 @@ public enum Tiles {
 
             title.setRect(0, 0, width, -1);
             posY = title.bottom() + 4;
-
-            if (identifier != null) {
-                identifier.setRect(0, posY, width, -1);
-                posY = identifier.bottom() + 2;
-            }
-
-            if (info != null) {
-                info.setPos(0, posY);
-                posY = info.bottom() + 3;
-            }
 
             name.setRect(0, posY, width, -1);
             posY = name.bottom() + 2;
@@ -461,8 +456,8 @@ public enum Tiles {
             realTerrain.setRect(0, posY, width, DungeonTerrainTilemap.SIZE + 4);
             posY = realTerrain.bottom() + 4;
 
-            create.setRect(1, posY, (width - 2) / 2, BUTTON_HEIGHT + 1);
-            cancel.setRect(create.right() + 2, posY, (width - 2) / 2, BUTTON_HEIGHT + 1);
+            create.setRect(1, posY, (width - 2) / 2f, BUTTON_HEIGHT + 1);
+            cancel.setRect(create.right() + 2, posY, (width - 2) / 2f, BUTTON_HEIGHT + 1);
             posY += BUTTON_HEIGHT + 2;
 
             resize(width, (int) Math.ceil(posY));
@@ -470,19 +465,25 @@ public enum Tiles {
 
         protected void create(boolean positive) {
             if (positive) {
-                String id = identifier == null ? "" : identifier.getText();
+                
+                int id = 1;
+                while (CustomTileLoader.SimpleCustomTile.simpleCustomTiles.containsKey(id)) {
+                    id++;
+                }
+                
                 String n = name.getText();
                 String d = desc.getText();
-                if (customTile == null && (id == null || id.trim().isEmpty() || ownCustomTiles.containsKey(id))
-                        || n == null || n.trim().isEmpty()
-                        || desc == null || d.trim().isEmpty()) {
-                    EditorScene.show(new WndError(Messages.get(WndCreateCustomTile.class, "invalid_args")));
+                if (   n == null || n.trim().isEmpty()
+					|| d == null || d.trim().isEmpty()) {
+                    DungeonScene.show( new WndError(Messages.get(WndCreateCustomTile.class, "invalid_args")) );
                     return;
                 }
 
                 boolean newCustomTile = customTile == null;
 
-                if (newCustomTile) customTile = new CustomTileLoader.SimpleCustomTile((int) imageTerrain.getValue(), (int) region.getValue(), id);
+                if (newCustomTile) {
+                    customTile = new CustomTileLoader.SimpleCustomTile((int) imageTerrain.getValue(), (int) region.getValue(), id);
+                }
                 else {
                     customTile.imageTerrain = (int) imageTerrain.getValue();
                     customTile.region = (int) region.getValue();

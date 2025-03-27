@@ -22,12 +22,14 @@
 package com.shatteredpixel.shatteredpixeldungeon.items.stones;
 
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Belongings;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Enchanting;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.Armor;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.exotic.ScrollOfEnchantment;
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.Weapon;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Catalog;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
@@ -48,15 +50,19 @@ public class StoneOfEnchantment extends InventoryStone {
 	
 	@Override
 	protected void onItemSelected(Item item) {
-		curItem.detach( curUser.belongings.backpack );
+		if (!anonymous) {
+			curItem.detach(curUser.belongings.backpack);
+			Catalog.countUse(getClass());
+			Talent.onRunestoneUsed(curUser, curUser.pos, getClass());
+		}
 		
 		if (item instanceof Weapon) {
 			
-			((Weapon)item).enchant();
+			((Weapon) item).enchant( createEnchantmentToInscribe(((Weapon) item)) );
 			
 		} else {
 			
-			((Armor)item).inscribe();
+			((Armor) item).inscribe( createGlyphToInscribe(((Armor) item)) );
 			
 		}
 		
@@ -81,6 +87,16 @@ public class StoneOfEnchantment extends InventoryStone {
 	@Override
 	public int energyVal() {
 		return 5 * quantity;
+	}
+	
+	
+	protected Armor.Glyph createGlyphToInscribe(Armor armor) {
+		Class<? extends Armor.Glyph> oldGlyphClass = armor.glyph != null ? armor.glyph.getClass() : null;
+		return Armor.Glyph.random( oldGlyphClass );
+	}
+	protected Weapon.Enchantment createEnchantmentToInscribe(Weapon weapon) {
+		Class<? extends Weapon.Enchantment> oldEnchantment = weapon.enchantment != null ? weapon.enchantment.getClass() : null;
+		return Weapon.Enchantment.random( oldEnchantment );
 	}
 
 }

@@ -28,10 +28,12 @@ import com.badlogic.gdx.controllers.Controller;
 import com.badlogic.gdx.controllers.ControllerListener;
 import com.badlogic.gdx.controllers.ControllerMapping;
 import com.badlogic.gdx.controllers.Controllers;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.ui.Cursor;
 import com.watabou.utils.DeviceCompat;
 import com.watabou.utils.PointF;
 
+@NotAllowedInLua
 public class ControllerHandler implements ControllerListener {
 
 	public enum ControllerType {
@@ -85,7 +87,12 @@ public class ControllerHandler implements ControllerListener {
 	}
 
 	public static boolean vibrationSupported(){
-		return isControllerConnected() && Controllers.getCurrent().canVibrate();
+		try {
+			//library can throw a NPE here is controller was disconnected during sleep
+			return isControllerConnected() && Controllers.getCurrent().canVibrate();
+		} catch (Exception e){
+			return false;
+		}
 	}
 
 	public static void vibrate( int millis ){

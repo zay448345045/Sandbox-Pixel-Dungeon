@@ -40,11 +40,15 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.CustomTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.ui.BossHealthBar;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.Group;
 import com.watabou.noosa.Tilemap;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.tweeners.AlphaTweener;
-import com.watabou.utils.*;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
+import com.watabou.utils.PathFinder;
+import com.watabou.utils.Point;
+import com.watabou.utils.Random;
+import com.watabou.utils.WatabouRect;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,9 +64,9 @@ public class CityBossLevel extends Level {
 	private static int WIDTH = 15;
 	private static int HEIGHT = 48;
 
-	private static final Rect entry = new Rect(1, 37, 14, 48);
-	private static final Rect arena = new Rect(1, 25, 14, 38);
-	private static final Rect end = new Rect(0, 0, 15, 22);
+	private static final WatabouRect entry = new WatabouRect(1, 37, 14, 48);
+	private static final WatabouRect arena = new WatabouRect(1, 25, 14, 38);
+	private static final WatabouRect end = new WatabouRect(0, 0, 15, 22);
 
 	private static final int bottomDoor = 7 + (arena.bottom-1)*15;
 	private static final int topDoor = 7 + arena.top*15;
@@ -301,6 +305,15 @@ public class CityBossLevel extends Level {
 	}
 
 	@Override
+	public boolean invalidHeroPos(int tile) {
+		//hero cannot be above top door if it is locked
+		if (map[topDoor] == Terrain.LOCKED_DOOR && tile <= topDoor){
+			return true;
+		}
+		return super.invalidHeroPos(tile);
+	}
+
+	@Override
 	public void occupyCell( Char ch ) {
 		if (map[bottomDoor] != Terrain.LOCKED_DOOR && map[topDoor] == Terrain.LOCKED_DOOR
 				&& ch.pos < bottomDoor && ch == Dungeon.hero) {
@@ -414,13 +427,6 @@ public class CityBossLevel extends Level {
 			default:
 				return super.tileDesc( tile, cell );
 		}
-	}
-
-	@Override
-	public Group addVisuals( ) {
-		super.addVisuals();
-		CityLevel.addCityVisuals(this, visuals);
-		return visuals;
 	}
 
 	public static class CustomGroundVisuals extends CustomTilemap implements CustomTilemap.BossLevelVisuals {
@@ -661,7 +667,8 @@ public class CityBossLevel extends Level {
                 int cutShadow = 0;
 
 				//upper part of the level, mostly demon halls tiles
-				for (int i = tileW; i < tileW * 21; i++) {
+				int length = Math.min(tileW * 21, map.length);
+				for (int i = tileW; i < length; i++) {
 
 					if (map[i] == Terrain.EXIT && shadowTop == -1) {
                         cutShadow = Math.max(0, 4 - i / tileW);

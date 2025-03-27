@@ -22,6 +22,7 @@
 package com.shatteredpixel.shatteredpixeldungeon.tiles;
 
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.Tiles;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.TileItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelScheme;
@@ -403,7 +404,7 @@ public class DungeonTileSheet {
 	public static final int DOOR_OVERHANG_OPEN          = DOOR_OVERHANG+1;
 	public static final int DOOR_OVERHANG_CRYSTAL       = DOOR_OVERHANG+4;
 	public static final int DOOR_OVERHANG_SECRET        = DOOR_OVERHANG+5;
-	public static final int DOOR_OVERHANG_CRYSTAL_SECRET= DOOR_OVERHANG+7;//tzz
+	public static final int DOOR_OVERHANG_CRYSTAL_SECRET= DOOR_OVERHANG+7;
 	public static final int DOOR_SIDEWAYS               = DOOR_OVERHANG+9;
 	public static final int DOOR_SIDEWAYS_COIN		    = DOOR_OVERHANG+10;
 	public static final int DOOR_SIDEWAYS_LOCKED        = DOOR_OVERHANG+11;
@@ -508,12 +509,20 @@ public class DungeonTileSheet {
 
 	public static byte[] tileVariance;
 
-	public static void setupVariance(int size, long seed){
+	public static void setupVariance(byte[] fixedTileVariance, int size, long seed){
 		Random.pushGenerator( seed );
 
 			tileVariance = new byte[size];
-			for (int i = 0; i < tileVariance.length; i++) {
-				tileVariance[i] = (byte) Random.Int(100);
+
+			if (fixedTileVariance == null) {
+				for (int i = 0; i < tileVariance.length; i++) {
+					tileVariance[i] = (byte) Random.Int(100);
+				}
+			} else {
+				for (int i = 0; i < tileVariance.length; i++) {
+					tileVariance[i] = (byte) Random.Int(100);
+					if (fixedTileVariance[i] > 0) tileVariance[i] = fixedTileVariance[i];
+				}
 			}
 
 		Random.popGenerator();
@@ -550,6 +559,10 @@ public class DungeonTileSheet {
 		commonAltVisuals.put(FURROWED_UNDERHANG,    FURROWED_UNDERHANG_ALT);
 		commonAltVisuals.put(MINE_CRYSTAL_OVERHANG, MINE_CRYSTAL_OVERHANG_ALT);
 		commonAltVisuals.put(MINE_BOULDER_OVERHANG, MINE_BOULDER_OVERHANG_ALT);
+		
+		if (commonAltVisuals.size != 25) {
+			throw new RuntimeException("commonAltVisuals were added or removed! Please stay up to date with the newest Shattered version and add them in TileVarianceSpinner.java too!");
+		}
 	}
 
 	//These alt visuals trigger 5% of the time (and also override common alts when they show up)
@@ -562,6 +575,10 @@ public class DungeonTileSheet {
 		rareAltVisuals.put(RAISED_MINE_BOULDER,     RAISED_MINE_BOULDER_ALT_2);
 		rareAltVisuals.put(MINE_CRYSTAL_OVERHANG,   MINE_CRYSTAL_OVERHANG_ALT_2);
 		rareAltVisuals.put(MINE_BOULDER_OVERHANG,   MINE_BOULDER_OVERHANG_ALT_2);
+		
+		if (rareAltVisuals.size != 7) {
+			throw new RuntimeException("rareAltVisuals were added or removed! Please stay up to date with the newest Shattered version and add them in TileVarianceSpinner.java too!");
+		}
 	}
 
 	public static int getVisualWithAlts(int visual, int pos){
@@ -580,6 +597,21 @@ public class DungeonTileSheet {
 			return commonAltVisuals.get(visual);
 		else
 			return visual;
+	}
+	
+	public static int getVisualForSpinner(int terrain, int spinnerValue){
+		int visual = Tiles.getPlainImage(terrain);
+		switch (spinnerValue) {
+			case 3:
+				Integer result = rareAltVisuals.get(visual);
+				if (result != null) return result;
+			case 2:
+				result = commonAltVisuals.get(visual);
+				if (result != null) return result;
+			case 1:
+			default:
+				return visual;
+		}
 	}
 
 }

@@ -1,20 +1,29 @@
 package com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.dungeon;
 
+import com.badlogic.gdx.files.FileHandle;
 import com.shatteredpixel.shatteredpixeldungeon.Chrome;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.ResourcePath;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.ui.CustomObjSelector;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.ui.WndAllCustomObjects;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.ui.WndSelectResourceFile;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.TileSprite;
+import com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.LuaOverviewTab;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.WndEditorSettings;
+import com.shatteredpixel.shatteredpixeldungeon.editor.lua.DungeonScript;
+import com.shatteredpixel.shatteredpixeldungeon.editor.lua.luaeditor.IDEWindow;
 import com.shatteredpixel.shatteredpixeldungeon.editor.recipes.CustomRecipeList;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.MultiWindowTabComp;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledButtonWithIconAndText;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledCheckBox;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.effects.BadgeBanner;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Languages;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.DungeonScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
@@ -22,11 +31,17 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.StyledButton;
 import com.shatteredpixel.shatteredpixeldungeon.windows.IconTitle;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndChallenges;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.ui.Component;
 
-public class DungeonTab extends MultiWindowTabComp {
+import java.util.Map;
 
+@NotAllowedInLua
+public class DungeonTab extends MultiWindowTabComp {
+    
+    private final CustomObjSelector<String> dungeonScript;
+    
     public DungeonTab() {
 
         title = new IconTitle(Icons.get(Icons.PREFS), Messages.get(DungeonTab.class, "title"));
@@ -35,6 +50,7 @@ public class DungeonTab extends MultiWindowTabComp {
         StyledButton potionColors, scrollRunes, ringGems;
         StyledButton heroes, durationSettings, forceChallenges, customRecipes;
         StyledCheckBox view2d, seeLevelOnDeath, autoRevealSecrets;
+        StyledButton viewCustomObjects;
 
         potionColors = new StyledButtonWithIconAndText(Chrome.Type.GREY_BUTTON_TR, Messages.get(DungeonTab.class, "set_pot"), 8) {
             @Override
@@ -98,7 +114,7 @@ public class DungeonTab extends MultiWindowTabComp {
                 Dungeon.customDungeon.forceChallenges = forceChallenges;
             }
         };
-        forceChallenges.icon(Icons.CHALLENGE_ON.get());
+        forceChallenges.icon(Icons.CHALLENGE_COLOR.get());
         content.add(forceChallenges);
 
         customRecipes = new StyledButtonWithIconAndText(Chrome.Type.GREY_BUTTON_TR, Messages.get(DungeonTab.class, "custom_recipes"), PixelScene.landscape() ? 8 : 6){
@@ -141,8 +157,62 @@ public class DungeonTab extends MultiWindowTabComp {
         autoRevealSecrets.addChangeListener(v -> Dungeon.customDungeon.notRevealSecrets = !v);
         content.add(autoRevealSecrets);
 
-        mainWindowComps = new Component[]{potionColors, scrollRunes, ringGems, EditorUtilies.PARAGRAPH_INDICATOR_INSTANCE,
-                heroes, durationSettings, forceChallenges, customRecipes, view2d, seeLevelOnDeath, autoRevealSecrets
+        viewCustomObjects = new StyledButtonWithIconAndText(Chrome.Type.GREY_BUTTON_TR, Messages.get(DungeonTab.class, "custom_object_overview"), PixelScene.landscape() ? 8 : 6){
+            @Override
+            protected void onClick() {
+                DungeonScene.show(new WndAllCustomObjects());
+            }
+        };
+        content.add(viewCustomObjects);
+        
+        dungeonScript = new CustomObjSelector<String>(Messages.get(LuaOverviewTab.class, "dungeon_script_title"), new CustomObjSelector.Selector<String>() {
+            
+            @Override
+            public String getCurrentValue() {
+                return Dungeon.customDungeon.dungeonScriptPath;
+            }
+            
+            @Override
+            public void onSelect(String path) {
+                Dungeon.customDungeon.dungeonScriptPath = path;
+            }
+            
+            @Override
+            public void onItemSlotClick() {
+                IDEWindow.showWindow(Dungeon.customDungeon.dungeonScriptPath, dungeonScript::setValue, DungeonScript.class);
+            }
+            
+            @Override
+            public void onChangeClick() {
+                DungeonScene.show(new WndSelectResourceFile(null, null, false) {
+                    @Override
+                    protected boolean acceptExtension(String extension) {
+                        return ResourcePath.isLua(extension);
+                    }
+                    
+                    @Override
+                    protected void onSelect(Map.Entry<String, FileHandle> path) {
+                        dungeonScript.setValue(path.getKey());
+                    }
+                });
+            }
+        }, PixelScene.landscape() ? 8 : 6) {
+            @Override
+            protected void onChangeClick() {
+                IDEWindow.showSelectScriptWindow(DungeonScript.class, script -> {
+                    if (script != null) {
+                        dungeonScript.setValue(script.getPath());
+                    }
+                });
+            }
+        };
+        dungeonScript.enableChanging(true);
+        dungeonScript.enableDetaching(true);
+        content.add(dungeonScript);
+        
+
+        mainWindowComps = new Component[]{potionColors, scrollRunes, ringGems, EditorUtilities.PARAGRAPH_INDICATOR_INSTANCE,
+                heroes, durationSettings, forceChallenges, customRecipes, view2d, seeLevelOnDeath, autoRevealSecrets, viewCustomObjects, dungeonScript
         };
     }
 

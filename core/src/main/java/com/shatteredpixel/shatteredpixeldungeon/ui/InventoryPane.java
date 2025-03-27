@@ -30,7 +30,11 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Belongings;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.editor.lua.DungeonScript;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
-import com.shatteredpixel.shatteredpixeldungeon.items.bags.*;
+import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
+import com.shatteredpixel.shatteredpixeldungeon.items.bags.MagicalHolster;
+import com.shatteredpixel.shatteredpixeldungeon.items.bags.PotionBandolier;
+import com.shatteredpixel.shatteredpixeldungeon.items.bags.ScrollHolder;
+import com.shatteredpixel.shatteredpixeldungeon.items.bags.VelvetPouch;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
@@ -44,7 +48,11 @@ import com.watabou.input.GameAction;
 import com.watabou.input.KeyBindings;
 import com.watabou.input.KeyEvent;
 import com.watabou.input.PointerEvent;
-import com.watabou.noosa.*;
+import com.watabou.noosa.BitmapText;
+import com.watabou.noosa.ColorBlock;
+import com.watabou.noosa.Image;
+import com.watabou.noosa.NinePatch;
+import com.watabou.noosa.PointerArea;
 import com.watabou.noosa.ui.Component;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Signal;
@@ -109,14 +117,11 @@ public class InventoryPane extends Component {
 		if (instance == this) instance = null;
 	}
 
-    @Override
-    protected void createChildren() {
+	@Override
+	protected void createChildren() {
 
-		bg = Chrome.get(Chrome.Type.TOAST_TR);
+		bg = Chrome.get(Chrome.Type.TOAST_TR_HEAVY);
 		add(bg);
-
-		bg2 = Chrome.get(Chrome.Type.TOAST_TR);
-		add(bg2);
 
 		blocker = new PointerArea(0, 0, PixelScene.uiCamera.width, PixelScene.uiCamera.height){
 			@Override
@@ -184,14 +189,14 @@ public class InventoryPane extends Component {
 		}
 
 		bagSpContent = new Component();
-
+		
 		bags = new LinkedList<>();
 		for (int i = 0; i < 5; i++){
 			BagButton btn = new BagButton(null, i+1);
 			bags.add(btn);
 			bagSpContent.add(btn);
 		}
-
+		
 		bagSp = new ScrollPane(bagSpContent);
 		add(bagSp);
 
@@ -214,10 +219,9 @@ public class InventoryPane extends Component {
 		width = WIDTH;
 		height = HEIGHT;
 
-		bg.x = bg2.x = x;
-		bg.y = bg2.y = y;
+		bg.x = x;
+		bg.y = y;
 		bg.size(width, height);
-		bg2.size(width, height);
 
 		float left = x+4;
 		for (InventorySlot i : equipped){
@@ -251,9 +255,9 @@ public class InventoryPane extends Component {
 			b.setRect(xOnBagSp, 0, SLOT_WIDTH, 14);
 			xOnBagSp += SLOT_WIDTH+1;
 		}
-
+		
 		bagSpContent.setSize(xOnBagSp - 1, 14);
-
+		
 		if (bagSp.camera() != null) {
 			bagSp.setRect(left, y + 14, SLOT_WIDTH * 5 + 4, 14);
 			bagSp.scrollToCurrentView();
@@ -275,7 +279,6 @@ public class InventoryPane extends Component {
 	
 	public void alpha( float value ){
 		bg.alpha( value );
-		bg2.alpha( value );
 		
 		for (InventorySlot slot : equipped){
 			slot.alpha( value );
@@ -298,8 +301,8 @@ public class InventoryPane extends Component {
 		if (instance != null) instance.updateInventory();
 	}
 
-	public void updateInventory() {
-		if (selector == null) {
+	public void updateInventory(){
+		if (selector == null){
 			blocker.target = bg;
 			KeyEvent.removeKeyListener(keyBlocker);
 		} else {
@@ -308,10 +311,10 @@ public class InventoryPane extends Component {
 		}
 
 		if (Dungeon.hero == null) return;
-
+		
 		Belongings stuff = Dungeon.hero.belongings;
 
-		if (lastBag == null || !stuff.getBags().contains(lastBag)) {
+		if (lastBag == null || !stuff.getBags().contains(lastBag)){
 			lastBag = stuff.backpack;
 		}
 
@@ -320,7 +323,7 @@ public class InventoryPane extends Component {
 		equipped.get(2).item(stuff.artifact == null ? new WndBag.Placeholder(ItemSpriteSheet.ARTIFACT_HOLDER) : stuff.artifact);
 		equipped.get(3).item(stuff.misc == null ? new WndBag.Placeholder(ItemSpriteSheet.SOMETHING) : stuff.misc);
 		equipped.get(4).item(stuff.ring == null ? new WndBag.Placeholder(ItemSpriteSheet.RING_HOLDER) : stuff.ring);
-
+		
 		ArrayList<Item> items = (ArrayList<Item>) lastBag.items.clone();
 
 		if (stuff != null && lastBag == stuff.backpack && stuff.secondWep != null){
@@ -351,9 +354,11 @@ public class InventoryPane extends Component {
 
 			goldTxt.text(Integer.toString(Dungeon.gold));
 			goldTxt.measure();
+			goldTxt.visible = gold.visible = true;
 
 			energyTxt.text(Integer.toString(Dungeon.energy));
 			energyTxt.measure();
+			energyTxt.visible = energy.visible = Dungeon.energy > 0;
 		} else {
 			promptTxt.text(selector.textPrompt());
 			promptTxt.visible = true;
@@ -378,7 +383,7 @@ public class InventoryPane extends Component {
 			last.destroy();
 		}
 		bagSp.givePointerPriority();
-
+		
 		boolean lostInvent = Dungeon.hero.belongings.lostInventory();
 		for (InventorySlot b : equipped){
 			b.enable(lastEnabled

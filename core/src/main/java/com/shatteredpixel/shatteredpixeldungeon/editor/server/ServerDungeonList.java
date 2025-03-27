@@ -1,19 +1,24 @@
 package com.shatteredpixel.shatteredpixeldungeon.editor.server;
 
+import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.editor.overview.dungeon.WndSelectDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.MultiWindowTabComp;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.Spinner;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerIntegerModel;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.services.server.DungeonPreview;
 import com.shatteredpixel.shatteredpixeldungeon.services.server.ServerCommunication;
 import com.shatteredpixel.shatteredpixeldungeon.services.updates.Updates;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Button;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.windows.IconTitle;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptions;
-import com.shatteredpixel.shatteredpixeldungeon.windows.WndTitledMessage;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.ColorBlock;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
@@ -22,6 +27,7 @@ import com.watabou.noosa.ui.Component;
 import java.util.HashSet;
 import java.util.Set;
 
+@NotAllowedInLua
 public class ServerDungeonList extends MultiWindowTabComp {
 
 	private static ServerDungeonList instance;
@@ -111,7 +117,7 @@ public class ServerDungeonList extends MultiWindowTabComp {
 				super.layout();
 			}
 		};
-		outsideSp.visible = outsideSp.active = numPages > 1;
+		outsideSp.setVisible(numPages > 1);
 
 		outsideSp.addChangeListener(() -> {
 			hidePage(page);
@@ -140,11 +146,12 @@ public class ServerDungeonList extends MultiWindowTabComp {
 			dungeons = new DungeonPreview[numPages][];
 		}
 		if (instance != null) {
-			instance.outsideSp.visible = instance.outsideSp.active = numPages > 1;
-			((SpinnerIntegerModel) instance.outsideSp.getModel()).setMaximum(numPages);
-			((SpinnerIntegerModel) instance.outsideSp.getModel()).setAbsoluteMaximum(numPages);
-			Game.runOnRenderThread(() -> instance.outsideSp.setValue(instance.outsideSp.getValue()));
-			((WndServerDungeonList) EditorUtilies.getParentWindow(instance)).updateLayout();
+			Spinner outsideSp = instance.outsideSp;
+			outsideSp.setVisible(instance.layoutOwnMenu() && numPages > 1);
+			((SpinnerIntegerModel) outsideSp.getModel()).setMaximum(numPages);
+			((SpinnerIntegerModel) outsideSp.getModel()).setAbsoluteMaximum(numPages);
+			Game.runOnRenderThread(() -> outsideSp.setValue(outsideSp.getValue()));
+			((WndServerDungeonList) EditorUtilities.getParentWindow(instance)).updateLayout();
 		}
 	}
 
@@ -169,7 +176,7 @@ public class ServerDungeonList extends MultiWindowTabComp {
 		for (int i = 0; i < dungeons[page].length; i++) {
 			killMainWindowComp(i);
 			mainWindowComps[i] = createListItem(dungeons[page][i]);
-			content.add(mainWindowComps[i]);
+			content.addToBack(mainWindowComps[i]);
 		}
 	}
 
@@ -241,16 +248,16 @@ public class ServerDungeonList extends MultiWindowTabComp {
 		}
 		else {
 			content.setSize(width, 0);
-			content.setSize(width, EditorUtilies.layoutCompsLinear(GAP, content, mainWindowComps));
+			content.setSize(width, EditorUtilities.layoutCompsLinear(GAP, content, mainWindowComps));
 		}
 		upload.setRect(x + width - 17, y + height - 15, 16, 16);
 	}
 
 	@Override
-	public void changeContent(Component titleBar, Component body, Component outsideSp, float contentAlignmentV, float titleAlignmentH) {
+	public void changeContent(SubMenuComp subMenuComp) {
 		upload.setVisible(false);
 		refresh.setVisible(false);
-		super.changeContent(titleBar, body, outsideSp, contentAlignmentV, titleAlignmentH);
+		super.changeContent(subMenuComp);
 	}
 
 	@Override
@@ -325,9 +332,15 @@ public class ServerDungeonList extends MultiWindowTabComp {
 
 			title.text( preview.title );
 			by.text(Messages.get(ServerDungeonList.class, "title_entry"));
-			creator.text("_" + preview.uploader + "_");
+			creator.text(preview.uploader);
+			creator.setHighlighting(false);
+			creator.hardlight(Window.TITLE_COLOR);
 
 			desc.text(preview.description);
+
+			if (preview.uploadTime > SPDSettings.lastCheckedServer()) {
+				//TODO tzz show that its new
+			}
 		}
 
 		@Override
@@ -350,7 +363,7 @@ public class ServerDungeonList extends MultiWindowTabComp {
 			desc.maxNumLines = 3;
 			add(desc);
 
-			line = new ColorBlock(1, 1, 0xFF222222);
+			line = new ColorBlock(1, 1, ColorBlock.SEPARATOR_COLOR);
 			add(line);
 		}
 
@@ -386,7 +399,7 @@ public class ServerDungeonList extends MultiWindowTabComp {
 						creator.setPos(by.left(), by.bottom() + 4);
 					}
 				}
-				desc.setPos(title.left() + 3, creator.bottom() + 4);
+				desc.setPos(title.left() + 3, Math.max(creator.bottom(), by.top()) + 4);
 				height = desc.bottom() - y + 1;
 			} else {
 				height = title.bottom() + 1;
@@ -431,12 +444,12 @@ public class ServerDungeonList extends MultiWindowTabComp {
 		private Component outsideSp;
 
 		public WndServerDungeonList() {
-			super(Math.min(WndTitledMessage.WIDTH_MAX, (int) (PixelScene.uiCamera.width * 0.9)), (int) (PixelScene.uiCamera.height * 0.8f));
+			super(WindowSize.WIDTH_LARGE.get(), WindowSize.HEIGHT_SMALL.get());
 
 			add(serverDungeonList = new ServerDungeonList() {
 				@Override
-				public void changeContent(Component titleBar, Component body, Component outsideSp, float contentAlignmentV, float titleAlignmentH) {
-					super.changeContent(titleBar, body, outsideSp, contentAlignmentV, titleAlignmentH);
+				public void changeContent(SubMenuComp subMenuComp) {
+					super.changeContent(subMenuComp);
 					if (WndServerDungeonList.this.outsideSp != null) {
 						WndServerDungeonList.this.outsideSp.setVisible(false);
 						serverDungeonList.setSize(WndServerDungeonList.this.width, WndServerDungeonList.this.height - 2);
@@ -471,6 +484,12 @@ public class ServerDungeonList extends MultiWindowTabComp {
 			}
 			serverDungeonList.sp.givePointerPriority();
 			serverDungeonList.upload.givePointerPriority();
+		}
+
+		@Override
+		public void hide() {
+			super.hide();
+			SPDSettings.checkedServerNow();
 		}
 	}
 

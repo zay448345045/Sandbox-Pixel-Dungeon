@@ -4,20 +4,21 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelSchemeLike;
 import com.shatteredpixel.shatteredpixeldungeon.editor.overview.LevelListPane;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
+import com.watabou.NotAllowedInLua;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+@NotAllowedInLua
 public abstract class WndSelectFloor extends Window {
 
     protected LevelListPane listPane;
 
     public WndSelectFloor() {
-        resize(PixelScene.landscape() ? 215 : Math.min(160, (int) (PixelScene.uiCamera.width * 0.9)), (int) (PixelScene.uiCamera.height * 0.8f));
+        resize(WindowSize.WIDTH_LARGE.get(), WindowSize.HEIGHT_MEDIUM.get());
 
-        listPane = new LevelListPane() {
-
+        listPane = new LevelListPane(new LevelListPane.Selector() {
             @Override
             public void onSelect(LevelSchemeLike levelScheme, LevelListPane.ListItem listItem) {
                 if (WndSelectFloor.this.onSelect(levelScheme)) hide();
@@ -27,7 +28,7 @@ public abstract class WndSelectFloor extends Window {
             protected List<LevelSchemeLike> filterLevels(Collection<? extends LevelSchemeLike> levels) {
                 return WndSelectFloor.this.filterLevels(levels);
             }
-        };
+        });
         add(listPane);
 
         listPane.setSize(width, height);

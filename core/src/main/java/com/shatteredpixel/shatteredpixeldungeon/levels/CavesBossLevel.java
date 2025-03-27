@@ -21,7 +21,11 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.levels;
 
-import com.shatteredpixel.shatteredpixeldungeon.*;
+import com.shatteredpixel.shatteredpixeldungeon.Assets;
+import com.shatteredpixel.shatteredpixeldungeon.Bones;
+import com.shatteredpixel.shatteredpixeldungeon.Challenges;
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
@@ -29,7 +33,12 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Electricity;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.DM300;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Pylon;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.Barrier;
+import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.ActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.ActionPartList;
+import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.parts.BarrierActionPart;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.effects.BlobEmitter;
 import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
@@ -48,17 +57,26 @@ import com.shatteredpixel.shatteredpixeldungeon.sprites.PylonSprite;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.CustomTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.ui.BossHealthBar;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.Tilemap;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
+import com.watabou.utils.GameMath;
+import com.watabou.utils.PathFinder;
+import com.watabou.utils.Point;
 import com.watabou.utils.Random;
-import com.watabou.utils.*;
+import com.watabou.utils.WatabouRect;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class CavesBossLevel extends Level {
 
@@ -86,9 +104,9 @@ public class CavesBossLevel extends Level {
 	private static int WIDTH = 33;
 	private static int HEIGHT = 42;
 
-	public static Rect diggableArea = new Rect(2, 11, 31, 40);
-	public static Rect mainArena = new Rect(5, 14, 28, 37);
-	public static Rect gate = new Rect(14, 13, 19, 14);
+	public static WatabouRect diggableArea = new WatabouRect(2, 11, 31, 40);
+	public static WatabouRect mainArena = new WatabouRect(5, 14, 28, 37);
+	public static WatabouRect gate = new WatabouRect(14, 13, 19, 14);
 	public static int[] pylonPositions = new int[]{ 4 + 13*WIDTH, 28 + 13*WIDTH, 4 + 37*WIDTH, 28 + 37*WIDTH };
 
 	private ArenaVisuals customArenaVisuals;
@@ -156,7 +174,7 @@ public class CavesBossLevel extends Level {
 		for (int i = 0; i < length; i++){
 			pass[i] = map[i] == Terrain.EMPTY || map[i] == Terrain.EMPTY_SP || map[i] == Terrain.EMPTY_DECO;
 		}
-		PathFinder.buildDistanceMap(16 + 25*width(), pass);
+		PathFinder.buildDistanceMap(16 + 25*width(), pass, null);
 		for (int i : pylonPositions){
 			if (PathFinder.distance[i] == Integer.MAX_VALUE){
 				return false;
@@ -250,14 +268,27 @@ public class CavesBossLevel extends Level {
 	}
 
 	@Override
-	public boolean setCellToWater(boolean includeTraps, int cell) {
+	public boolean canSetCellToWater(boolean includeTraps, int cell) {
 		for (int i : pylonPositions){
 			if (Dungeon.level.distance(cell, i) <= 1){
 				return false;
 			}
 		}
+		return super.canSetCellToWater(includeTraps, cell);
+	}
 
-		return super.setCellToWater(includeTraps, cell);
+	@Override
+	public boolean invalidHeroPos(int tile) {
+		//hero cannot be above gate, or above arena, when gate is closed
+		if (map[gate.left + gate.top*width()] == Terrain.CUSTOM_DECO){
+			Point p = cellToPoint(tile);
+			if (p.y < diggableArea.top){
+				return true;
+			} else if (p.y < gate.bottom && p.x >= gate.left && p.x < gate.right){
+				return true;
+			}
+		}
+		return super.invalidHeroPos(tile);
 	}
 
 	@Override
@@ -335,8 +366,8 @@ public class CavesBossLevel extends Level {
 			blobs.getOnly(PylonEnergy.class).fullyClear();
 
 			set(entrance(), Terrain.ENTRANCE);
-			int i = 14 + 13 * width();
-			for (int j = 0; j < 5; j++) {
+			int i = gate.top * width();
+			for (int j = gate.left; j < gate.right; j++) {
 				set(i + j, Terrain.EMPTY);
 				if (Dungeon.level.heroFOV[i + j]) {
 					CellEmitter.get(i + j).burst(BlastParticle.FACTORY, 10);
@@ -465,13 +496,6 @@ public class CavesBossLevel extends Level {
 			default:
 				return super.tileDesc( tile, cell );
 		}
-	}
-
-	@Override
-	public Group addVisuals() {
-		super.addVisuals();
-		CavesLevel.addCavesVisuals(this, visuals);
-		return visuals;
 	}
 
 	/**
@@ -808,18 +832,18 @@ public class CavesBossLevel extends Level {
 						} else if (Dungeon.level.map[i] == Terrain.EMPTY_SP || Dungeon.level.map[i] == Terrain.EXIT) {
 							if (i / tileW == 0) data[i] = 7;
 							else {
-								int neighbours = EditorUtilies.stitchNeighbours(i, Terrain.EMPTY_SP, Dungeon.level)
-										| EditorUtilies.stitchNeighbours(i, Terrain.EXIT, Dungeon.level);
-								if ((neighbours & EditorUtilies.BOTTOM) == 0) {
-									if ((neighbours & EditorUtilies.RIGHT) != 0) data[i] = 9;
-									else if ((neighbours & EditorUtilies.LEFT) != 0) data[i] = 11;
+								int neighbours = EditorUtilities.stitchNeighbours(i, Terrain.EMPTY_SP, Dungeon.level)
+										| EditorUtilities.stitchNeighbours(i, Terrain.EXIT, Dungeon.level);
+								if ((neighbours & EditorUtilities.BOTTOM) == 0) {
+									if ((neighbours & EditorUtilities.RIGHT) != 0) data[i] = 9;
+									else if ((neighbours & EditorUtilities.LEFT) != 0) data[i] = 11;
 									else data[i] = 26;
-								} else if ((neighbours & EditorUtilies.LEFT) == 0) {
-									if ((neighbours & EditorUtilies.RIGHT) == 0) data[i] = 18;
+								} else if ((neighbours & EditorUtilities.LEFT) == 0) {
+									if ((neighbours & EditorUtilities.RIGHT) == 0) data[i] = 18;
 									else data[i] = 1;
-								} else if ((neighbours & EditorUtilies.RIGHT) == 0) {
+								} else if ((neighbours & EditorUtilities.RIGHT) == 0) {
 									data[i] = 3;
-								} else if ((neighbours & EditorUtilies.BOTTOM_RIGHT) == 0 && (neighbours & EditorUtilies.BOTTOM_LEFT) == 0) {
+								} else if ((neighbours & EditorUtilities.BOTTOM_RIGHT) == 0 && (neighbours & EditorUtilities.BOTTOM_LEFT) == 0) {
 									data[i] = 10;
 								} else data[i] = 2;
 							}
@@ -966,9 +990,9 @@ public class CavesBossLevel extends Level {
 					if (off[cell] > 0){
 
 						Char ch = Actor.findChar(cell);
-						if (ch != null && !(ch instanceof DM300) && !ch.avoidsHazards()) {
+						if (ch != null && !(ch instanceof DM300) && !ch.isFlying()) {
 							Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
-							ch.damage( Char.combatRoll(6, 12), new Electricity());
+							ch.damage( Random.NormalIntRange(6, 12), new Electricity());
 							ch.sprite.flash();
 
 							if (ch == Dungeon.hero){
@@ -1041,5 +1065,201 @@ public class CavesBossLevel extends Level {
 			emitter.pour(DIRECTED_SPARKS, 0.08f);
 		}
 
+	}
+	
+	public static class MetalGate extends CustomTilemap {
+		
+		{
+			texture = Assets.Environment.METAL_GATE;
+			
+			tileW = 5;
+			tileH = 2;
+			offsetCenterX = 2;
+			offsetCenterY = 1;
+		}
+		
+		private boolean broken;
+		
+		@Override
+		public String name() {
+			return Messages.get(CavesBossLevel.class, "gate_name");
+		}
+		
+		@Override
+		public String name(int tileX, int tileY) {
+			return name();
+		}
+		
+		@Override
+		public String desc() {
+			if (broken) {
+				return Messages.get(CavesBossLevel.class, "gate_desc_broken");
+			} else {
+				return Messages.get(CavesBossLevel.class, "gate_desc");
+			}
+		}
+		
+		@Override
+		public String desc(int tileX, int tileY) {
+			return desc();
+		}
+		
+		@Override
+		public Tilemap create() {
+			Tilemap v = super.create();
+			updateState( );
+			return v;
+		}
+		
+		private void updateState() {
+			if (vis != null) {
+				int[] data = new int[tileW * tileH];
+				Arrays.fill(data, -1);
+				
+				int centerColumnL, centerColumnR;
+				if (tileW % 2 == 0) {
+					centerColumnL = (tileW - 1) / 2;
+					centerColumnR = (tileW) / 2;
+				} else {
+					centerColumnL = centerColumnR = tileW / 2;
+				}
+				if (broken) {
+					int start = tileW * (tileH - 1);
+					for (int i = start; i < data.length; i++) {
+						if (i == 0) data[i] = 0;
+						else if (i == centerColumnL || i == centerColumnR) data[i] = 2;
+						else if (i == tileW - 1) data[i] = 4;
+						else if (i < centerColumnL) data[i] = 1;
+						else data[i] = 3;
+					}
+				} else {
+					int i = 0;
+					int xxx = 0;
+					for (int j = 0; j < tileH; j++) {
+						if (j == 1) {//enter second row
+							xxx = 5;
+						}
+						for (int k = 0; k < tileW; k++) {
+							if (k == 0) data[i] = 0 + xxx;
+							else if (k == centerColumnL || k == centerColumnR) data[i] = 2 + xxx;
+							else if (k == tileW - 1) data[i] = 4 + xxx;
+							else if (k < centerColumnL) data[i] = 1 + xxx;
+							else data[i] = 3 + xxx;
+							i++;
+						}
+					}
+				}
+				vis.map(data, tileW);
+				
+			}
+		}
+		
+		@NotAllowedInLua
+		public ActionPart placeBarriers() {
+			ActionPartList parts = new ActionPartList();
+			if (!broken) {
+				int start = (tileX - 1) + (tileY + 1) * Dungeon.level.width();
+				for (int i = 1; i < tileH; i++) {//skip first row
+					for (int j = 0; j < tileW; j++) {
+						int cell = start + i + j;
+						parts.addActionPart(new BarrierActionPart.Place(new Barrier(cell)));
+					}
+				}
+				parts.redo();
+			}
+			return parts;
+		}
+		
+		@NotAllowedInLua
+		public ActionPart removeBarriers() {
+			ActionPartList parts = new ActionPartList();
+			if (!broken) {
+				int start = (tileX - 1) + (tileY + 1) * Dungeon.level.width();
+				for (int i = 1; i < tileH; i++) {//skip first row
+					for (int j = 0; j < tileW; j++) {
+						int cell = start + i + j;
+						Barrier b = Dungeon.level.barriers.get(cell);
+						if (b != null) parts.addActionPart(new BarrierActionPart.Remove(b));
+					}
+				}
+				parts.redo();
+			}
+			return parts;
+		}
+		
+		public boolean isBroken() {
+			return broken;
+		}
+		
+		public void setBroken(boolean broken) {
+			if (this.broken == broken) {
+				return;
+			}
+			if (CustomDungeon.isEditing()) {
+				this.broken = broken;
+				updateState();
+				GameScene.updateMap();
+			} else {
+				if (broken) open();
+				else 	    close();
+			}
+		}
+		
+		public void open() {
+			if (!broken) {
+				
+				broken = true;
+				
+				int start = (tileX-1) + (tileY+1)*Dungeon.level.width();
+				for (int i = 1; i < tileH; i++) {
+					for (int j = 0; j < tileW; j++) {
+						int cell = start + i + j;
+						Dungeon.level.barriers.remove(cell);
+						Level.set(cell, Dungeon.level.map[cell]);
+						if (Dungeon.hero != null && Dungeon.level.heroFOV[cell]) {
+							CellEmitter.get(cell).burst(BlastParticle.FACTORY, 10);
+						}
+					}
+				}
+				
+				updateState();
+				GameScene.updateMap();
+				Dungeon.observe();
+			}
+		}
+		
+		public void close() {
+			if (broken) {
+				
+				broken = false;
+				
+				int start = (tileX-1) + (tileY+1)*Dungeon.level.width();
+				for (int i = 1; i < tileH; i++) {
+					for (int j = 0; j < tileW; j++) {
+						int cell = start + i + j;
+						Dungeon.level.barriers.put(cell, new Barrier(cell));
+						Level.set(cell, Dungeon.level.map[cell]);
+					}
+				}
+				
+				updateState();
+				GameScene.updateMap();
+				Dungeon.observe();
+			}
+		}
+		
+		private static final String BROKEN = "broken";
+		
+		@Override
+		public void storeInBundle(Bundle bundle) {
+			super.storeInBundle(bundle);
+			bundle.put(BROKEN, broken);
+		}
+		
+		@Override
+		public void restoreFromBundle(Bundle bundle) {
+			super.restoreFromBundle(bundle);
+			broken = bundle.getBoolean(BROKEN);
+		}
 	}
 }

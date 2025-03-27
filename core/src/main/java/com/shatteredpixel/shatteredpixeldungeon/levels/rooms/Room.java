@@ -23,20 +23,24 @@ package com.shatteredpixel.shatteredpixeldungeon.levels.rooms;
 
 import com.shatteredpixel.shatteredpixeldungeon.GameObject;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Copyable;
-import com.shatteredpixel.shatteredpixeldungeon.editor.inv.other.RandomItem;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
 import com.shatteredpixel.shatteredpixeldungeon.levels.painters.Painter;
-import com.watabou.utils.*;
+import com.watabou.utils.Bundlable;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.Function;
+import com.watabou.utils.Graph;
+import com.watabou.utils.Point;
+import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-public abstract class Room extends Rect implements Graph.Node, Bundlable, Copyable<Room> {
+public abstract class Room extends RoomRect implements Graph.Node, Bundlable, Copyable<Room> {
 	
 	public ArrayList<Room> neigbours = new ArrayList<>();
 	public LinkedHashMap<Room, Door> connected = new LinkedHashMap<>();
@@ -52,7 +56,7 @@ public abstract class Room extends Rect implements Graph.Node, Bundlable, Copyab
 		super();
 	}
 	
-	public Room( Rect other ){
+	public Room( RoomRect other ){
 		super(other);
 	}
 	
@@ -189,7 +193,7 @@ public abstract class Room extends Rect implements Graph.Node, Bundlable, Copyab
 		} else {
 			int total = 0;
 			for (Room r : connected.keySet()){
-				Rect i = intersect( r );
+				RoomRect i = intersect( r );
 				if      (direction == LEFT && i.width() == 0 && i.left == left)         total++;
 				else if (direction == TOP && i.height() == 0 && i.top == top)           total++;
 				else if (direction == RIGHT && i.width() == 0 && i.right == right)      total++;
@@ -222,7 +226,7 @@ public abstract class Room extends Rect implements Graph.Node, Bundlable, Copyab
 	
 	//considers both direction and point limits
 	public boolean canConnect( Room r ){
-		Rect i = intersect( r );
+		RoomRect i = intersect( r );
 		
 		boolean foundPoint = false;
 		for (Point p : i.getPoints()){
@@ -250,7 +254,7 @@ public abstract class Room extends Rect implements Graph.Node, Bundlable, Copyab
 	}
 
 	//can be overriden for special merge logic between rooms
-	public void merge(Level l, Room other, Rect merge, int mergeTerrain){
+	public void merge(Level l, Room other, RoomRect merge, int mergeTerrain){
 		Painter.fill(l, merge, mergeTerrain);
 	}
 	
@@ -258,7 +262,7 @@ public abstract class Room extends Rect implements Graph.Node, Bundlable, Copyab
 		if (neigbours.contains(other))
 			return true;
 		
-		Rect i = intersect( other );
+		RoomRect i = intersect( other );
 		if ((i.width() == 0 && i.height() >= 2) ||
 			(i.height() == 0 && i.width() >= 2)) {
 			neigbours.add( other );
@@ -359,6 +363,17 @@ public abstract class Room extends Rect implements Graph.Node, Bundlable, Copyab
 		return inside(p);
 	}
 
+	public final ArrayList<Point> itemPlaceablePoints(Level l){
+		ArrayList<Point> points = new ArrayList<>();
+		for (int i = left; i <= right; i++) {
+			for (int j = top; j <= bottom; j++) {
+				Point p = new Point(i, j);
+				if (canPlaceItem(p, l)) points.add(p);
+			}
+		}
+		return points;
+	}
+
 	public void generateItems(Level level) {
 		itemsGenerated = true;
 	}
@@ -408,17 +423,6 @@ public abstract class Room extends Rect implements Graph.Node, Bundlable, Copyab
 		}
 		spawnItemsInRoom.clear();
 	}
-
-	public final ArrayList<Point> itemPlaceablePoints(Level l){
-		ArrayList<Point> points = new ArrayList<>();
-		for (int i = left; i <= right; i++) {
-			for (int j = top; j <= bottom; j++) {
-				Point p = new Point(i, j);
-				if (canPlaceItem(p, l)) points.add(p);
-			}
-		}
-		return points;
-	}
 	
 	//whether or not a character can be placed here (usually via spawn, tele, or wander)
 	public boolean canPlaceCharacter(Point p, Level l){
@@ -436,11 +440,10 @@ public abstract class Room extends Rect implements Graph.Node, Bundlable, Copyab
 		return points;
 	}
 
+	@Override
 	public boolean doOnAllGameObjects(Function<GameObject, GameObject.ModifyResult> whatToDo) {
-		if (this instanceof RandomItem) {
-			return RandomItem.doOnAllGameObjects((RandomItem) this, whatToDo);
-		}
-		return GameObject.doOnAllGameObjectsList(spawnItemsInRoom, whatToDo)
+		return super.doOnAllGameObjects(whatToDo)
+				| GameObject.doOnAllGameObjectsList(spawnItemsInRoom, whatToDo)
 				| GameObject.doOnAllGameObjectsList(spawnItemsOnLevel, whatToDo);
 	}
 
@@ -577,4 +580,7 @@ public abstract class Room extends Rect implements Graph.Node, Bundlable, Copyab
 			typeLocked = bundle.getBoolean("type_locked");
 		}
 	}
+
+
+
 }

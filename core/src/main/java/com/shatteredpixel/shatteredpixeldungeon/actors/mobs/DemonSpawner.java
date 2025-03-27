@@ -75,7 +75,7 @@ public class DemonSpawner extends SpawnerMob implements MobBasedOnDepth {
 
 //	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 12);
+//		return super.drRoll() + Random.NormalIntRange(0, 12);
 //	}
 
 	@Override
@@ -100,10 +100,6 @@ public class DemonSpawner extends SpawnerMob implements MobBasedOnDepth {
 			spawnRecorded = true;
 		}
 
-		if (Dungeon.level.visited[pos]){
-			Notes.add( Notes.Landmark.DEMON_SPAWNER );
-		}
-
 		if (Dungeon.hero.buff(AscensionChallenge.class) != null && spawnCooldown > 20){
 			spawnCooldown = 20;
 		}
@@ -120,24 +116,27 @@ public class DemonSpawner extends SpawnerMob implements MobBasedOnDepth {
 
 			Mob spawn = createSummonedMob();
 
-			ArrayList<Integer> candidates = new ArrayList<>();
-			for (int n : PathFinder.NEIGHBOURS8) {
-				if (Barrier.canEnterCell(pos+n, spawn, false, true)) {
-					candidates.add( pos+n );
-				}
-			}
+			if (spawn != null) {
 
-			if (!candidates.isEmpty()) {
-				spawn.pos = Random.element( candidates );
-
-				GameScene.add( spawn, 1 );
-				Dungeon.level.occupyCell(spawn);
-
-				if (sprite.visible) {
-					Actor.add(new Pushing(spawn, pos, spawn.pos));
+				ArrayList<Integer> candidates = new ArrayList<>();
+				for (int n : PathFinder.NEIGHBOURS8) {
+					if (Barrier.canEnterCell(pos + n, spawn, false, true)) {
+						candidates.add(pos + n);
+					}
 				}
 
-				spawnCooldown += maxSpawnCooldown;
+				if (!candidates.isEmpty()) {
+					spawn.pos = Random.element(candidates);
+
+					GameScene.add(spawn, 1);
+					Dungeon.level.occupyCell(spawn);
+
+					if (sprite.visible) {
+						Actor.add(new Pushing(spawn, pos, spawn.pos));
+					}
+
+					spawnCooldown += maxSpawnCooldown;
+				}
 			}
 		}
 		alerted = false;
@@ -161,10 +160,15 @@ public class DemonSpawner extends SpawnerMob implements MobBasedOnDepth {
 	}
 
 	@Override
+	public Notes.Landmark landmark() {
+		return Notes.Landmark.DEMON_SPAWNER;
+	}
+
+	@Override
 	public void die(Object cause) {
 		if (spawnRecorded){
 			Statistics.spawnersAlive--;
-			Notes.remove(Notes.Landmark.DEMON_SPAWNER);
+			Notes.remove(landmark());
 		}
 		GLog.h(Messages.get(this, "on_death"));
 		super.die(cause);

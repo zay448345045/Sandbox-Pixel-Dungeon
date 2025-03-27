@@ -24,7 +24,7 @@ package com.shatteredpixel.shatteredpixeldungeon.levels.rooms.special;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.ToxicGas;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.Gold;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
@@ -104,7 +104,7 @@ public class ToxicGasRoom extends SpecialRoom {
 
 		Item mainGold = null;
 		List<Item> spawnsInChest = new ArrayList<>(5);
-		for (Item item : spawnItemsInRoom.toArray(EditorUtilies.EMPTY_ITEM_ARRAY)) {
+		for (Item item : spawnItemsInRoom.toArray(EditorUtilities.EMPTY_ITEM_ARRAY)) {
 			if (item instanceof Gold || item instanceof TrinketCatalyst) {
 				spawnItemsInRoom.remove(item);
 				spawnsInChest.add(item);
@@ -119,7 +119,7 @@ public class ToxicGasRoom extends SpecialRoom {
 			spawnsInChest.remove(mainGold);
 			level.drop(mainGold, furthestPos).type = Heap.Type.SKELETON;
 		}
-		for (Item i : spawnsInChest.toArray(EditorUtilies.EMPTY_ITEM_ARRAY)) {
+		for (Item i : spawnsInChest.toArray(EditorUtilities.EMPTY_ITEM_ARRAY)) {
 			level.drop(i, goldPositions.remove(0)).type = Heap.Type.CHEST;
 			spawnsInChest.remove(i);
 			if (goldPositions.isEmpty()) break;
@@ -150,6 +150,11 @@ public class ToxicGasRoom extends SpecialRoom {
 	public boolean canPlaceCharacter(Point p, Level l) {
 		Blob gas = l.blobs.getOnly(ToxicGas.class);
 		return gas == null || gas.volume == 0 || gas.cur[l.pointToCell(p)] == 0;
+	}
+
+	@Override
+	public boolean canPlaceTrap(Point p) {
+		return false; //room is already filled with trap-hazards, no need to add more
 	}
 
 	public static class ToxicGasSeed extends Blob {

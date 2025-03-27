@@ -11,10 +11,16 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.scene.ZonePrompt;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.AdvancedListPaneItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.WndColorPicker;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.Consumer;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollingListPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.SlowExtendWindow;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Image;
 import com.watabou.utils.Point;
@@ -23,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@NotAllowedInLua
 public final class WndZones {
 
     private WndZones() {
@@ -80,7 +87,7 @@ public final class WndZones {
             public ListItem(Zone zone, ZoneListPane listPane) {
                 super(Icons.get(Icons.ZONE), null, zone.getName());
 
-                editButton = new IconButton(Icons.get(Icons.RENAME_ON)) {
+                editButton = new IconButton(Icons.get(Icons.SCROLL_COLOR)) {
                     @Override
                     protected void onClick() {
                         openEditWindow();
@@ -139,7 +146,7 @@ public final class WndZones {
         public WndSelectZone(Consumer<Zone> onSelect, int posY) {
 
             super(
-                    PixelScene.landscape() ? 200 : Math.min(150, (int) (PixelScene.uiCamera.width * 0.8)),
+                    WindowSize.WIDTH_MEDIUM.get(),
                     (int) ((PixelScene.uiCamera.height / 2) * 0.85f + posY),
                     Orientation.BOTTOM_TO_TOP,
                     new Point(0, posY));
@@ -210,7 +217,7 @@ public final class WndZones {
             if (name != null) {
 
                 if (Dungeon.level.zoneMap.containsKey(name)) {
-                    EditorUtilies.showDuplicateNameWarning();
+                    EditorUtilities.showDuplicateNameWarning();
                     return;
                 }
                 obj.name = name;

@@ -23,8 +23,9 @@ package com.shatteredpixel.shatteredpixeldungeon.sprites;
 
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
-import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.MimicTooth;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mimic;
 import com.watabou.noosa.TextureFilm;
+import com.watabou.utils.RectF;
 
 public class MimicSprite extends MobSprite {
 
@@ -47,11 +48,18 @@ public class MimicSprite extends MobSprite {
 	public MimicSprite() {
 		super();
 
-		int c = texOffset();
-
 		texture( Assets.Sprites.MIMIC );
 
+		initAnimations();
+
+		play( idle );
+	}
+
+	@Override
+	public void initAnimations() {
 		TextureFilm frames = new TextureFilm( texture, 16, 16 );
+
+		int c = texOffset();
 
 		advancedHiding = new Animation( 1, true );
 		advancedHiding.frames( frames, 0+c);
@@ -70,25 +78,34 @@ public class MimicSprite extends MobSprite {
 
 		die = new Animation( 5, false );
 		die.frames( frames, 10+c, 11+c, 12+c );
-
-		play( idle );
 	}
-	
+
 	@Override
 	public void linkVisuals(Char ch) {
 		super.linkVisuals(ch);
-		if (ch.alignment == Char.Alignment.NEUTRAL) {
-			hideMimic();
+		if (ch instanceof Mimic && ch.alignment == Char.Alignment.NEUTRAL) {
+			hideMimic(this, ch);
 		}
 	}
 
-	public void hideMimic(){
-		if (superHidden || MimicTooth.stealthyMimics()){
+	public void hideMimicSprite(Char ch){
+		if (ch instanceof Mimic && ((Mimic) ch).stealthy()){
 			play(advancedHiding);
 		} else {
 			play(hiding);
 		}
 		hideSleep();
+	}
+
+	public static void hideMimic(CharSprite sprite, Char ch) {
+		if (sprite instanceof MimicSprite) ((MimicSprite) sprite).hideMimicSprite(ch);
+		else {
+			Animation hide = new Animation( 5, true );
+			hide.frames = new RectF[1];
+			hide.frames[0] = sprite.idle.frames[0];
+			sprite.play(hide);
+			sprite.hideSleep();
+		}
 	}
 
 	@Override
@@ -120,9 +137,17 @@ public class MimicSprite extends MobSprite {
 		}
 
 		@Override
-		public void hideMimic() {
-			super.hideMimic();
+		public void hideMimicSprite(Char ch) {
+			super.hideMimicSprite(ch);
 			alpha(0.2f);
+		}
+
+		@Override
+		public void resetColor() {
+			super.resetColor();
+			if (curAnim == advancedHiding){
+				alpha(0.2f);
+			}
 		}
 
 		@Override

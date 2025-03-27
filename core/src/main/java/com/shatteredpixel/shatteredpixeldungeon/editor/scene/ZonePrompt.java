@@ -8,6 +8,7 @@ import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.ColorBlock;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
@@ -16,6 +17,7 @@ import com.watabou.noosa.ui.Component;
 import java.util.Collections;
 import java.util.LinkedList;
 
+@NotAllowedInLua
 public class ZonePrompt extends ToastWithButtons {
 
     private static Zone selectedZone;
@@ -211,6 +213,9 @@ public class ZonePrompt extends ToastWithButtons {
             super.createChildren();
 
             changeZone = new IconButtonWithPublicMethods(Icons.FOLD.get()) {
+
+                private final float defaultAngle = icon.angle;
+
                 {
                     icon().originToCenter();
                 }
@@ -230,13 +235,13 @@ public class ZonePrompt extends ToastWithButtons {
                         @Override
                         public void hideImmediately() {
                             super.hideImmediately();
-                            icon.angle = 0;
+                            icon.angle = defaultAngle;
                         }
 
                         @Override
                         public void showImmediately() {
                             super.showImmediately();
-                            icon.angle = 180;
+                            icon.angle = defaultAngle + 180;
                         }
                     });
                 }
@@ -244,9 +249,9 @@ public class ZonePrompt extends ToastWithButtons {
                 @Override
                 public void update() {
                     if (extended) {
-                        icon.angle = Math.min(180, icon.angle + 180 * Game.elapsed / WndZones.WndSelectZone.TIME_TO_OPEN_WINDOW);
+                        icon.angle = defaultAngle + Math.min(180, icon.angle + 180 * Game.elapsed / WndZones.WndSelectZone.TIME_TO_OPEN_WINDOW);
                     } else {
-                        icon.angle = Math.max(0, icon.angle - 180 * Game.elapsed / WndZones.WndSelectZone.TIME_TO_OPEN_WINDOW);
+                        icon.angle = defaultAngle + Math.max(0, icon.angle - 180 * Game.elapsed / WndZones.WndSelectZone.TIME_TO_OPEN_WINDOW);
                     }
                     super.update();
                 }

@@ -24,14 +24,27 @@ package com.shatteredpixel.shatteredpixeldungeon;
 import com.badlogic.gdx.files.FileHandle;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Amok;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AscensionChallenge;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Awareness;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Dread;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Light;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalSight;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MindVision;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.RevealedArea;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Terror;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.cleric.PowerOfMany;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.huntress.SpiritHawk;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.spells.DivineSense;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mimic;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Ghost;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.NPC;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.LuaManager;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.LuaClassGenerator;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ArrowCell;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Barrier;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Checkpoint;
@@ -39,10 +52,7 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomLevel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelScheme;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.QuestLevels;
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.CustomObject;
 import com.shatteredpixel.shatteredpixeldungeon.editor.lua.DungeonScript;
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.DungeonScript_lua;
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.LuaManager;
 import com.shatteredpixel.shatteredpixeldungeon.editor.quests.BlacksmithQuest;
 import com.shatteredpixel.shatteredpixeldungeon.editor.quests.GhostQuest;
 import com.shatteredpixel.shatteredpixeldungeon.editor.quests.ImpQuest;
@@ -50,7 +60,7 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.quests.WandmakerQuest;
 import com.shatteredpixel.shatteredpixeldungeon.editor.recipes.CustomRecipe;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.CustomDungeonSaves;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.CustomTileLoader;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.Amulet;
 import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
@@ -59,11 +69,17 @@ import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.TalismanOfForesi
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.Potion;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.Ring;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
-import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.MimicTooth;
 import com.shatteredpixel.shatteredpixeldungeon.items.wands.WandOfRegrowth;
 import com.shatteredpixel.shatteredpixeldungeon.items.wands.WandOfWarding;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Notes;
-import com.shatteredpixel.shatteredpixeldungeon.levels.*;
+import com.shatteredpixel.shatteredpixeldungeon.levels.CavesBossLevel;
+import com.shatteredpixel.shatteredpixeldungeon.levels.CityBossLevel;
+import com.shatteredpixel.shatteredpixeldungeon.levels.HallsBossLevel;
+import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
+import com.shatteredpixel.shatteredpixeldungeon.levels.MiningLevel;
+import com.shatteredpixel.shatteredpixeldungeon.levels.PrisonBossLevel;
+import com.shatteredpixel.shatteredpixeldungeon.levels.RegularLevel;
+import com.shatteredpixel.shatteredpixeldungeon.levels.SewerBossLevel;
 import com.shatteredpixel.shatteredpixeldungeon.levels.features.LevelTransition;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.secret.SecretRoom;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.special.SentryRoom;
@@ -76,13 +92,27 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.Toolbar;
 import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndResurrect;
 import com.watabou.noosa.Game;
+import com.watabou.utils.BArray;
+import com.watabou.utils.Bundlable;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.DeviceCompat;
+import com.watabou.utils.FileUtils;
+import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
-import com.watabou.utils.*;
+import com.watabou.utils.Reflection;
 
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TimeZone;
 
 public class Dungeon {
 
@@ -203,6 +233,7 @@ public class Dungeon {
 	public static boolean dailyReplay;
 	public static String customSeedText = "";
 	public static long seed;
+	public static long lastPlayed;
 
 	public static String[] visited;
 	public static String[] completed;
@@ -213,49 +244,10 @@ public class Dungeon {
 	public static CustomDungeon customDungeon;
 	public static String levelName;
 
-	public static DungeonScript dungeonScript = new DungeonScript_lua();
+	public static DungeonScript dungeonScript = Reflection.newInstance(LuaClassGenerator.luaUserContentClass(DungeonScript.class));
 
-	public static void init() {
-
-        String levelDir = GamesInProgress.gameFolder(GamesInProgress.curSlot) + "/";
-        FileUtils.deleteDir(levelDir);
-        FileUtils.resetDefaultFileType();
-        try {
-            CustomDungeonSaves.copyLevelsForNewGame(customDungeon.getName(), levelDir);
-        } catch (IOException e) {
-            SandboxPixelDungeon.reportException(e);
-        }
-        CustomDungeonSaves.setCurDirectory(levelDir);
-
-        CustomTileLoader.loadTiles(false);
-//
-//        if (customDungeon == null) {
-//            customDungeon = new CustomDungeon("DefaultDungeon");
-//            customDungeon.initDefault();
-//        } else {
-//            try {
-//                customDungeon = CustomDungeonSaves.loadDungeon(customDungeon.getName());
-//            } catch (IOException e) {
-//                SandboxPixelDungeon.reportException(e);
-//            }
-//        }
-
-        visited = new String[]{};
-        completed = new String[]{};
-//
-//        ghostLevel = RandomGenUtils.calculateQuestLevel(layout().getGhostSpawnLevels());
-//        wandmakerLevel = RandomGenUtils.calculateQuestLevel(layout().getWandmakerSpawnLevels());
-//        blacksmithLevel = RandomGenUtils.calculateQuestLevel(layout().getBlacksmithSpawnLevels());
-//        impLevel = RandomGenUtils.calculateQuestLevel(layout().getImpSpawnLevels());
-        visitedDepths = new HashSet<>();
-
-		reachedCheckpoint = null;
-
-
-        initialVersion = version = Game.versionCode;
-        challenges = SPDSettings.challenges(true);
-        mobsToChampion = -1;
-
+	//we initialize the seed separately so that things like interlevelscene can access it early
+	public static void initSeed(){
 		if (daily) {
 			//Ensures that daily seeds are not in the range of user-enterable seeds
 			seed = SPDSettings.lastDaily() + DungeonSeed.TOTAL_SEEDS;
@@ -269,6 +261,49 @@ public class Dungeon {
 			customSeedText = "";
 			seed = DungeonSeed.randomSeed();
 		}
+	}
+
+	public static void init() {
+		
+			FileUtils.resetDefaultFileType();
+
+			String levelDir = GamesInProgress.gameFolder(GamesInProgress.curSlot) + "/";
+			FileUtils.deleteDir(levelDir);
+			try {
+				CustomDungeonSaves.copyLevelsForNewGame(customDungeon.getName(), levelDir);
+			} catch (IOException e) {
+				SandboxPixelDungeon.reportException(e);
+			}
+			CustomDungeonSaves.setCurDirectory(levelDir);
+
+			CustomTileLoader.loadTiles(false);
+//
+//        if (customDungeon == null) {
+//            customDungeon = new CustomDungeon("DefaultDungeon");
+//            customDungeon.initDefault();
+//        } else {
+//            try {
+//                customDungeon = CustomDungeonSaves.loadDungeon(customDungeon.getName());
+//            } catch (IOException e) {
+//                SandboxPixelDungeon.reportException(e);
+//            }
+//        }
+
+			visited = new String[]{};
+			completed = new String[]{};
+//
+//        ghostLevel = RandomGenUtils.calculateQuestLevel(layout().getGhostSpawnLevels());
+//        wandmakerLevel = RandomGenUtils.calculateQuestLevel(layout().getWandmakerSpawnLevels());
+//        blacksmithLevel = RandomGenUtils.calculateQuestLevel(layout().getBlacksmithSpawnLevels());
+//        impLevel = RandomGenUtils.calculateQuestLevel(layout().getImpSpawnLevels());
+			visitedDepths = new HashSet<>();
+
+			reachedCheckpoint = null;
+
+
+			initialVersion = version = Game.versionCode;
+			challenges = SPDSettings.challenges(true);
+			mobsToChampion = -1;
 
 		Actor.clear();
 		Actor.resetNextID();
@@ -333,8 +368,7 @@ public class Dungeon {
 		
 		Badges.reset();
 
-		CustomObject.loadScripts();
-
+		CustomObjectManager.loadScripts(true);
 		GamesInProgress.selectedClass.initHero( hero );
 	}
 
@@ -423,12 +457,12 @@ public class Dungeon {
     private static void addLevelToVisited(Level level) {
         List<String> tempVisited = new ArrayList<>(Arrays.asList(Dungeon.visited));
         tempVisited.add(convertNameAsInVisited(level.name, Dungeon.branch));
-        Dungeon.visited = tempVisited.toArray(new String[]{});
+        Dungeon.visited = tempVisited.toArray(new String[0]);
     }
     private static void addLevelToCompleted(String name, int branch) {
         List<String> tempCompleted = new ArrayList<>(Arrays.asList(Dungeon.completed));
         tempCompleted.add(convertNameAsInVisited(name, branch));
-        Dungeon.completed = tempCompleted.toArray(new String[]{});
+        Dungeon.completed = tempCompleted.toArray(new String[0]);
     }
 
     public static String convertNameAsInVisited(String name, int branch){
@@ -440,23 +474,23 @@ public class Dungeon {
         Actor.clear();
 
         level.reset();
-        switchLevel(level, level.entrance());
-    }
+		switchLevel(level, level.entrance());
+	}
 
-    public static long seedCurLevel() {
-        return seedForLevel(levelName, branch);
-    }
+	public static long seedCurLevel() {
+		return seedForLevel(levelName, branch);
+	}
 
-    public static long seedForLevel(String levelName, int branch) {
-        return customDungeon.getFloor(levelName).getSeed() + 13 * branch;
-    }
+	public static long seedForLevel(String levelName, int branch) {
+		return customDungeon.getFloor(levelName).getSeed() + 13 * branch;
+	}
 
-    public static boolean bossLevel() {
-        return bossLevel(levelName);
-    }
+	public static boolean bossLevel() {
+		return bossLevel(levelName);
+	}
 
-    public static boolean bossLevel(String levelName) {
-        return customDungeon.getFloor(levelName) != null && customDungeon.getFloor(levelName).hasBoss();
+	public static boolean bossLevel(String levelName) {
+		return customDungeon.getFloor(levelName) != null && customDungeon.getFloor(levelName).hasBoss();
     }
 
 	//value used for scaling of damage values and other effects.
@@ -490,13 +524,12 @@ public class Dungeon {
 		}
 
 		//Place hero at the entrance if they are out of the map (often used for pos = -1)
-		// or if they are in solid terrain (except in the mining level, where that happens normally)
-		if (pos < 0 || pos >= level.length()
-				|| (/*!(level instanceof MiningLevel) &&*/ !level.isPassable(pos) && !level.avoid[pos]) || Barrier.stopHero(pos, level)){
+		// or if they are in invalid terrain terrain (except in the mining level, where that happens normally)
+		if (pos < 0 || pos >= level.length() || level.invalidHeroPos(pos)){
 			LevelTransition t = pos == -1 ? level.getTransitionFromSurface() : level.getTransition(null);
 			if (t == null) {
 				Random.pushGenerator(Dungeon.seedCurLevel() + 5);
-				pos = EditorUtilies.getRandomCellGuaranteed(level, Dungeon.hero == null ? new Hero() : Dungeon.hero);
+				pos = EditorUtilities.getRandomCellGuaranteed(level, Dungeon.hero == null ? new Hero() : Dungeon.hero);
 				GameScene.errorMsg.add(Messages.get(Dungeon.class, "no_transitions_warning", level.name, Dungeon.customDungeon.getName()));
 				Random.popGenerator();
 			} else
@@ -557,97 +590,90 @@ public class Dungeon {
 	}
 
     public static boolean posNeeded() {
-        if (CustomDungeon.isEditing()) return Random.Int(2) == 0;
-        if (visitedDepths.contains(Dungeon.depth)) return false;
+        if (CustomDungeon.isEditing()) {
+			//2 POS each floor set
+			int posLeftThisSet = 2 - (LimitedDrops.STRENGTH_POTIONS.count - (depth / 5) * 2);
+			if (posLeftThisSet <= 0) return false;
+			
+			int floorThisSet = (depth % 5);
+			
+			//pos drops every two floors, (numbers 1-2, and 3-4) with a 50% chance for the earlier one each time.
+			int targetPOSLeft = 2 - floorThisSet / 2;
+			if (floorThisSet % 2 == 1 && Random.Int(2) == 0) targetPOSLeft--;
+			
+			if (targetPOSLeft < posLeftThisSet) return true;
+			else return false;
+		}
         return false;//uses ItemDistribution
-//        //2 POS each floor set
-//        int posLeftThisSet = 2 - (LimitedDrops.STRENGTH_POTIONS.count - (depth / 5) * 2);
-//        if (posLeftThisSet <= 0) return false;
-//
-//        int floorThisSet = (depth % 5);
-//
-//        //pos drops every two floors, (numbers 1-2, and 3-4) with a 50% chance for the earlier one each time.
-//        int targetPOSLeft = 2 - floorThisSet / 2;
-//        if (floorThisSet % 2 == 1 && Random.Int(2) == 0) targetPOSLeft--;
-//
-//        if (targetPOSLeft < posLeftThisSet) return true;
-//        else return false;
-
     }
 
     public static boolean souNeeded() {
-        if (CustomDungeon.isEditing()) return Random.Int(4) <= 2;
-        if (visitedDepths.contains(Dungeon.depth)) return false;
+        if (CustomDungeon.isEditing()) {
+			int souLeftThisSet;
+			//3 SOU each floor set, 1.5 (rounded) on forbidden runes challenge
+//			if (isChallenged(Challenges.NO_SCROLLS)) {
+//				souLeftThisSet = Math.round(1.5f - (LimitedDrops.UPGRADE_SCROLLS.count - (depth / 5) * 1.5f));
+//			} else {
+				souLeftThisSet = 3 - (LimitedDrops.UPGRADE_SCROLLS.count - (depth / 5) * 3);
+//			}
+			if (souLeftThisSet <= 0) return false;
+			
+			int floorThisSet = (depth % 5);
+			//chance is floors left / scrolls left
+			return Random.Int(5 - floorThisSet) < souLeftThisSet;
+		}
         return false;//uses ItemDistribution
-//        int souLeftThisSet;
-//        //3 SOU each floor set, 1.5 (rounded) on forbidden runes challenge
-//        if (isChallenged(Challenges.NO_SCROLLS)) {
-//            souLeftThisSet = Math.round(1.5f - (LimitedDrops.UPGRADE_SCROLLS.count - (depth / 5) * 1.5f));
-//        } else {
-//            souLeftThisSet = 3 - (LimitedDrops.UPGRADE_SCROLLS.count - (depth / 5) * 3);
-//        }
-//        if (souLeftThisSet <= 0) return false;
-//
-//        int floorThisSet = (depth % 5);
-//        //chance is floors left / scrolls left
-//        return Random.Int(5 - floorThisSet) < souLeftThisSet;
     }
 
     public static boolean asNeeded() {
-        if (CustomDungeon.isEditing()) return Random.Int(4) == 0;
-        if (visitedDepths.contains(Dungeon.depth)) return false;
+        if (CustomDungeon.isEditing()) {
+			//1 AS each floor set
+			int asLeftThisSet = 1 - (LimitedDrops.ARCANE_STYLI.count - (depth / 5));
+			if (asLeftThisSet <= 0) return false;
+			
+			int floorThisSet = (depth % 5);
+			//chance is floors left / scrolls left
+			return Random.Int(5 - floorThisSet) < asLeftThisSet;
+		}
         return false;//uses ItemDistribution
-//        //1 AS each floor set
-//        int asLeftThisSet = 1 - (LimitedDrops.ARCANE_STYLI.count - (depth / 5));
-//        if (asLeftThisSet <= 0) return false;
-//
-//        int floorThisSet = (depth % 5);
-//        //chance is floors left / scrolls left
-//        return Random.Int(5 - floorThisSet) < asLeftThisSet;
     }
 
     public static boolean enchStoneNeeded(){
 		if (CustomDungeon.isEditing()) {
-			if (region() == LevelScheme.REGION_PRISON || region() == LevelScheme.REGION_CAVES)
-				return Random.Int(4) == 0;
-			else return false;
+			//1 enchantment stone, spawns on chapter 2 or 3
+			if (!LimitedDrops.ENCH_STONE.dropped() && (region() == LevelScheme.REGION_PRISON || region() == LevelScheme.REGION_CAVES)) {
+				int region = 1 + depth / 5;
+				if (region > 1) {
+					int floorsVisited = depth - 5;
+					if (floorsVisited > 4) floorsVisited--; //skip floor 10
+					return Random.Int(9 - floorsVisited) == 0; //1/8 chance each floor
+				}
+			}
+			return false;
 		}
-		if (visitedDepths.contains(Dungeon.depth)) return false;
 		return false;//uses ItemDistribution
-//		//1 enchantment stone, spawns on chapter 2 or 3
-//		if (!LimitedDrops.ENCH_STONE.dropped()){
-//			int region = 1+depth/5;
-//			if (region > 1){
-//				int floorsVisited = depth - 5;
-//				if (floorsVisited > 4) floorsVisited--; //skip floor 10
-//				return Random.Int(9-floorsVisited) == 0; //1/8 chance each floor
-//			}
-//		}
-//		return false;
 	}
 
 	public static boolean intStoneNeeded(){
 		if (CustomDungeon.isEditing()) {
-			if (getSimulatedDepth() <= 3)
-				return Random.Int(3) == 0;
-			else return false;
+			//one stone on floors 1-3
+			if (!LimitedDrops.INT_STONE.dropped() && region() == LevelScheme.REGION_SEWERS) {
+				return Random.Int(4-depth) == 0;
+			}
+			return false;
 		}
-		if (visitedDepths.contains(Dungeon.depth)) return false;
 		return false;//uses ItemDistribution
-//		//one stone on floors 1-3
-//		return depth < 5 && !LimitedDrops.INT_STONE.dropped() && Random.Int(4-depth) == 0;
 	}
 
 	public static boolean trinketCataNeeded(){
 		if (CustomDungeon.isEditing()) {
-			if (getSimulatedDepth() <= 3)
-				return Random.Int(3) == 0;
-			else return false;
+			//one trinket catalyst on floors 1-3
+			if (!LimitedDrops.TRINKET_CATA.dropped() && region() == LevelScheme.REGION_SEWERS) {
+				return Random.Int(4-depth) == 0;
+			}
+			return false;
 		}
-		if (visitedDepths.contains(Dungeon.depth)) return false;
 		return false;//uses ItemDistribution
-//		//one trinket catalyst on floors 1-3
-//		return depth < 5 && !LimitedDrops.TRINKET_CATA.dropped() && Random.Int(4-depth) == 0;
 	}
 
 	public static boolean labRoomNeeded() {
@@ -660,73 +686,74 @@ public class Dungeon {
 		return false;
 	}
 
-	// 1/4
-	// 3/4 * 1/3 = 3/12 = 1/4
-	// 3/4 * 2/3 * 1/2 = 6/24 = 1/4
-	// 1/4
-
-	private static final String INIT_VER = "init_ver";
-    private static final String VERSION = "version";
-    private static final String SEED = "seed";
-    private static final String CUSTOM_SEED = "custom_seed";
-    private static final String DAILY = "daily";
-    private static final String DAILY_REPLAY = "daily_replay";
-    private static final String CHALLENGES = "challenges";
-    private static final String MOBS_TO_CHAMPION = "mobs_to_champion";
-    private static final String HERO = "hero";
-    private static final String DEPTH = "depth";
-    private static final String BRANCH		= "branch";
-    private static final String LEVEL_NAME = "level_name";
-    private static final String GOLD = "gold";
-    private static final String ENERGY = "energy";
-    private static final String DROPPED = "dropped%s";
-    private static final String PORTED = "ported%s";
-    private static final String LEVEL = "level";
-    private static final String LIMDROPS = "limited_drops";
-    private static final String CHAPTERS = "chapters";
-    private static final String QUESTS = "quests";
-    private static final String BADGES = "badges";
-    private static final String COMPLETED = "completed";
-    private static final String VISITED = "visited";
-    private static final String VISITED_DEPTHS = "visited_depths";
+	private static final String INIT_VER	= "init_ver";
+	public  static final String VERSION		= "version";
+	private static final String SEED		= "seed";
+	private static final String CUSTOM_SEED	= "custom_seed";
+	private static final String DAILY	    = "daily";
+	private static final String DAILY_REPLAY= "daily_replay";
+	private static final String LAST_PLAYED = "last_played";
+	private static final String CHALLENGES	= "challenges";
+	private static final String MOBS_TO_CHAMPION	= "mobs_to_champion";
+	private static final String HERO		= "hero";
+	private static final String DEPTH		= "depth";
+	private static final String BRANCH		= "branch";
+	private static final String LEVEL_NAME = "level_name";
+	private static final String GOLD		= "gold";
+	private static final String ENERGY		= "energy";
+	private static final String DROPPED     = "dropped%s";
+	private static final String PORTED      = "ported%s";
+	private static final String LEVEL		= "level";
+	private static final String LIMDROPS    = "limited_drops";
+	private static final String CHAPTERS	= "chapters";
+	private static final String QUESTS		= "quests";
+	private static final String BADGES		= "badges";
+	private static final String COMPLETED = "completed";
+	private static final String VISITED = "visited";
+	private static final String VISITED_DEPTHS = "visited_depths";
 	private static final String REACHED_CHECKPOINT = "reached_checkpoint";
-    private static final String CUSTOM_DUNGEON = "custom_dungeon";
-    private static final String TEST_GAME = "test_game";
+	private static final String CUSTOM_DUNGEON = "custom_dungeon";
+	private static final String DUNGEON_SCRIPT = "dungeon_script";
+	private static final String TEST_GAME = "test_game";
+	
+	
+	public static void saveGame( int save ) {
+		try {
+			Bundle bundle = new Bundle();
+			
+			bundle.put( TEST_GAME, isLevelTesting( ));
+			bundle.put( INIT_VER, initialVersion );
+			bundle.put( VERSION, version = Game.versionCode );
+			bundle.put( SEED, seed );
+			bundle.put( CUSTOM_SEED, customSeedText );
+			bundle.put( DAILY, daily );
+			bundle.put( DAILY_REPLAY, dailyReplay );
+			bundle.put( LAST_PLAYED, lastPlayed = Game.realTime);
+			bundle.put( CHALLENGES, challenges );
+			bundle.put( MOBS_TO_CHAMPION, mobsToChampion );
+			bundle.put( HERO, hero );
+			bundle.put( DEPTH, depth );
+			bundle.put( BRANCH, branch );
+			bundle.put( LEVEL_NAME, levelName );
+			bundle.put( REACHED_CHECKPOINT, reachedCheckpoint );
+			
+			bundle.put (VISITED, visited);
+			bundle.put (COMPLETED, completed);
+			
+			int[] visitedDepthsArray = new int[visitedDepths.size()];
+			int i = 0;
+			for (int d : visitedDepths) {
+				visitedDepthsArray[i] = d;
+				i++;
+			}
+			bundle.put( VISITED_DEPTHS, visitedDepthsArray );
 
-    public static void saveGame(int save) {
-        try {
-            Bundle bundle = new Bundle();
-
-            bundle.put(TEST_GAME, isLevelTesting());
-            bundle.put(INIT_VER, initialVersion);
-            bundle.put(VERSION, version = Game.versionCode);
-            bundle.put(SEED, seed);
-            bundle.put(CUSTOM_SEED, customSeedText);
-            bundle.put(DAILY, daily);
-            bundle.put(DAILY_REPLAY, dailyReplay);
-            bundle.put(CHALLENGES, challenges);
-            bundle.put(MOBS_TO_CHAMPION, mobsToChampion);
-            bundle.put(HERO, hero);
-            bundle.put(DEPTH, depth);
-            bundle.put(BRANCH, branch);
-            bundle.put(LEVEL_NAME, levelName);
-			bundle.put(REACHED_CHECKPOINT, reachedCheckpoint);
-
-            bundle.put(VISITED, visited);
-            bundle.put(COMPLETED, completed);
-
-            int[] visitedDepthsArray = new int[visitedDepths.size()];
-            int i = 0;
-            for (int d : visitedDepths) {
-                visitedDepthsArray[i] = d;
-                i++;
-            }
-            bundle.put(VISITED_DEPTHS, visitedDepthsArray);
-
-            bundle.put(GOLD, gold);
-            bundle.put(ENERGY, energy);
+			bundle.put( GOLD, gold );
+			bundle.put( ENERGY, energy );
 
             bundle.put(CUSTOM_DUNGEON, customDungeon);
+			
+            bundle.put(DUNGEON_SCRIPT, dungeonScript);
 
             for (String level : droppedItems.keySet()) {
                 bundle.put(Messages.format(DROPPED, level), droppedItems.get(level));
@@ -735,65 +762,65 @@ public class Dungeon {
 
 			quickslot.storePlaceholders( bundle );
 
-            Bundle limDrops = new Bundle();
-            LimitedDrops.store(limDrops);
-            bundle.put(LIMDROPS, limDrops);
+			Bundle limDrops = new Bundle();
+			LimitedDrops.store( limDrops );
+			bundle.put ( LIMDROPS, limDrops );
+			
+			int count = 0;
+			int ids[] = new int[chapters.size()];
+			for (Integer id : chapters) {
+				ids[count++] = id;
+			}
+			bundle.put( CHAPTERS, ids );
+			
+			Bundle quests = new Bundle();
+			GhostQuest.storeStatics(quests);
+			WandmakerQuest.storeStatics(quests);
+			BlacksmithQuest.storeStatics(quests);
+			ImpQuest.storeStatics(quests);
+			bundle.put(QUESTS, quests);
+			
+			BossHealthBar.storeInBundle(bundle);
+			
+			SpecialRoom.storeRoomsInBundle( bundle );
+			SecretRoom.storeRoomsInBundle( bundle );
+			
+			Statistics.storeInBundle( bundle );
+			Notes.storeInBundle( bundle );
+			Generator.storeInBundle( bundle );
+			
+			Scroll.save( bundle );
+			Potion.save( bundle );
+			Ring.save( bundle );
 
-            int count = 0;
-            int[] ids = new int[chapters.size()];
-            for (Integer id : chapters) {
-                ids[count++] = id;
-            }
-            bundle.put(CHAPTERS, ids);
-
-            Bundle quests = new Bundle();
-            GhostQuest.storeStatics(quests);
-            WandmakerQuest.storeStatics(quests);
-            BlacksmithQuest.storeStatics(quests);
-            ImpQuest.storeStatics(quests);
-            bundle.put(QUESTS, quests);
-
-            BossHealthBar.storeInBundle(bundle);
-
-            SpecialRoom.storeRoomsInBundle(bundle);
-            SecretRoom.storeRoomsInBundle(bundle);
-
-            Statistics.storeInBundle(bundle);
-            Notes.storeInBundle(bundle);
-            Generator.storeInBundle(bundle);
-
-            Scroll.save(bundle);
-            Potion.save(bundle);
-            Ring.save(bundle);
-
-            Actor.storeNextID(bundle);
-
-            Bundle badges = new Bundle();
-            Badges.saveLocal(badges);
-            bundle.put(BADGES, badges);
-
-            FileUtils.bundleToFile(GamesInProgress.gameFile(save), bundle);
-
-        } catch (IOException e) {
-            GamesInProgress.setUnknown(save);
-            SandboxPixelDungeon.reportException(e);
-        }
-    }
-
-    public static void saveLevel(int save) throws IOException {
-        Bundle bundle = new Bundle();
-        bundle.put(LEVEL, level);
-
-        FileUtils.bundleToFile(GamesInProgress.levelFile(save, levelName, branch), bundle);
-    }
-
-    public static void saveAll() throws IOException {
-        if (hero != null && (hero.isAlive() || WndResurrect.instance != null)) {
-
-            Actor.fixTime();
-            updateLevelExplored();
-            saveGame(GamesInProgress.curSlot);
-            saveLevel(GamesInProgress.curSlot);
+			Actor.storeNextID( bundle );
+			
+			Bundle badges = new Bundle();
+			Badges.saveLocal( badges );
+			bundle.put( BADGES, badges );
+			
+			FileUtils.bundleToFile( GamesInProgress.gameFile(save), bundle);
+			
+		} catch (IOException e) {
+			GamesInProgress.setUnknown( save );
+			SandboxPixelDungeon.reportException(e);
+		}
+	}
+	
+	public static void saveLevel( int save ) throws IOException {
+		Bundle bundle = new Bundle();
+		bundle.put( LEVEL, level );
+		
+		FileUtils.bundleToFile(GamesInProgress.levelFile(save, levelName, branch), bundle);
+	}
+	
+	public static void saveAll() throws IOException {
+		if (hero != null && (hero.isAlive() || WndResurrect.instance != null)) {
+			
+			Actor.fixTime();
+			updateLevelExplored();
+			saveGame( GamesInProgress.curSlot );
+			saveLevel( GamesInProgress.curSlot );
 
 			GamesInProgress.set( GamesInProgress.curSlot );
 
@@ -824,7 +851,7 @@ public class Dungeon {
 
 		loadGame( save );
 	}
-	
+
 	public static void loadGame( int save, boolean fullLoad ) throws IOException {
 		
 		Bundle bundle = FileUtils.bundleFromFile( GamesInProgress.gameFile( save ) );
@@ -918,6 +945,10 @@ public class Dungeon {
 		energy = bundle.getInt( ENERGY );
 
 		customDungeon = (CustomDungeon) bundle.get( CUSTOM_DUNGEON );
+		
+		if (bundle.contains(DUNGEON_SCRIPT)) {
+			dungeonScript = (DungeonScript) bundle.get(DUNGEON_SCRIPT);
+		}
 
 		Statistics.restoreFromBundle( bundle );
 		Generator.restoreFromBundle( bundle );
@@ -935,26 +966,27 @@ public class Dungeon {
                 droppedItems.put(level, items);
             }
 
-        }
+		}
+		
+		FileUtils.resetDefaultFileType();
+		if (!DeviceCompat.isDesktop() && initialVersion < 743) {//v0.6 and older
+			CustomDungeonSaves.setCurDirectory(GamesInProgress.gameFolder(save) + "/dungeon_levels/");
+		} else CustomDungeonSaves.setCurDirectory(GamesInProgress.gameFolder(save) + "/");
+		
+		CustomTileLoader.loadTiles(true);
+		
+		CustomObjectManager.loadUserContentFromFiles();
+		CustomObjectManager.loadScripts(true);
+	}
+	
+	public static Level loadLevel( int save ) throws IOException {
+		
+		Dungeon.level = null;
+		Actor.clear();
+		
+		Bundle bundle = FileUtils.bundleFromFile(GamesInProgress.levelFile(save, levelName, branch));
 
-        FileUtils.resetDefaultFileType();
-        if (!DeviceCompat.isDesktop() && initialVersion < 743) {//v0.6 and older
-            CustomDungeonSaves.setCurDirectory(GamesInProgress.gameFolder(save) + "/dungeon_levels/");
-        } else CustomDungeonSaves.setCurDirectory(GamesInProgress.gameFolder(save) + "/");
-
-        CustomTileLoader.loadTiles(true);
-
-		CustomObject.loadScripts();
-    }
-
-    public static Level loadLevel(int save) throws IOException {
-
-        Dungeon.level = null;
-        Actor.clear();
-
-        Bundle bundle = FileUtils.bundleFromFile(GamesInProgress.levelFile(save, levelName, branch));
-
-        Level level = (Level) bundle.get(LEVEL);
+		Level level = (Level)bundle.get( LEVEL );
 
 		if (level == null){
 			throw new IOException();
@@ -963,50 +995,45 @@ public class Dungeon {
 		}
 	}
 	
-	public static void deleteGame( int save, boolean deleteLevels ) {
+	public static void deleteGame( int save ) {
+		FileUtils.deleteDir(GamesInProgress.gameFolder(save));
+		GamesInProgress.delete(save);
+	}
+	
+	public static boolean preview( GamesInProgress.Info info, Bundle bundle ) {
+		
+		LuaClassGenerator.skipConversion = true;
+		
+		if (bundle.getBoolean(TEST_GAME)) return false;
+		info.depth = bundle.getInt( DEPTH );
+		info.levelName = bundle.getString( LEVEL_NAME );
+		info.version = bundle.getInt( VERSION );
+		info.challenges = bundle.getInt( CHALLENGES );
+		info.seed = bundle.getLong( SEED );
+		info.customSeed = bundle.getString( CUSTOM_SEED );
+		info.daily = bundle.getBoolean( DAILY );
+		info.dailyReplay = bundle.getBoolean( DAILY_REPLAY );
+		info.lastPlayed = bundle.getLong( LAST_PLAYED );
+		info.checkpointReached = bundle.get( REACHED_CHECKPOINT ) != null;
+		info.dungeonName = ((CustomDungeon) bundle.get( CUSTOM_DUNGEON )).getName();
 
-        if (deleteLevels) {
-            String folder = GamesInProgress.gameFolder(save);
-            for (String file : FileUtils.filesInDir(folder)) {
-                if (file.contains("level")) {
-                    FileUtils.deleteFile(folder + "/" + file);
-                }
-            }
-        }
-
-        FileUtils.overwriteFile(GamesInProgress.gameFile(save), 1);
-
-        GamesInProgress.delete(save);
-    }
-
-    public static boolean preview(GamesInProgress.Info info, Bundle bundle) {
-        if (bundle.getBoolean(TEST_GAME)) return false;
-        info.depth = bundle.getInt(DEPTH);
-        info.levelName = bundle.getString(LEVEL_NAME);
-        info.version = bundle.getInt(VERSION);
-        info.challenges = bundle.getInt(CHALLENGES);
-        info.seed = bundle.getLong(SEED);
-        info.customSeed = bundle.getString(CUSTOM_SEED);
-        info.daily = bundle.getBoolean(DAILY);
-        info.dailyReplay = bundle.getBoolean(DAILY_REPLAY);
-		info.checkpointReached = bundle.get(REACHED_CHECKPOINT) != null;
-        info.dungeonName = ((CustomDungeon) bundle.get(CUSTOM_DUNGEON)).getName();
-
-        Hero.preview(info, bundle.getBundle(HERO));
-        Statistics.preview(info, bundle);
-
-        return true;
-    }
-
-    public static void fail(Object cause) {
-        if (WndResurrect.instance == null) {
-            updateLevelExplored();
-            Statistics.gameWon = false;
-            Rankings.INSTANCE.submit(false, cause);
-        }
-    }
-
-    public static void win(Object cause) {
+		Hero.preview( info, bundle.getBundle( HERO ) );
+		Statistics.preview( info, bundle );
+		
+		LuaClassGenerator.skipConversion = false;
+		
+		return true;
+	}
+	
+	public static void fail( Object cause ) {
+		if (WndResurrect.instance == null) {
+			updateLevelExplored();
+			Statistics.gameWon = false;
+			Rankings.INSTANCE.submit( false, cause );
+		}
+	}
+	
+	public static void win( Object cause ) {
 
 		updateLevelExplored();
 		Statistics.gameWon = true;
@@ -1075,12 +1102,11 @@ public class Dungeon {
 	
 		GameScene.updateFog(l, t, width, height);
 
-		boolean stealthyMimics = MimicTooth.stealthyMimics();
         if (level.levelScheme.rememberLayout) {
 
-            if (hero.buff(MindVision.class) != null) {
+            if (hero.buff(MindVision.class) != null || hero.buff(DivineSense.DivineSenseTracker.class) != null) {
                 for (Mob m : level.mobs.toArray(new Mob[0])) {
-					if (!Mimic.isLikeMob(m) || stealthyMimics && m instanceof Mimic && m.alignment == Char.Alignment.NEUTRAL){
+					if (m instanceof Mimic && m.alignment == Char.Alignment.NEUTRAL && ((Mimic) m).stealthy()){
 						continue;
 					}
 					BArray.or(level.visited, level.heroFOV, m.pos - 1 - level.width(), 3, level.visited);
@@ -1130,7 +1156,8 @@ public class Dungeon {
 		for (Char ch : Actor.chars()){
 			if (ch instanceof WandOfWarding.Ward
 					|| ch instanceof WandOfRegrowth.Lotus
-					|| ch instanceof SpiritHawk.HawkAlly){
+					|| ch instanceof SpiritHawk.HawkAlly
+					|| ch.buff(PowerOfMany.PowerBuff.class) != null){
 
                 if (level.levelScheme.rememberLayout) {
 
@@ -1182,7 +1209,7 @@ public class Dungeon {
         } else {
 
             if (ch.isFlying() || ch.buff(Amok.class) != null) {
-                BArray.or(pass, Dungeon.level.avoid, passable);
+				pass = Dungeon.level.getPassableAndAvoidVar(ch, passable);
                 for (Barrier b : Dungeon.level.barriers.values()) {
                     if (b.blocksChar(ch)) passable[b.pos] = false;
                 }
@@ -1211,19 +1238,19 @@ public class Dungeon {
 
 	public static PathFinder.Path findPath(Char ch, int to, boolean[] pass, boolean[] vis, boolean chars) {
 
-		return PathFinder.find( ch.pos, to, findPassable(ch, pass, vis, chars) );
+		return PathFinder.find( ch.pos, to, findPassable(ch, pass, vis, chars), ch );
 
 	}
 	
 	public static int findStep(Char ch, int to, boolean[] pass, boolean[] visible, boolean chars ) {
 
-		if (Dungeon.level.adjacent( ch.pos, to ) && ArrowCell.allowsStep( ch.pos, to )) {
+		if (Dungeon.level.adjacent( ch.pos, to ) && ArrowCell.allowsStep( ch.pos, to, ch )) {
 			return Actor.findChar( to ) == null && pass[to] ? to : -1;
 		}
 
         setupPassable();
         if (ch.isFlying() || ch.buff(Amok.class) != null) {
-            BArray.or(pass, Dungeon.level.avoid, passable);
+			pass = Dungeon.level.getPassableAndAvoidVar(ch, passable);
             for (Barrier b : Dungeon.level.barriers.values()) {
                 if (b.blocksChar(ch)) passable[b.pos] = false;
             }
@@ -1243,27 +1270,24 @@ public class Dungeon {
             }
         }
 
-        return PathFinder.getStep( ch.pos, to, findPassable(ch, pass, visible, chars) );
+        return PathFinder.getStep( ch.pos, to, findPassable(ch, pass, visible, chars), ch );
 
 	}
-	
+
 	public static int flee( Char ch, int from, boolean[] pass, boolean[] visible, boolean chars ) {
 		boolean[] passable = findPassable(ch, pass, visible, false, true);
 		passable[ch.pos] = true;
 
-		//only consider other chars impassable if our retreat step may collide with them
-		if (chars) {
-			for (Char c : Actor.chars()) {
-				if (c.pos == from || Dungeon.level.adjacent(c.pos, ch.pos)) {
-					passable[c.pos] = false;
-				}
-			}
-		}
-
 		//chars affected by terror have a shorter lookahead and can't approach the fear source
 		boolean canApproachFromPos = ch.buff(Terror.class) == null && ch.buff(Dread.class) == null;
-		return PathFinder.getStepBack( ch.pos, from, canApproachFromPos ? 8 : 4, passable, canApproachFromPos );
-		
+		int step = PathFinder.getStepBack( ch.pos, from, canApproachFromPos ? 8 : 4, passable, canApproachFromPos, ch );
+
+		//only consider chars impassable if our retreat step runs into them
+		while (step != -1 && Actor.findChar(step) != null && chars){
+			passable[step] = false;
+			step = PathFinder.getStepBack( ch.pos, from, canApproachFromPos ? 8 : 4, passable, canApproachFromPos, ch );
+		}
+		return step;
 	}
 
 }

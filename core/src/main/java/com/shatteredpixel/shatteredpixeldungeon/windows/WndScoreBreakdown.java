@@ -29,11 +29,13 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Group;
 
 import java.text.NumberFormat;
 import java.util.Locale;
 
+@NotAllowedInLua
 public class WndScoreBreakdown extends Window {
 
 	private static final int WIDTH			= 115;
@@ -48,8 +50,7 @@ public class WndScoreBreakdown extends Window {
 
 		float pos = title.bottom()+2;
 
-		NumberFormat num = NumberFormat.getInstance(Locale.US);
-		if(SPDSettings.language() == Languages.GERMAN)num = NumberFormat.getInstance(Locale.GERMAN);//Why should we get 1000 times less scrore when language is german?
+		NumberFormat num = NumberFormat.getInstance(Messages.locale());
 		pos = statSlot(this, Messages.get(this, "progress_title"),
 				num.format(Statistics.progressScore), pos, Statistics.progressScore >= 50_000);
 		pos = addInfo(this, Messages.get(this, "progress_desc"), pos);
@@ -67,10 +68,10 @@ public class WndScoreBreakdown extends Window {
 		pos = addInfo(this, Messages.get(this, "quests_desc"), pos);
 
 		if (Statistics.winMultiplier > 1) {
-			pos = statSlot(this, Messages.get(this, "win_multiplier"), Statistics.winMultiplier + "x", pos, false);
+			pos = statSlot(this, Messages.get(this, "win_multiplier"), Messages.decimalFormat("#.##", Statistics.winMultiplier) + "x", pos, false);
 		}
 		if (Statistics.chalMultiplier > 1) {
-			pos = statSlot(this, Messages.get(this, "challenge_multiplier"), Statistics.chalMultiplier + "x", pos, false);
+			pos = statSlot(this, Messages.get(this, "challenge_multiplier"), Messages.decimalFormat("#.##", Statistics.chalMultiplier) + "x", pos, false);
 		}
 		pos = statSlot(this, Messages.get(this, "total"), num.format(Statistics.totalScore), pos, false);
 

@@ -77,28 +77,33 @@ public class DisarmingTrap extends Trap{
 			CellEmitter.get(pos).burst(Speck.factory(Speck.LIGHT), 4);
 		}
 
-		if (Dungeon.hero.pos == pos && !Dungeon.hero.avoidsHazards()){
+		if (Dungeon.hero.pos == pos && !Dungeon.hero.isFlying()){
 			Hero hero = Dungeon.hero;
 			KindOfWeapon weapon = hero.belongings.weapon;
 
 			if (weapon != null && !weapon.cursed) {
 
 				int cell;
-				int tries = 20;
+				int tries = 50;
 				do {
 					cell = Dungeon.level.randomRespawnCell( null );
 					if (tries-- < 0 && cell != -1) break;
 
-					PathFinder.buildDistanceMap(pos, Dungeon.level.getPassableHeroVar());
+					PathFinder.buildDistanceMap(pos, Dungeon.level.getPassableHeroVar(), Dungeon.hero);
 				} while (cell == -1 || PathFinder.distance[cell] < 10 || PathFinder.distance[cell] > 20);
+
+				if (tries < 0){
+					return;
+				}
 
 				hero.belongings.weapon = null;
 				Dungeon.quickslot.clearItem(weapon);
 				weapon.updateQuickslot();
 
 				Dungeon.level.drop(weapon, cell).seen = true;
-				for (int i : PathFinder.NEIGHBOURS9)
-					Dungeon.level.mapped[cell+i] = true;
+				for (int i : PathFinder.NEIGHBOURS9) {
+					Dungeon.level.mapped[cell + i] = true;
+				}
 				GameScene.updateFog(cell, 1);
 
 				GLog.w( Messages.get(this, "disarm") );

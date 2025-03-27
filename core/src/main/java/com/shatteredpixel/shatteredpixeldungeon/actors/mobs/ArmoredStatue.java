@@ -24,19 +24,17 @@ package com.shatteredpixel.shatteredpixeldungeon.actors.mobs;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.GameObject;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Burning;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.mobs.ItemSelectables;
+import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ItemSelector;
 import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
-import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.Armor;
-import com.shatteredpixel.shatteredpixeldungeon.items.armor.glyphs.AntiMagic;
-import com.shatteredpixel.shatteredpixeldungeon.items.armor.glyphs.Brimstone;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.StatueSprite;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Function;
+import com.watabou.utils.Random;
 
 public class ArmoredStatue extends Statue implements ItemSelectables.ArmorSelectable {
 
@@ -73,7 +71,7 @@ public class ArmoredStatue extends Statue implements ItemSelectables.ArmorSelect
 	public Armor armor() {
 		return armor;
 	}
-
+	
 	@Override
 	public ItemSelector.NullTypeSelector useNullArmor() {
 		return ItemSelector.NullTypeSelector.RANDOM;
@@ -107,17 +105,7 @@ public class ArmoredStatue extends Statue implements ItemSelectables.ArmorSelect
 	@Override
 	public int drRoll() {
 		if (armor == null) return super.drRoll();
-		return super.drRoll() + Char.combatRoll( armor.DRMin(), armor.DRMax());
-	}
-
-	@Override
-	public boolean isImmune(Class effect) {
-		if (effect == Burning.class
-				&& armor != null
-				&& armor.hasGlyph(Brimstone.class, this)){
-			return true;
-		}
-		return super.isImmune(effect);
+		return super.drRoll() + Random.NormalIntRange( armor.DRMin(), armor.DRMax());
 	}
 
 	@Override
@@ -125,39 +113,30 @@ public class ArmoredStatue extends Statue implements ItemSelectables.ArmorSelect
 		if (armor != null) damage = armor.proc(enemy, this, damage);
 		return super.defenseProc(enemy, damage);
 	}
-
-	@Override
-	public void damage(int dmg, Object src) {
-		//TODO improve this when I have proper damage source logic
-		if (armor != null && armor.hasGlyph(AntiMagic.class, this)
-				&& AntiMagic.RESISTS.contains(src.getClass())){
-			dmg -= AntiMagic.drRoll(this, armor.buffedLvl());
-			dmg = Math.max(dmg, 0);
-		}
-
-		super.damage( dmg, src );
-
-		//for the rose status indicator
-		Item.updateQuickslot();
-	}
-
-	@Override
-	public CharSprite sprite() {
-		CharSprite sprite = super.sprite();
-		((StatueSprite)sprite).setArmor(armor == null ? 0 : armor.tier);
-		return sprite;
-	}
-
+	
 	@Override
 	public float speed() {
-		if (armor == null) return super.speed();
-		return armor.speedFactor(this, super.speed());
+		float speed = super.speed();
+		if (armor != null) {
+			speed = armor.speedFactor(this, speed);
+		}
+		return speed;
+	}
+	
+	@Override
+	public int glyphLevel(Class<? extends Armor.Glyph> cls) {
+		if (armor != null && armor.hasGlyph(cls, this)){
+			return Math.max(super.glyphLevel(cls), armor.buffedLvl());
+		} else {
+			return super.glyphLevel(cls);
+		}
 	}
 
 	@Override
-	public float stealth() {
-		if (armor == null) return super.stealth();
-		return armor.stealthFactor(this, super.stealth());
+	public CharSprite createSprite() {
+		CharSprite sprite = super.createSprite();
+		StatueSprite.setArmor(sprite, armor == null ? 0 : armor.tier);
+		return sprite;
 	}
 
 	@Override
@@ -176,9 +155,13 @@ public class ArmoredStatue extends Statue implements ItemSelectables.ArmorSelect
 	}
 
 	@Override
-	public String description() {
-		if (customDesc != null || armor == null && Dungeon.hero != null) return super.description();
-		return Messages.get(this, "desc", weapon == null ? "___" : weapon().name(), armor == null ? "___" : armor().name());
+	public String desc() {
+		if (customDesc != null || armor == null && Dungeon.hero != null) return super.desc();
+		String desc = Messages.get(this, "desc");
+		if (weapon != null && armor != null || CustomDungeon.isEditing()){
+			desc += "\n\n" + Messages.get(this, "desc_arm_wep", weapon == null ? "___" : weapon().name(), armor == null ? "___" : armor().name());
+		}
+		return desc;
 	}
 
 }

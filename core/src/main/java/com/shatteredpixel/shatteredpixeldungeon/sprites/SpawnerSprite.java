@@ -39,6 +39,13 @@ public class SpawnerSprite extends MobSprite {
 		shadowHeight = 0.4f;
 		shadowWidth = 1f;
 
+		initAnimations();
+
+		play( idle );
+	}
+
+	@Override
+	public void initAnimations() {
 		TextureFilm frames = new TextureFilm( texture, 16, 16 );
 
 		idle = new Animation( 8, true );
@@ -50,23 +57,16 @@ public class SpawnerSprite extends MobSprite {
 		attack.frames( frames, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 );
 
 		die = idle.clone();
-
-		play( idle );
 	}
 
 	private float baseY = Float.NaN;
 
 	@Override
-	public void place(int cell) {
-		super.place(cell);
-		baseY = y;
-	}
-
-	@Override
 	public void update() {
 		super.update();
 		if (!paused){
-			if (Float.isNaN(baseY)) baseY = y;
+			//if baseY is not set or y has changed more than what's possible here
+			if (Float.isNaN(baseY)|| y < baseY - 1/3f || y > baseY + 1/3f) baseY = y;
 			y = baseY + (float)(Math.sin(Game.timeTotal)/3f);
 			shadowOffset = 1.25f - 0.6f*(float)(Math.sin(Game.timeTotal)/3f);
 		}

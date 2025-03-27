@@ -23,11 +23,13 @@ package com.shatteredpixel.shatteredpixeldungeon.journal;
 
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
+import com.watabou.NotAllowedInLua;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.FileUtils;
 
 import java.io.IOException;
 
+@NotAllowedInLua
 public class Journal {
 	
 	public static final String JOURNAL_FILE = "journal.dat";
@@ -48,6 +50,7 @@ public class Journal {
 		}
 		
 		Catalog.restore( bundle );
+		Bestiary.restore( bundle );
 		Document.restore( bundle );
 		
 		loaded = true;
@@ -68,6 +71,7 @@ public class Journal {
 		Bundle bundle = new Bundle();
 		
 		Catalog.store(bundle);
+		Bestiary.store(bundle);
 		Document.store(bundle);
 		
 		try {

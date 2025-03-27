@@ -27,11 +27,14 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.PixmapPacker;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.watabou.NotAllowedInLua;
 import com.watabou.input.ControllerHandler;
 import com.watabou.noosa.Game;
+import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 
 import java.util.HashMap;
 
+@NotAllowedInLua
 public abstract class PlatformSupport {
 	
 	public abstract void updateDisplaySize();
@@ -52,6 +55,10 @@ public abstract class PlatformSupport {
 
 	public void setHonorSilentSwitch( boolean value ){
 		//does nothing by default
+	}
+	
+	public int batteryRemaining() {
+		return 100;
 	}
 
 	public boolean openURI( String uri ){
@@ -77,6 +84,9 @@ public abstract class PlatformSupport {
 //			new FileHandle(selectedFile).copyTo(dest);
 //		}
 	}
+	
+	public void selectImageFile(Consumer<Object> callback) {
+	}
 
 	public boolean canReadExternalFilesIfUserGrantsPermission() {
 		return false;
@@ -90,8 +100,12 @@ public abstract class PlatformSupport {
 		return null;
 	}
 
-	public boolean openNativeIDEWindow(Object luaCodeHolder, Object luaScript) {
+	public boolean openNativeIDEWindow(String luaScriptPath, Class<?> clazz, Consumer<String> onScriptChanged) {
 		return false;
+	}
+	
+	public ClassLoadingStrategy getClassLoadingStrategy() {
+		return ClassLoadingStrategy.Default.WRAPPER;
 	}
 
 	public void setOnscreenKeyboardVisible(boolean value){

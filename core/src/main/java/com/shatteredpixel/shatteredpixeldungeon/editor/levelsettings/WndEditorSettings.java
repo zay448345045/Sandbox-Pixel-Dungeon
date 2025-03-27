@@ -8,30 +8,22 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.dungeon.Dun
 import com.shatteredpixel.shatteredpixeldungeon.editor.levelsettings.level.LevelTab;
 import com.shatteredpixel.shatteredpixeldungeon.editor.overview.floor.LevelGenComp;
 import com.shatteredpixel.shatteredpixeldungeon.editor.scene.undo.Undo;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
-import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndTabbed;
-import com.shatteredpixel.shatteredpixeldungeon.windows.WndTitledMessage;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.ui.Component;
 
 //From WndJournal
+@NotAllowedInLua
 public class WndEditorSettings extends WndTabbed {
 
-    //    public static final int WIDTH_P = 126;
+//    public static final int WIDTH_P = 126;
 //    public static final int HEIGHT_P = 180;
 //
 //    public static final int WIDTH_L = 200;
 //    public static final int HEIGHT_L = 130;
     public static boolean closingBecauseMapSizeChange = false;
-
-    public static int calclulateWidth() {
-        return (int) Math.min(WndTitledMessage.WIDTH_MAX, (int) (PixelScene.uiCamera.width * 0.9));
-    }
-
-    public static int calclulateHeight() {
-        return (int) (PixelScene.uiCamera.height * 0.9);
-    }
 
     public static final int ITEM_HEIGHT = 18;
 
@@ -54,11 +46,11 @@ public class WndEditorSettings extends WndTabbed {
 
         Undo.startAction();
 
-        offset(0, EditorUtilies.getMaxWindowOffsetYForVisibleToolbar());
-        resize(calclulateWidth(), calclulateHeight() - 50 - yOffset);
+        offset(0, EditorUtilities.getMaxWindowOffsetYForVisibleToolbar());
+        resize(WindowSize.WIDTH_LARGE.get(), WindowSize.HEIGHT_LARGE.get() - tabHeight() - yOffset - tabHeight());
 
         ownTabs = new TabComp[]{
-                levelTab = new LevelTab((CustomLevel) Dungeon.level, Dungeon.level.levelScheme),
+                levelTab = EditorScene.isEditingRoomLayout ? null : new LevelTab((CustomLevel) Dungeon.level, Dungeon.level.levelScheme),
                 dungeonTab = new DungeonTab(),
                 levelGenTab = new LevelGenComp(Dungeon.level.levelScheme) {
                     @Override
@@ -67,12 +59,13 @@ public class WndEditorSettings extends WndTabbed {
                         EditorScene.updateDepthIcon();
                     }
                 },
-                transitionTab = new TransitionTab(),
+                transitionTab = EditorScene.isEditingRoomLayout ? null : new TransitionTab(),
                 luaOverviewTab = new LuaOverviewTab()
         };
 
         Tab[] tabs = new Tab[ownTabs.length];
         for (int i = 0; i < ownTabs.length; i++) {
+            if (ownTabs[i] == null) continue;
             add(ownTabs[i]);
             ownTabs[i].setRect(0, 0, width, height);
             ownTabs[i].updateList();
@@ -81,7 +74,7 @@ public class WndEditorSettings extends WndTabbed {
                 @Override
                 protected void select(boolean value) {
                     super.select(value);
-                    ownTabs[index].active = ownTabs[index].visible = value;
+                    ownTabs[index].setVisible(value);
                     if (value) last_index = index;
                 }
 
@@ -108,9 +101,11 @@ public class WndEditorSettings extends WndTabbed {
     @Override
     public void offset(int xOffset, int yOffset) {
         super.offset(xOffset, yOffset);
-        if (ownTabs == null) return;
-        for (TabComp tab : ownTabs) {
-            tab.layout();
+        
+        if (ownTabs != null) {
+            for (TabComp tab : ownTabs) {
+                tab.layout();
+            }
         }
     }
 
@@ -127,10 +122,6 @@ public class WndEditorSettings extends WndTabbed {
     public static abstract class TabComp extends Component {
 
         public TabComp() {
-        }
-
-        public TabComp(Object... params) {
-            super(params);
         }
 
         public void updateList() {

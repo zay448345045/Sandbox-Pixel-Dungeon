@@ -21,13 +21,20 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.ui;
 
-import com.shatteredpixel.shatteredpixeldungeon.*;
+import com.shatteredpixel.shatteredpixeldungeon.Assets;
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.GameObject;
+import com.shatteredpixel.shatteredpixeldungeon.QuickSlot;
+import com.shatteredpixel.shatteredpixeldungeon.SPDAction;
+import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.EToolbar;
-import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.EditorItemBag;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.FindInBag;
+import com.shatteredpixel.shatteredpixeldungeon.editor.inv.categories.EditorInventory;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.EditorItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.lua.DungeonScript;
@@ -45,6 +52,7 @@ import com.watabou.input.GameAction;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
+import com.watabou.utils.Function;
 import com.watabou.utils.PathFinder;
 
 import java.util.List;
@@ -327,7 +335,7 @@ public class QuickSlotButton extends Button {
 
 		@Override
 		public List<Bag> getBags() {
-			return EditorItemBag.getMainBags();
+			return EditorInventory.getMainBags();
 		}
 
 		@Override
@@ -454,7 +462,7 @@ public class QuickSlotButton extends Button {
 		}
 
 		//Otherwise pick nearby tiles to try and 'angle' the shot, auto-aim basically.
-		PathFinder.buildDistanceMap( target.pos, BArray.not( new boolean[Dungeon.level.length()], null ), 2 );
+		PathFinder.buildDistanceMapForEnvironmentals( target.pos, BArray.not( new boolean[Dungeon.level.length()], null ), 2 );
 		for (int i = 0; i < PathFinder.distance.length; i++) {
 			if (PathFinder.distance[i] < Integer.MAX_VALUE
 					&& item.targetingPos(Dungeon.hero, i) == target.pos)
@@ -506,8 +514,37 @@ public class QuickSlotButton extends Button {
 
 	public static ItemSlot containsItem(Item item) {
 		for (int i = 0; i < instance.length; i++) {
-			if (instance[i].slot.item == item) return instance[i].slot;
+			if (instance[i] != null && instance[i].slot.item == item) return instance[i].slot;
 		}
 		return null;
+	}
+
+	public static ItemSlot containsObject(Object obj) {
+		for (int i = 0; i < instance.length; i++) {
+			if (instance[i] != null) {
+				Item itemInSlot = instance[i].slot.item;
+				if (itemInSlot == obj || itemInSlot instanceof EditorItem && ((EditorItem<?>) itemInSlot).getObject() == obj) {
+					return instance[i].slot;
+				}
+			}
+		}
+		return null;
+	}
+
+	public static void doOnAll(Function<GameObject, GameObject.ModifyResult> whatToDo) {
+		if (instance == null) return;
+
+		for (int i = 0; i < instance.length; i++) {
+			if (instance[i] != null) {
+				final int index = i;
+				Object itemInSlot = instance[i].slot.item;
+				if (itemInSlot instanceof EditorItem) itemInSlot = ((EditorItem<?>) itemInSlot).getObject();
+				if (itemInSlot instanceof GameObject) {
+					GameObject.doOnSingleObject(((GameObject) itemInSlot), whatToDo, obj -> {
+						QuickSlotButton.set(index, new FindInBag(obj).getAsInBag());
+					});
+				}
+			}
+		}
 	}
 }

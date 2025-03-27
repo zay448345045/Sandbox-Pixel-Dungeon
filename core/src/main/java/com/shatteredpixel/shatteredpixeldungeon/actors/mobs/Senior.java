@@ -31,7 +31,7 @@ public class Senior extends Monk {
 
 		damageRollMin = 16;
 
-		loot = new Pasty();
+		loot = Pasty.class;
 		lootChance = 1f;
 	}
 	
@@ -45,7 +45,7 @@ public class Senior extends Monk {
 	
 //	@Override
 //	public int damageRoll() {
-//		return Char.combatRoll( 16, 25 );
+//		return Random.NormalIntRange( 16, 25 );
 //	}
 	
 }

@@ -33,7 +33,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.StormCloud;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Doom;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Tengu;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
@@ -53,12 +53,18 @@ import com.shatteredpixel.shatteredpixeldungeon.tiles.CustomTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.ui.TargetHealthIndicator;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.Group;
 import com.watabou.noosa.Tilemap;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
-import com.watabou.utils.*;
+import com.watabou.utils.BArray;
+import com.watabou.utils.Bundlable;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
+import com.watabou.utils.PathFinder;
+import com.watabou.utils.Point;
+import com.watabou.utils.Random;
+import com.watabou.utils.WatabouRect;
 
 import java.util.ArrayList;
 
@@ -97,7 +103,7 @@ public class PrisonBossLevel extends Level {
 	public State state(){
 		return state;
 	}
-	
+
 	private static final String STATE	        = "state";
 	private static final String TENGU	        = "tengu";
 	private static final String STORED_ITEMS    = "storeditems";
@@ -148,11 +154,11 @@ public class PrisonBossLevel extends Level {
 	}
 	
 	private static final int ENTRANCE_POS = 10 + 4*32;
-	private static final Rect entranceRoom = new Rect(8, 2, 13, 8);
-	private static final Rect startHallway = new Rect(9, 7, 12, 24);
-	private static final Rect[] startCells = new Rect[]{ new Rect(5, 9, 10, 16), new Rect(11, 9, 16, 16),
-	                                         new Rect(5, 15, 10, 22), new Rect(11, 15, 16, 22)};
-	private static final Rect tenguCell = new Rect(6, 23, 15, 32);
+	private static final WatabouRect entranceRoom = new WatabouRect(8, 2, 13, 8);
+	private static final WatabouRect startHallway = new WatabouRect(9, 7, 12, 24);
+	private static final WatabouRect[] startCells = new WatabouRect[]{ new WatabouRect(5, 9, 10, 16), new WatabouRect(11, 9, 16, 16),
+	                                         new WatabouRect(5, 15, 10, 22), new WatabouRect(11, 15, 16, 22)};
+	private static final WatabouRect tenguCell = new WatabouRect(6, 23, 15, 32);
 	private static final Point tenguCellCenter = new Point(10, 27);
 	private static final Point tenguCellDoor = new Point(10, 23);
 	private static final Point[] startTorches = new Point[]{ new Point(10, 2),
@@ -175,7 +181,7 @@ public class PrisonBossLevel extends Level {
 		
 		Painter.set(this, startHallway.left+1, startHallway.top, Terrain.DOOR);
 		
-		for (Rect r : startCells){
+		for (WatabouRect r : startCells){
 			Painter.fill(this, r, Terrain.WALL);
 			Painter.fill(this, r, 1, Terrain.EMPTY);
 		}
@@ -193,10 +199,18 @@ public class PrisonBossLevel extends Level {
 		for (Point p : startTorches){
 			Painter.set(this, p, Terrain.WALL_DECO);
 		}
+
+		//we set up the exit for consistently with other levels, even though it's in the walls
+		int exitCell = pointToCell(levelExit);
+		LevelTransition exit = addRegularExit(exitCell);
+		if (exit != null) {
+			exit.right+=2;
+			exit.bottom+=3;
+		}
 	}
 
 	//area where items/chars are preserved when moving to the arena
-	private static final Rect pauseSafeArea = new Rect(9, 2, 12, 12);
+	private static final WatabouRect pauseSafeArea = new WatabouRect(9, 2, 12, 12);
 
 	private void setMapPause(){
 		setMapStart();
@@ -213,7 +227,7 @@ public class PrisonBossLevel extends Level {
 
 	}
 	
-	private static final Rect arena = new Rect(3, 1, 18, 16);
+	private static final WatabouRect arena = new WatabouRect(3, 1, 18, 16);
 	
 	private void setMapArena(){
 		transitions.clear();
@@ -293,18 +307,21 @@ public class PrisonBossLevel extends Level {
 			cell += width();
 		}
 
-		int exitCell = pointToCell(levelExit);
-		LevelTransition exit = addRegularExit(exitCell);
-		if (exit != null) {
-			exit.right+=2;
-			exit.bottom+=3;
+		//pre-2.5.1 saves, if exit wasn't already added
+		if (exit() == entrance()) {
+			int exitCell = pointToCell(levelExit);
+			LevelTransition exit = addRegularExit(exitCell);
+			if (exit != null) {
+				exit.right+=2;
+				exit.bottom+=3;
+			}
 		}
 	}
 	
 	//keep track of removed items as the level is changed. Dump them back into the level at the end.
 	private ArrayList<Item> storedItems = new ArrayList<>();
 	
-	private void clearEntities(Rect safeArea){
+	private void clearEntities(WatabouRect safeArea){
 		for (Heap heap : heaps.valueList()){
 			if (safeArea == null || !safeArea.inside(cellToPoint(heap.pos))){
 				for (Item item : heap.items){
@@ -361,13 +378,6 @@ public class PrisonBossLevel extends Level {
 		
 		GameScene.resetMap();
 		Dungeon.observe();
-	}
-	
-	@Override
-	public Group addVisuals() {
-		super.addVisuals();
-		PrisonLevel.addPrisonVisuals(this, visuals);
-		return visuals;
 	}
 	
 	public void progress(){
@@ -587,7 +597,7 @@ public class PrisonBossLevel extends Level {
 
 		items.addAll(storedItems);
 
-		for (Item i : items.toArray(EditorUtilies.EMPTY_ITEM_ARRAY)){
+		for (Item i : items.toArray(EditorUtilities.EMPTY_ITEM_ARRAY)){
 			if (i instanceof Tengu.BombAbility.BombItem || i instanceof Tengu.ShockerAbility.ShockerItem){
 				items.remove(i);
 			}
@@ -597,7 +607,7 @@ public class PrisonBossLevel extends Level {
 	}
 
 	private int randomPrisonCellPos(){
-		Rect room = startCells[Random.Int(startCells.length)];
+		WatabouRect room = startCells[Random.Int(startCells.length)];
 		
 		return Random.IntRange(room.left+1, room.right-2)
 				+ width()*Random.IntRange(room.top+1, room.bottom-2);
@@ -650,7 +660,7 @@ public class PrisonBossLevel extends Level {
 
 			trapsPatch = Patch.generate(7, 7, fill, 0, false);
 
-			PathFinder.buildDistanceMap(tenguPos, BArray.not(trapsPatch, null));
+			PathFinder.buildDistanceMap(tenguPos, BArray.not(trapsPatch, null), null);
 			//note that the effective range of fill is 40%-90%
 			//so distance to tengu starts at 3-6 tiles and scales up to 7-8 as fill increases
 		} while (((PathFinder.distance[heroPos] < Math.ceil(7*fill))
@@ -732,13 +742,13 @@ public class PrisonBossLevel extends Level {
 			texture = Assets.Environment.TERRAIN_FEATURES;
 		}
 		
-		Rect area;
+		WatabouRect area;
 		
 		private float fadeDuration = 1f;
 		private float initialAlpha = .4f;
 		private float fadeDelay = 1f;
 		
-		public void setCoveringArea(Rect area){
+		public void setCoveringArea(WatabouRect area){
 			tileX = area.left;
 			tileY = area.top;
 			tileH = area.bottom - area.top;

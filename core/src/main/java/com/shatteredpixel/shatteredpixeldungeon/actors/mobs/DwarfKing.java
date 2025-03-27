@@ -22,10 +22,18 @@
 package com.shatteredpixel.shatteredpixeldungeon.actors.mobs;
 
 
-import com.shatteredpixel.shatteredpixeldungeon.*;
+import com.shatteredpixel.shatteredpixeldungeon.Assets;
+import com.shatteredpixel.shatteredpixeldungeon.Badges;
+import com.shatteredpixel.shatteredpixeldungeon.Challenges;
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Barrier;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Doom;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LifeLink;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LockedFloor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Sheep;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Beam;
@@ -44,6 +52,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.rings.RingOfForce;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import com.shatteredpixel.shatteredpixeldungeon.items.wands.Wand;
 import com.shatteredpixel.shatteredpixeldungeon.items.wands.WandOfLightning;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Bestiary;
 import com.shatteredpixel.shatteredpixeldungeon.levels.CityBossLevel;
 import com.shatteredpixel.shatteredpixeldungeon.levels.PrisonBossLevel;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
@@ -59,7 +68,11 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.utils.*;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
+import com.watabou.utils.PathFinder;
+import com.watabou.utils.Random;
+import com.watabou.utils.Reflection;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -88,7 +101,7 @@ public class DwarfKing extends Mob implements MobBasedOnDepth {
 
 //	@Override
 //	public int damageRoll() {
-//		return Char.combatRoll( 15, 25 );
+//		return Random.NormalIntRange( 15, 25 );
 //	}
 //
 //	@Override
@@ -98,7 +111,7 @@ public class DwarfKing extends Mob implements MobBasedOnDepth {
 //
 //	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 10);
+//		return super.drRoll() + Random.NormalIntRange(0, 10);
 //	}
 
 	private int phase = 1;
@@ -608,7 +621,7 @@ public class DwarfKing extends Mob implements MobBasedOnDepth {
 		} else if (phase == 3 && !(src instanceof Viscosity.DeferedDamage)){
 			if (dmg >= 0) {
 				Viscosity.DeferedDamage deferred = Buff.affect( this, Viscosity.DeferedDamage.class );
-				deferred.prolong( dmg );
+				deferred.extend( dmg );
 
 				sprite.showStatus( CharSprite.WARNING, Messages.get(Viscosity.class, "deferred", dmg) );
 			}
@@ -641,13 +654,11 @@ public class DwarfKing extends Mob implements MobBasedOnDepth {
 						s.detach();
 					}
 				}
-				for (Mob m : Dungeon.level.mobs.toArray(new Mob[0])) {
-					if (m.alignment == alignment) {
-						if (m instanceof DwarfKingMob && ((DwarfKingMob) m).getKingId() == id()) {
-							m.die(null);
-						}
-					}
+				Bestiary.skipCountingEncounters = true;
+				for (Mob m : getSubjects()) {
+					m.die(null);
 				}
+				Bestiary.skipCountingEncounters = false;
 				for (Buff b: buffs()){
 					if (b instanceof LifeLink){
 						b.detach();
@@ -677,7 +688,7 @@ public class DwarfKing extends Mob implements MobBasedOnDepth {
 			} else if (playerAlignment == Mob.NORMAL_ALIGNMENT) {
 				if (bossMusic == null) Dungeon.level.playSpecialMusic(Assets.Music.CITY_BOSS_FINALE, id());
 			}
-		} else if (phase == 3 && preHP > 20 && HP < 20){
+		} else if (phase == 3 && preHP > 20 && HP < 20 && isAlive()){
 			yell( Messages.get(this, "losing") );
 		}
 	}
@@ -704,6 +715,12 @@ public class DwarfKing extends Mob implements MobBasedOnDepth {
 			h.destroy();
 		}
 
+		if (pos == CityBossLevel.throne){
+			Dungeon.level.drop(new KingsCrown(), pos + Dungeon.level.width()).sprite.drop(pos);
+		} else {
+			Dungeon.level.drop(new KingsCrown(), pos).sprite.drop();
+		}
+
 		Badges.validateBossSlain(DwarfKing.class);
 		if (Statistics.qualifiedForBossChallengesBadge[3]){
 			Badges.validateBossChallengeCompleted(DwarfKing.class);
@@ -712,9 +729,11 @@ public class DwarfKing extends Mob implements MobBasedOnDepth {
 
 		Dungeon.level.unseal();
 
+		Bestiary.skipCountingEncounters = true;
 		for (Mob m : getSubjects()){
 			m.die(null);
 		}
+		Bestiary.skipCountingEncounters = false;
 
 		yell( Messages.get(this, "defeated") );
 
@@ -969,7 +988,7 @@ public class DwarfKing extends Mob implements MobBasedOnDepth {
 					}
 				} else {
 					Char ch = Actor.findChar(pos);
-					ch.damage(Char.combatRoll(20, 40), this);
+					ch.damage(Random.NormalIntRange(20, 40), this);
 					if (((DwarfKing)target).phase == 2){
 						target.damage((int) Math.ceil(target.HT/(Dungeon.isChallenged(Challenges.STRONGER_BOSSES)? 18d : 12d)),
 								new KingDamager(kingID));
@@ -1033,6 +1052,10 @@ public class DwarfKing extends Mob implements MobBasedOnDepth {
 	}
 
 	public static class KingDamager extends Buff {
+
+		{
+			revivePersists = true;
+		}
 
 		private int kingID;
 

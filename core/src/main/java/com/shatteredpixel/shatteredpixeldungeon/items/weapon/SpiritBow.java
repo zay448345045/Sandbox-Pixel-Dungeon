@@ -37,7 +37,12 @@ import com.shatteredpixel.shatteredpixeldungeon.effects.particles.LeafParticle;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.RingOfSharpshooting;
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.missiles.MissileWeapon;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
-import com.shatteredpixel.shatteredpixeldungeon.plants.*;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Blindweed;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Firebloom;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Icecap;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Plant;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Sorrowmoss;
+import com.shatteredpixel.shatteredpixeldungeon.plants.Stormvine;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.CellSelector;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
@@ -130,34 +135,34 @@ public class SpiritBow extends Weapon {
 		return super.proc(attacker, defender, damage);
 	}
 
-    @Override
-    public String info() {
-        String info = desc();
-
-        if (Dungeon.hero != null) {
-            info += "\n\n" + Messages.get(SpiritBow.class, "stats",
-                    Math.round(augment.damageFactor(min())),
-                    Math.round(augment.damageFactor(max())),
-                    STRReq());
-        }
-
-        if (Dungeon.hero != null) {
-            if (STRReq() > Dungeon.hero.STR()) {
-                info += " " + Messages.get(Weapon.class, "too_heavy");
-            } else if (Dungeon.hero.STR() > STRReq()) {
-                info += " " + Messages.get(Weapon.class, "excess_str", Dungeon.hero.STR() - STRReq());
-            }
-        }
-
-        switch (augment) {
-            case SPEED:
-                info += "\n\n" + Messages.get(Weapon.class, "faster");
-                break;
-            case DAMAGE:
-                info += "\n\n" + Messages.get(Weapon.class, "stronger");
-                break;
-            case NONE:
-        }
+	@Override
+	public String info() {
+		String info = super.info();
+		
+		if (Dungeon.hero != null) {
+			info += "\n\n" + Messages.get(SpiritBow.class, "stats",
+					Math.round(augment.damageFactor(min())),
+					Math.round(augment.damageFactor(max())),
+					STRReq());
+		}
+		
+		if (Dungeon.hero != null) {
+			if (STRReq() > Dungeon.hero.STR()) {
+				info += " " + Messages.get(Weapon.class, "too_heavy");
+			} else if (Dungeon.hero.STR() > STRReq()) {
+				info += " " + Messages.get(Weapon.class, "excess_str", Dungeon.hero.STR() - STRReq());
+			}
+		}
+		
+		switch (augment) {
+			case SPEED:
+				info += "\n\n" + Messages.get(Weapon.class, "faster");
+				break;
+			case DAMAGE:
+				info += "\n\n" + Messages.get(Weapon.class, "stronger");
+				break;
+			case NONE:
+		}
 
         if (enchantment != null && (cursedKnown() || !enchantment.curse())) {
             info += "\n\n" + Messages.capitalize(Messages.get(Weapon.class, "enchanted", enchantment.name()));
@@ -166,7 +171,7 @@ public class SpiritBow extends Weapon {
 		} else if (enchantHardened){
 			info += "\n\n" + Messages.get(Weapon.class, "hardened_no_enchant");
         }
-
+		
         if (Dungeon.hero != null && cursed && isEquipped(Dungeon.hero)) {
             info += "\n\n" + Messages.get(Weapon.class, "cursed_worn");
         } else if (cursedKnown() && cursed) {
@@ -231,7 +236,7 @@ public class SpiritBow extends Weapon {
 		if (owner instanceof Hero) {
 			int exStr = ((Hero)owner).STR() - STRReq();
 			if (exStr > 0) {
-				damage += Char.combatRoll( 0, exStr );
+				damage += Hero.heroDamageIntRange( 0, exStr );
 			}
 		}
 

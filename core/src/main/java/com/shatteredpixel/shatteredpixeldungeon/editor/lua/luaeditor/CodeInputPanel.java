@@ -27,20 +27,22 @@ package com.shatteredpixel.shatteredpixeldungeon.editor.lua.luaeditor;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
 import com.shatteredpixel.shatteredpixeldungeon.Chrome;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.LuaManager;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.LuaManager;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.FoldableCompWithAdd;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.HeroSelectScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptionsCondensed;
+import com.watabou.NotAllowedInLua;
 import com.watabou.idewindowactions.CodeInputPanelInterface;
 import com.watabou.noosa.TextInput;
 import com.watabou.noosa.ui.Component;
 
+@NotAllowedInLua
 public abstract class CodeInputPanel extends FoldableCompWithAdd implements CodeInputPanelInterface {
 
 	protected String textInputText;
@@ -76,8 +78,7 @@ public abstract class CodeInputPanel extends FoldableCompWithAdd implements Code
 		adder.setVisible(false);
 		remover.setVisible(true);
 
-		fold.setVisible(false);
-		expand.setVisible(true);
+		expanded = false;
 
 		layoutParent();
 	}
@@ -153,7 +154,7 @@ public abstract class CodeInputPanel extends FoldableCompWithAdd implements Code
 	@Override
 	public void setCode(boolean forceChange, String code) {
 		if (code == null) {
-			if (forceChange && textInput != null) onRemove();//TODO tzz add a warning!
+			if (forceChange && textInput != null) onRemove();
 			return;
 		}
 
@@ -161,7 +162,7 @@ public abstract class CodeInputPanel extends FoldableCompWithAdd implements Code
 			textInputText = code;
 			if (textInput != null) textInput.setText(code);
 			else {
-				expand.setVisible(true);
+				expandAndFold.setVisible(true);
 				adder.setVisible(false);
 				remover.setVisible(true);
 			}
@@ -226,7 +227,7 @@ public abstract class CodeInputPanel extends FoldableCompWithAdd implements Code
 		protected void layout() {
 			info.maxWidth((int) width);
 			height = 1;
-			height = EditorUtilies.layoutCompsLinear(2, this, info, textInput);
+			height = EditorUtilities.layoutCompsLinear(2, this, info, textInput);
 		}
 
 		@Override

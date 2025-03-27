@@ -34,6 +34,7 @@ import com.shatteredpixel.shatteredpixeldungeon.services.news.NewsImpl;
 import com.shatteredpixel.shatteredpixeldungeon.services.updates.UpdateImpl;
 import com.shatteredpixel.shatteredpixeldungeon.services.updates.Updates;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndError;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Game;
 import com.watabou.utils.FileUtils;
 import com.watabou.utils.Point;
@@ -41,6 +42,7 @@ import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 import java.util.Locale;
 
+@NotAllowedInLua
 public class DesktopLauncher {
 
 	public static void main (String[] args) {
@@ -157,7 +159,7 @@ public class DesktopLauncher {
 		//going fullscreen on launch is a bit buggy
 		// so game always starts windowed and then switches in DesktopPlatformSupport.updateSystemUI
 		//config.setFullscreenMode(Lwjgl3ApplicationConfiguration.getDisplayMode());
-		
+
 		//records whether window is maximized or not for settings
 		DesktopWindowListener listener = new DesktopWindowListener();
 		config.setWindowListener( listener );

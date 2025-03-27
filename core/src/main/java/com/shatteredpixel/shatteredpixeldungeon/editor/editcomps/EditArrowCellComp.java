@@ -6,7 +6,7 @@ import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.ArrowCellItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledCheckBox;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerEnumModel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerLikeButton;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.ui.BuffIcon;
 import com.shatteredpixel.shatteredpixeldungeon.ui.BuffIndicator;
@@ -22,6 +22,7 @@ public class EditArrowCellComp extends DefaultEditComp<ArrowCell> {
     protected StyledCheckBox[] directions;
     protected SpinnerLikeButton enterMode;
     protected StyledCheckBox visible;
+    protected StyledCheckBox[] affects;
 
     private final ArrowCellItem arrowCellItem;//used for linking the item with the sprite in the toolbar
 
@@ -46,7 +47,7 @@ public class EditArrowCellComp extends DefaultEditComp<ArrowCell> {
             if (i != 4) {
                 int bit = 1 << (i - (i>4?1:0));
                 directions[i] = new StyledCheckBox(Messages.get(this, "direction_" + bit));
-                directions[i].icon(EditorUtilies.getArrowCellTexture(bit, true));
+                directions[i].icon(EditorUtilities.getArrowCellTexture(bit, true));
                 directions[i].checked((obj.directionsLeaving & bit) != 0);
                 directions[i].addChangeListener(val -> {
                     if (val) obj.directionsLeaving |= bit;
@@ -84,8 +85,51 @@ public class EditArrowCellComp extends DefaultEditComp<ArrowCell> {
         visible.icon(new BuffIcon(BuffIndicator.FORESIGHT, true));
         visible.checked(obj.visible);
         add(visible);
+        
+        affects = new StyledCheckBox[ArrowCell.NUM_AFFECT_TYPES];
+        for (int i = 0; i < affects.length; i++) {
+            final int bit = (int) Math.pow(2, i);
+            StyledCheckBox cb = new StyledCheckBox(Messages.get(ArrowCell.class, "affect_" + ArrowCell.getBlockKey(bit))) {
+                {
+                    super.checked((obj.affects & bit) == bit);
+                }
+                
+                @Override
+                public void checked(boolean value) {
+                    super.checked(value);
+                    if (((obj.affects & bit) == 0) == value) {
+                        if (value) obj.affects |= bit;
+                        else obj.affects -= bit;
+                        updateObj();
+                    }
+                }
+            };
+            add(affects[i] = cb);
+        }
 
         comps = new Component[]{visible, enterMode};
+    }
+
+    @Override
+    protected void updateStates() {
+        super.updateStates();
+
+        for (int i = 0; i < directions.length; i++) {
+            if (directions[i] == null) continue;
+            if (i != 4) {
+                int bit = 1 << (i - (i>4?1:0));
+                directions[i].checked((obj.directionsLeaving & bit) == bit);
+            } else {
+                directions[i].checked(obj.allowsWaiting);
+            }
+        }
+        for (int i = 0; i < affects.length; i++) {
+            final int bit = (int) Math.pow(2, i);
+            if (affects[i] != null) ((StyledCheckBox) comps[i]).checked((obj.affects & bit) == bit);
+        }
+
+        if (enterMode != null) enterMode.setValue(obj.enterMode);
+        if (visible != null) visible.checked(obj.visible);
     }
 
     @Override
@@ -93,10 +137,13 @@ public class EditArrowCellComp extends DefaultEditComp<ArrowCell> {
         super.layout();
 
         height += WndTitledMessage.GAP;
-        height = EditorUtilies.layoutStyledCompsInRectangles(WndTitledMessage.GAP, width,3, this, directions);
+        height = EditorUtilities.layoutStyledCompsInRectangles(WndTitledMessage.GAP, width,3, this, directions);
         height += WndTitledMessage.GAP;
 
         layoutCompsInRectangles(comps);
+        height += WndTitledMessage.GAP;
+        
+        layoutCompsInRectangles(affects);
     }
 
     @Override
@@ -115,7 +162,7 @@ public class EditArrowCellComp extends DefaultEditComp<ArrowCell> {
     }
 
     @Override
-    protected void updateObj() {
+	public void updateObj() {
 
 //        for (int i = 0; i < ArrowCell.NUM_BLOCK_TYPES; i++) {
 //            final int bit = (int) Math.pow(2, i);
@@ -142,6 +189,7 @@ public class EditArrowCellComp extends DefaultEditComp<ArrowCell> {
         if (a.directionsLeaving != b.directionsLeaving) return false;
         if (a.enterMode != b.enterMode) return false;
         if (a.allowsWaiting != b.allowsWaiting) return false;
+        if (a.affects != b.affects) return false;
         return a.visible == b.visible;
     }
 }

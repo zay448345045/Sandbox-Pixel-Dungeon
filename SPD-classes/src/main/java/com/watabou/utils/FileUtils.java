@@ -25,6 +25,7 @@ import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.GdxRuntimeException;
+import com.watabou.NotAllowedInLua;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +33,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+@NotAllowedInLua
 public class FileUtils {
 	
 	// Helper methods for setting/using a default base path and file address mode
@@ -48,7 +50,7 @@ public class FileUtils {
 	}
 
 	public static Files.FileType getFileTypeForCustomDungeons(){
-		if(DeviceCompat.isDesktop())return originalFileType;
+		if (DeviceCompat.isDesktop()) return originalFileType;
 		return Files.FileType.External;
 	}
 
@@ -151,7 +153,10 @@ public class FileUtils {
 
 	//returns length of a file in bytes, or 0 if file does not exist
 	public static long fileLength( String name ){
-		FileHandle file = getFileHandle( name );
+		return fileLength(getFileHandle( name ));
+	}
+	
+	public static long fileLength( FileHandle file){
 		if (!file.exists() || file.isDirectory()){
 			return 0;
 		} else {
@@ -203,8 +208,11 @@ public class FileUtils {
 	
 	//only works for base path
 	public static Bundle bundleFromFile( String fileName ) throws IOException{
+		return bundleFromFile( getFileHandle( fileName ) );
+	}
+	
+	public static Bundle bundleFromFile( FileHandle file ) throws IOException{
 		try {
-			FileHandle file = getFileHandle( fileName );
 			if (!file.exists() || file.isDirectory() || file.length() == 0) {
 				throw new IOException("file does not exist!");
 			}

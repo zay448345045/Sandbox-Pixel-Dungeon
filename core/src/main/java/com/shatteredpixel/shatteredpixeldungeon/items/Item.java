@@ -25,6 +25,7 @@ import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.GameObject;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Blindness;
@@ -32,6 +33,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Degrade;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.CustomGameObjectClass;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Copyable;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.customizables.Customizable;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
@@ -45,6 +47,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.weapon.missiles.MissileWea
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.missiles.darts.Dart;
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.missiles.darts.TippedDart;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Catalog;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Notes;
 import com.shatteredpixel.shatteredpixeldungeon.mechanics.Ballistica;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.CellSelector;
@@ -59,7 +62,11 @@ import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 import com.watabou.utils.Reflection;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 
 public class Item extends GameObject implements Customizable, Copyable<Item> {
 
@@ -272,10 +279,10 @@ public class Item extends GameObject implements Customizable, Copyable<Item> {
 			return false;
 		}
 
-		if (Dungeon.level != null) {
+		if (Dungeon.level != null && !CustomDungeon.isEditing()) {
 			if (!Dungeon.dungeonScript.onItemCollected(this)) return false;
 		}
-		
+
 		if (stackable) {
 			for (Item item:items) {
 				if (isSimilar( item )) {
@@ -284,7 +291,10 @@ public class Item extends GameObject implements Customizable, Copyable<Item> {
 					if (Dungeon.hero != null && Dungeon.hero.isAlive()) {
 						Badges.validateItemLevelAquired( this );
 						Talent.onItemCollected(Dungeon.hero, item);
-						if (isIdentified()) Catalog.setSeen(getClass());
+						if (isIdentified()) {
+							Catalog.setSeen(getClass());
+							Statistics.itemTypesDiscovered.add(getClass());
+						}
 					}
 					if (TippedDart.lostDarts > 0){
 						Dart d = new Dart();
@@ -311,7 +321,10 @@ public class Item extends GameObject implements Customizable, Copyable<Item> {
 		if (Dungeon.hero != null && Dungeon.hero.isAlive()) {
 			Badges.validateItemLevelAquired( this );
 			Talent.onItemCollected( Dungeon.hero, this );
-			if (isIdentified()) Catalog.setSeen(getClass());
+			if (isIdentified()){
+				Catalog.setSeen(getClass());
+				Statistics.itemTypesDiscovered.add(getClass());
+			}
 		}
 
 		items.add( this );
@@ -322,7 +335,7 @@ public class Item extends GameObject implements Customizable, Copyable<Item> {
 
 	}
 	
-	public boolean collect() {
+	public final boolean collect() {
 		return collect( Dungeon.hero.belongings.backpack );
 	}
 	
@@ -412,7 +425,7 @@ public class Item extends GameObject implements Customizable, Copyable<Item> {
 				&& Objects.equals(customImage, item.customImage)
 				&& Objects.equals(customName, item.customName)
 				&& Objects.equals(customDesc, item.customDesc)
-				&& onlyCheckTypeIfRecipe == onlyCheckTypeIfRecipe;
+				&& onlyCheckTypeIfRecipe == item.onlyCheckTypeIfRecipe;
 	}
 
 	protected void onDetach(){}
@@ -528,7 +541,7 @@ public class Item extends GameObject implements Customizable, Copyable<Item> {
 
 		if (byHero && Dungeon.hero != null && Dungeon.hero.isAlive()){
 			Catalog.setSeen(getClass());
-			if (!isIdentified()) Talent.onItemIdentified(Dungeon.hero, this);
+			Statistics.itemTypesDiscovered.add(getClass());
 		}
 
 		levelKnown = true;
@@ -600,6 +613,19 @@ public class Item extends GameObject implements Customizable, Copyable<Item> {
 	public Emitter emitter() { return null; }
 	
 	public String info() {
+
+		if (Dungeon.hero != null) {
+			Notes.CustomRecord note;
+			if (this instanceof EquipableItem) {
+				note = Notes.findCustomRecord(((EquipableItem) this).customNoteID);
+			} else {
+				note = Notes.findCustomRecord(getClass());
+			}
+			if (note != null){
+				return Messages.get(this, "custom_note", note.title()) + "\n\n" + desc();
+			}
+		}
+
 		return desc();
 	}
 	
@@ -735,6 +761,7 @@ public class Item extends GameObject implements Customizable, Copyable<Item> {
 		if ("".equals(customName)) customName = null;
 		if ("".equals(customDesc)) customDesc = null;
 
+		this.level = 0;
 		int level = bundle.getInt( LEVEL );
 		if (level > 0) {
 			upgrade( level );
@@ -764,6 +791,24 @@ public class Item extends GameObject implements Customizable, Copyable<Item> {
         return (Item) bundle.get("ITEM");
     }
 
+	@Override
+	public void copyStats(GameObject template) {
+		if (template == null) return;
+		if (getClass() != template.getClass()) return;
+		Bundle bundle = new Bundle();
+		bundle.put("OBJ", template);
+		bundle.getBundle("OBJ").put(CustomGameObjectClass.INHERIT_STATS, true);
+
+//		int pos = this.pos;
+//		boolean replaceSprite = spriteClass != ((Mob) template).spriteClass;
+		restoreFromBundle(bundle.getBundle("OBJ"));
+//		this.pos = pos;
+
+//		if (replaceSprite && sprite != null) {
+//			EditorScene.replaceMobSprite(this, ((Mob) template).spriteClass);
+//		}
+	}
+
 	public int targetingPos( Hero user, int dst ){
 		return throwPos( user, dst );
 	}
@@ -781,57 +826,66 @@ public class Item extends GameObject implements Customizable, Copyable<Item> {
 		final int cell = throwPos( user, dst );
 		user.sprite.zap( cell );
 		user.busy();
-
-		throwSound();
-
+		
 		Char enemy = Actor.findChar( cell );
+		
+		if (user.sprite.visible || enemy != null && enemy.sprite.visible || Dungeon.level.heroFOV[dst]) {
+			throwSound();
+		}
+		
 		if (user == Dungeon.hero) QuickSlotButton.target(enemy);
 		
 		final float delay = castDelay(user, dst);
-
+		
+		Callback callback;
 		if (enemy != null) {
-			((MissileSprite) user.sprite.parent.recycle(MissileSprite.class)).
-					reset(user.sprite,
-							enemy.sprite,
-							this,
-							new Callback() {
-						@Override
-						public void call() {
-							curUser = user;
-							Item i = Item.this.detach(user.belongings.backpack);
-							if (i != null) i.onThrow(cell);
-							if (curUser.hasTalent(Talent.IMPROVISED_PROJECTILES)
-									&& !(Item.this instanceof MissileWeapon)
-									&& curUser.buff(Talent.ImprovisedProjectileCooldown.class) == null){
-								if (enemy != null && enemy.alignment != curUser.alignment){
-									Sample.INSTANCE.play(Assets.Sounds.HIT);
-									Buff.affect(enemy, Blindness.class, 1f + curUser.pointsInTalent(Talent.IMPROVISED_PROJECTILES));
-									Buff.affect(curUser, Talent.ImprovisedProjectileCooldown.class, 50f);
-								}
-							}
-							if (user.buff(Talent.LethalMomentumTracker.class) != null){
-								user.buff(Talent.LethalMomentumTracker.class).detach();
-								user.next();
-							} else {
-								user.spendAndNext(delay);
-							}
-						}
-					});
+			callback = () -> {
+				curUser = user;
+				Item i = Item.this.detach(user.belongings.backpack);
+				if (i != null) i.onThrow(cell);
+				if (curUser.hasTalent(Talent.IMPROVISED_PROJECTILES)
+						&& !(Item.this instanceof MissileWeapon)
+						&& curUser.buff(Talent.ImprovisedProjectileCooldown.class) == null) {
+					if (enemy.alignment != curUser.alignment) {
+						Sample.INSTANCE.play(Assets.Sounds.HIT);
+						Buff.affect(enemy, Blindness.class, 1f + curUser.pointsInTalent(Talent.IMPROVISED_PROJECTILES));
+						Buff.affect(curUser, Talent.ImprovisedProjectileCooldown.class, 50f);
+					}
+				}
+				if (user.buff(Talent.LethalMomentumTracker.class) != null) {
+					user.buff(Talent.LethalMomentumTracker.class).detach();
+					user.next();
+				} else {
+					user.spendAndNext(delay);
+				}
+			};
 		} else {
-			((MissileSprite) user.sprite.parent.recycle(MissileSprite.class)).
-					reset(user.sprite,
-							cell,
-							this,
-							new Callback() {
-						@Override
-						public void call() {
-							curUser = user;
-							Item i = Item.this.detach(user.belongings.backpack);
-							user.spend(delay);
-							if (i != null) i.onThrow(cell);
-							user.next();
-						}
-					});
+			callback = () -> {
+				curUser = user;
+				Item i = Item.this.detach(user.belongings.backpack);
+				user.spend(delay);
+				if (i != null) i.onThrow(cell);
+				user.next();
+			};
+		}
+		
+		//same condition as in doAttack()
+		if (!( user.sprite != null && (user.sprite.visible || enemy != null && enemy.sprite.visible) )) {
+			callback.call();
+		} else {
+			MissileSprite missileSprite = ((MissileSprite) user.sprite.parent.recycle(MissileSprite.class));
+			
+			if (enemy != null) {
+				missileSprite.reset(user.sprite,
+						enemy.sprite,
+						this,
+						callback);
+			} else {
+				missileSprite.reset(user.sprite,
+						cell,
+						this,
+						callback);
+			}
 		}
 	}
 	
@@ -841,6 +895,11 @@ public class Item extends GameObject implements Customizable, Copyable<Item> {
 	
 	protected static Hero curUser = null;
 	protected static Item curItem = null;
+	public void setCurrent( Hero hero ){
+		curUser = hero;
+		curItem = this;
+	}
+
 	protected static CellSelector.Listener thrower = new CellSelector.Listener() {
 		@Override
 		public void onSelect( Integer target ) {

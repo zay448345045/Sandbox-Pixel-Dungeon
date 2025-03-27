@@ -24,9 +24,21 @@ package com.shatteredpixel.shatteredpixeldungeon.items.spells;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
-import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.*;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfIdentify;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfLullaby;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfMagicMapping;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfMirrorImage;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfRage;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfRecharging;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfRemoveCurse;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfRetribution;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfTeleportation;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfTerror;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfTransmutation;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.exotic.ExoticScroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.stones.Runestone;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Catalog;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.Random;
 import com.watabou.utils.Reflection;
@@ -86,22 +98,24 @@ public class UnstableSpell extends Spell {
 		
 		Scroll s = Reflection.newInstance(Random.chances(scrollChances));
 
-		boolean enemy = hero.visibleEnemies() != 0;
-
-		//reroll the scroll once if there is an enemy and it is a non-combat scroll
-		// or if there is no enemy and it is a combat scroll
-		if (enemy && nonCombatScrolls.contains(s.getClass())){
-			s = Reflection.newInstance(Random.chances(scrollChances));
-		} else if (!enemy && combatScrolls.contains(s.getClass())){
-			s = Reflection.newInstance(Random.chances(scrollChances));
+		//reroll the scroll until it is relevant for the situation (whether there are visible enemies)
+		if (hero.visibleEnemies() == 0){
+			while (!nonCombatScrolls.contains(s.getClass())){
+				s = Reflection.newInstance(Random.chances(scrollChances));
+			}
+		} else {
+			while (!combatScrolls.contains(s.getClass())){
+				s = Reflection.newInstance(Random.chances(scrollChances));
+			}
 		}
 
 		s.anonymize();
 		curItem = s;
 		s.doRead();
 
+		Catalog.countUse(getClass());
 		if (Random.Float() < talentChance){
-			Talent.onScrollUsed(curUser, curUser.pos, talentFactor);
+			Talent.onScrollUsed(curUser, curUser.pos, talentFactor, getClass());
 		}
 	}
 

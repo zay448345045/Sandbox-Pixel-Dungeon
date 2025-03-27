@@ -21,17 +21,32 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors.mobs;
 
-import com.shatteredpixel.shatteredpixeldungeon.*;
+import com.shatteredpixel.shatteredpixeldungeon.Assets;
+import com.shatteredpixel.shatteredpixeldungeon.Badges;
+import com.shatteredpixel.shatteredpixeldungeon.Challenges;
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Electricity;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Fire;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Blindness;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Burning;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Doom;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Dread;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LockedFloor;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Roots;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Terror;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
-import com.shatteredpixel.shatteredpixeldungeon.effects.*;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
+import com.shatteredpixel.shatteredpixeldungeon.effects.BlobEmitter;
+import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
+import com.shatteredpixel.shatteredpixeldungeon.effects.FloatingText;
+import com.shatteredpixel.shatteredpixeldungeon.effects.Lightning;
+import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.BlastParticle;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.FlameParticle;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.SmokeParticle;
@@ -58,7 +73,13 @@ import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.utils.*;
+import com.watabou.utils.BArray;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
+import com.watabou.utils.GameMath;
+import com.watabou.utils.PathFinder;
+import com.watabou.utils.PointF;
+import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -80,9 +101,10 @@ public class Tengu extends Mob implements MobBasedOnDepth {
 		lootChance = 1f;
 
 		HUNTING = new Hunting();
+
 		WANDERING = new Wandering();
 		state = HUNTING;
-		
+
 		properties.add(Property.BOSS);
 		
 		viewDistance = 12;
@@ -97,14 +119,8 @@ public class Tengu extends Mob implements MobBasedOnDepth {
 
 //	@Override
 //	public int damageRoll() {
-//		return Char.combatRoll( 6, 12 );
+//		return Random.NormalIntRange( 6, 12 );
 //	}
-
-
-	@Override
-	public boolean avoidsHazards() {
-		return true;
-	}
 
 	@Override
 	public int attackSkill( Char target ) {
@@ -127,7 +143,7 @@ public class Tengu extends Mob implements MobBasedOnDepth {
 
 	//	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 5);
+//		return super.drRoll() + Random.NormalIntRange(0, 5);
 //	}
 
 	boolean loading = false;
@@ -435,6 +451,7 @@ public class Tengu extends Mob implements MobBasedOnDepth {
 	}
 	
 	{
+		immunities.add( Roots.class );
 		immunities.add( Blindness.class );
 		immunities.add( Dread.class );
 		immunities.add( Terror.class );
@@ -496,7 +513,9 @@ public class Tengu extends Mob implements MobBasedOnDepth {
 				if (canUseAbility()){
 					return useAbility();
 				}
-				
+
+				recentlyAttackedBy.clear();
+				target = enemy.pos;
 				return doAttack( enemy );
 				
 			} else {
@@ -803,7 +822,7 @@ public class Tengu extends Mob implements MobBasedOnDepth {
 
 		public static void fxStatic(boolean on, int bombPos, ArrayList<Emitter> smokeEmitters) {
 			if (on && bombPos != -1){
-				PathFinder.buildDistanceMap( bombPos, BArray.not( Dungeon.level.solid, null ), 2 );
+				PathFinder.buildDistanceMapForEnvironmentals( bombPos, BArray.not( Dungeon.level.solid, null ), 2 );
 				for (int i = 0; i < PathFinder.distance.length; i++) {
 					if (PathFinder.distance[i] < Integer.MAX_VALUE) {
 						Emitter e = CellEmitter.get(i);
@@ -831,13 +850,13 @@ public class Tengu extends Mob implements MobBasedOnDepth {
 		}
 
 		public static void doExplode(int bombPos, Runnable reduceHeroBossScore) {
-			PathFinder.buildDistanceMap( bombPos, BArray.not( Dungeon.level.solid, null ), 2 );
+			PathFinder.buildDistanceMapForEnvironmentals( bombPos, BArray.not( Dungeon.level.solid, null ), 2 );
 			for (int cell = 0; cell < PathFinder.distance.length; cell++) {
 
 				if (PathFinder.distance[cell] < Integer.MAX_VALUE) {
 					Char ch = Actor.findChar(cell);
 					if (ch != null && !(ch instanceof Tengu)) {
-						int dmg = Char.combatRoll(5 + Dungeon.scalingDepth(), 10 + Dungeon.scalingDepth() * 2);
+						int dmg = Random.NormalIntRange(5 + Dungeon.scalingDepth(), 10 + Dungeon.scalingDepth() * 2);
 						dmg -= ch.drRoll();
 
 						if (dmg > 0) {
@@ -859,7 +878,7 @@ public class Tengu extends Mob implements MobBasedOnDepth {
 
 			Heap h = Dungeon.level.heaps.get(bombPos);
 			if (h != null) {
-				for (Item i : h.items.toArray(EditorUtilies.EMPTY_ITEM_ARRAY)) {
+				for (Item i : h.items.toArray(EditorUtilities.EMPTY_ITEM_ARRAY)) {
 					if (i instanceof BombItem) {
 						h.remove(i);
 					}

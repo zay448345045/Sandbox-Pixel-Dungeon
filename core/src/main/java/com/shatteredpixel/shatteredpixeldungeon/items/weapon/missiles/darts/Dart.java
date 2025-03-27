@@ -78,8 +78,14 @@ public class Dart extends MissileWeapon {
 	@Override
 	public int min(int lvl) {
 		if (bow != null){
-			return  4 +                    //4 base
-					bow.buffedLvl() + lvl; //+1 per level or bow level
+			if (!(this instanceof TippedDart) && Dungeon.hero.buff(Crossbow.ChargedShot.class) != null){
+				//ability increases base dmg by 50%, scaling by 50%
+				return  8 +                     //8 base
+						2*bow.buffedLvl() + lvl;//+2 per bow level, +1 per level
+			} else {
+				return  4 +                     //4 base
+						bow.buffedLvl() + lvl;  //+1 per level or bow level
+			}
 		} else {
 			return  1 +     //1 base, down from 2
 					lvl;    //scaling unchanged
@@ -89,8 +95,14 @@ public class Dart extends MissileWeapon {
 	@Override
 	public int max(int lvl) {
 		if (bow != null){
-			return  12 +                       //12 base
-					3*bow.buffedLvl() + 2*lvl; //+3 per bow level, +2 per level (default scaling +2)
+			if (!(this instanceof TippedDart) && Dungeon.hero.buff(Crossbow.ChargedShot.class) != null){
+				//ability increases base dmg by 50%, scaling by 50%
+				return  16 +                       //16 base
+						4*bow.buffedLvl() + 2*lvl; //+4 per bow level, +2 per level
+			} else {
+				return  12 +                       //12 base
+						3*bow.buffedLvl() + 2*lvl; //+3 per bow level, +2 per level
+			}
 		} else {
 			return  2 +     //2 base, down from 5
 					2*lvl;  //scaling unchanged
@@ -137,9 +149,7 @@ public class Dart extends MissileWeapon {
 
 	@Override
 	public int proc(Char attacker, Char defender, int damage) {
-		if (bow != null
-				//only apply enchant effects to enemies when processing charged shot
-				&& (!processingChargedShot || attacker.alignment != defender.alignment)){
+		if (bow != null && !processingChargedShot){
 			damage = bow.proc(attacker, defender, damage);
 		}
 
@@ -170,7 +180,7 @@ public class Dart extends MissileWeapon {
 		//don't update xbow here, as dart may be the active weapon atm
 		processingChargedShot = true;
 		if (chargedShotPos != -1 && bow != null && Dungeon.hero.buff(Crossbow.ChargedShot.class) != null) {
-			PathFinder.buildDistanceMap(chargedShotPos, Dungeon.level.getPassableVar(), 3);
+			PathFinder.buildDistanceMapForEnvironmentals(chargedShotPos, Dungeon.level.getPassableVar(), 3);
 			//necessary to clone as some on-hit effects use Pathfinder
 			int[] distance = PathFinder.distance.clone();
 			for (Char ch : Actor.chars()){

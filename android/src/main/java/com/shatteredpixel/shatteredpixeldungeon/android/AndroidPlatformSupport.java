@@ -30,6 +30,7 @@ import android.net.NetworkInfo;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.view.View;
 import android.view.WindowManager;
 import com.badlogic.gdx.Gdx;
@@ -41,18 +42,19 @@ import com.badlogic.gdx.graphics.g2d.PixmapPacker;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.android.ideactivity.AndroidIDEWindow;
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.LuaCodeHolder;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
-import com.watabou.idewindowactions.LuaScript;
+import com.watabou.NotAllowedInLua;
 import com.watabou.input.ControllerHandler;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Consumer;
 import com.watabou.utils.PlatformSupport;
+import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 
 import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@NotAllowedInLua
 public class AndroidPlatformSupport extends PlatformSupport {
 	
 	public void updateDisplaySize(){
@@ -301,19 +303,19 @@ public class AndroidPlatformSupport extends PlatformSupport {
 					+ "(?<= )|(?= )|"  + "(?<= )|(?= )|"  + "(?<= )|(?= )|"
 					+ "(?<= )|(?= )|"  + "(?<= )|(?= )|";
 	
-	//splits on newlines, underscores, and chinese/japaneses characters
+	//splits on newline (for layout), chinese/japanese (for font choice), and '_'/'**' (for highlighting)
 	private Pattern regularsplitter = Pattern.compile(
-			"(?<=\n)|(?=\n)|(?<=_)|(?=_)|" +
+			"(?<=\n)|(?=\n)|(?<=_)|(?=_)|(?<=\\*\\*)|(?=\\*\\*)|" +
 					HIGHLIGHT_COLORS +
 					"(?<=\\p{InHiragana})|(?=\\p{InHiragana})|" +
 					"(?<=\\p{InKatakana})|(?=\\p{InKatakana})|" +
 					"(?<=\\p{InCJK_Unified_Ideographs})|(?=\\p{InCJK_Unified_Ideographs})|" +
 					"(?<=\\p{InCJK_Symbols_and_Punctuation})|(?=\\p{InCJK_Symbols_and_Punctuation})|" +
 					"(?<=\\p{InHalfwidth_and_Fullwidth_Forms})|(?=\\p{InHalfwidth_and_Fullwidth_Forms})");
-	
-	//additionally splits on words, so that each word can be arranged individually
+
+	//additionally splits on spaces, so that each word can be laid out individually
 	private Pattern regularsplitterMultiline = Pattern.compile(
-			"(?<= )|(?= )|(?<=\n)|(?=\n)|(?<=_)|(?=_)|" +
+			"(?<= )|(?= )|(?<=\n)|(?=\n)|(?<=_)|(?=_)|(?<=\\*\\*)|(?=\\*\\*)|" +
 					HIGHLIGHT_COLORS +
 					"(?<=\\\\)|(?=\\\\)|(?<=/)|(?=/)|" +
 					"(?<=\\p{InHiragana})|(?=\\p{InHiragana})|" +
@@ -324,7 +326,8 @@ public class AndroidPlatformSupport extends PlatformSupport {
 	
 	//splits on each non-hangul character. Needed for weird android 6.0 font files
 	private Pattern android6KRSplitter = Pattern.compile(
-			"(?<= )|(?= )|(?<=\n)|(?=\n)|(?<=_)|(?=_)|(?<= )|(?= )|" +
+			"(?<= )|(?= )|(?<=\n)|(?=\n)|(?<=_)|(?=_)|(?<=\\*\\*)|(?=\\*\\*)|" +
+					HIGHLIGHT_COLORS +
 					"(?!\\p{InHangul_Syllables})|(?<!\\p{InHangul_Syllables})");
 	
 	@Override
@@ -337,8 +340,12 @@ public class AndroidPlatformSupport extends PlatformSupport {
 			return regularsplitter.split(text);
 		}
 	}
-
-
+	
+	@Override
+	public int batteryRemaining() {
+		return AndroidLauncher.curBatteryPercentage;
+	}
+	
 	@Override
 	public void selectFile(Consumer<FileHandle> callback) {
 
@@ -352,7 +359,17 @@ public class AndroidPlatformSupport extends PlatformSupport {
 //		intent.putExtra(Intent.EXTRA_TITLE, "TITLE");
 		AndroidLauncher.instance.startActivityForResult(intent, AndroidLauncher.REQUEST_DIRECTORY);
 	}
-
+	
+	@Override
+	public void selectImageFile(Consumer<Object> callback) {
+		
+		AndroidLauncher.importImageFileCallback = callback;
+		
+		Intent intent = new Intent(Intent.ACTION_PICK);
+		intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+		AndroidLauncher.instance.startActivityForResult(intent, AndroidLauncher.REQUEST_IMAGE_IMPORT);
+	}
+	
 	@Override
 	public boolean canReadExternalFilesIfUserGrantsPermission() {
 		return Build.VERSION.SDK_INT < Build.VERSION_CODES.R || AndroidLauncher.FILE_ACCESS_ENABLED_ON_ANDROID_11;
@@ -374,10 +391,18 @@ public class AndroidPlatformSupport extends PlatformSupport {
 
 
 	@Override
-	public boolean openNativeIDEWindow(Object luaCodeHolder, Object luaScript) {
-		AndroidIDEWindow.luaCodeHolder = (LuaCodeHolder) luaCodeHolder;
-		AndroidIDEWindow.script = (LuaScript) luaScript;
+	public boolean openNativeIDEWindow(String luaScriptPath, Class<?> clazz, Consumer<String> onScriptChanged) {
+		AndroidIDEWindow.clazz = clazz;
+		AndroidIDEWindow.originalScriptPath = luaScriptPath;
+		AndroidIDEWindow.onScriptChanged = onScriptChanged;
 		AndroidLauncher.launchIDEWindowActivity();
 		return true;
+	}
+	
+	@Override
+	public ClassLoadingStrategy getClassLoadingStrategy() {
+		return new net.bytebuddy.android.AndroidClassLoadingStrategy.Wrapping(AndroidLauncher.instance.getDir(
+				"generated",
+				Context.MODE_PRIVATE));
 	}
 }

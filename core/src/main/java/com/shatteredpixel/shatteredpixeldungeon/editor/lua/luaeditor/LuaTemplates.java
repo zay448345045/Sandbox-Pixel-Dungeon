@@ -25,33 +25,46 @@
 package com.shatteredpixel.shatteredpixeldungeon.editor.lua.luaeditor;
 
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.LuaManager;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
-import com.shatteredpixel.shatteredpixeldungeon.editor.lua.LuaManager;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ChooseOneInCategoriesBody;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.WndChooseOneInCategories;
+import com.shatteredpixel.shatteredpixeldungeon.items.Stylus;
+import com.shatteredpixel.shatteredpixeldungeon.items.wands.Wand;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
+import com.watabou.NotAllowedInLua;
 import com.watabou.idewindowactions.LuaScript;
 import com.watabou.utils.Consumer;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@NotAllowedInLua
 public class LuaTemplates {
 
 	private static final LuaScript KILL_HERO_ON_DIE, SPAWN_MOB_ON_DIE, CRYSTAL_GUARDIAN_RECOVERY, RANGED_ATTACK;
 
 	private static final LuaScript REPLACES_WALLS_WITH_EMBERS;
+	private static final LuaScript INSCRIBE_LOOT_TABLE;
+	private static final LuaScript SET_CURSED_EFFECTS;
+	
+	private static final LuaScript CUSTOM_CHAR_SPRITE;
 
 	private static final LuaScript[] TEMPLATES;
 
 	static {
-		KILL_HERO_ON_DIE = new LuaScript(Mob.class, "When this mob dies, the hero also dies.", "");
-		KILL_HERO_ON_DIE.code = "vars = {} static = {} function die(this, vars, cause) hero:die(this);\nthis:super_die(cause); end" +
-				"\n\nreturn {vars = vars; static = static; die = die}";
+		KILL_HERO_ON_DIE = new LuaScript(Mob.class, "When this mob dies, the hero also dies.");
+		KILL_HERO_ON_DIE.code = "vars = {} static = {} function die(this, vars, cause)hero:die(this);\nthis:super_die(cause); end\n" +
+				"\n" +
+				"\n" +
+				"return {\n" +
+				"    vars = vars; static = static; die = die;\n" +
+				"}";
 
-		SPAWN_MOB_ON_DIE = new LuaScript(Mob.class, "When this mob dies, a wraith (or another mob) is spawned in its place.", "");
-		SPAWN_MOB_ON_DIE.code = "vars = {} static = {} function die(this, vars, cause) this:super_die(cause);\n" +
+		SPAWN_MOB_ON_DIE = new LuaScript(Mob.class, "When this mob dies, a wraith (or another mob) is spawned in its place.");
+		SPAWN_MOB_ON_DIE.code = "vars = {} static = {} function die(this, vars, cause)this:super_die(cause);\n" +
 				"\n" +
 				"local mob = new(\"Wraith\");\n" +
 				"\n" +
@@ -60,10 +73,14 @@ public class LuaTemplates {
 				"placeMob(mob, this.pos);\n" +
 				"\n" +
 				"mob:spend(1); --so it doesn't act immediately\n" +
-				"end" +
-				"\n\nreturn {vars = vars; static = static; die = die}";
+				"end\n" +
+				"\n" +
+				"\n" +
+				"return {\n" +
+				"    vars = vars; static = static; die = die;\n" +
+				"}";
 
-		CRYSTAL_GUARDIAN_RECOVERY = new LuaScript(Mob.class, "Instead of dying of HP drops to 0, this mobs gains HP like a crystal guardian", "");
+		CRYSTAL_GUARDIAN_RECOVERY = new LuaScript(Mob.class, "Instead of dying of HP drops to 0, this mobs gains HP like a crystal guardian");
 		CRYSTAL_GUARDIAN_RECOVERY.code = "vars = {\n" +
 				"recovering = false, gainHpPerTurn = 1\n" +
 				"}\n" +
@@ -114,12 +131,14 @@ public class LuaTemplates {
 				"affectBuff(this, class(\"Blessed\"));\n" +
 				"end\n" +
 				"return true;\n" +
-				"end\n" +
+				"end" +
+				"\n" +
+				"\n" +
 				"return {\n" +
 				"    vars = vars; static = static; defenseSkill = defenseSkill; surprisedBy = surprisedBy; act = act; isInvulnerable = isInvulnerable; isAlive = isAlive;\n" +
 				"}";
 
-		RANGED_ATTACK = new LuaScript(Mob.class, "Adds a ranged attack to (melee) mobs.\nSee Additional code to change the animation.", "");
+		RANGED_ATTACK = new LuaScript(Mob.class, "Adds a ranged attack to (melee) mobs.\nSee Additional code to change the animation.");
 		RANGED_ATTACK.code = "function canAttack(this, vars, enemy)\n" +
 				"return this:super_canAttack(enemy)\n" +
 				"or ballistica(this.pos, enemy.pos, Ballistica.REAL_MAGIC_BOLT, nil).collisionPos == enemy.pos;\n" +
@@ -156,13 +175,12 @@ public class LuaTemplates {
 				"end\n" +
 				"\n" +
 				"\n" +
-				"\n" +
 				"return {\n" +
 				"    vars = vars; static = static; canAttack = canAttack; doAttack = doAttack; playZapAnim = playZapAnim; \n" +
 				"}";
 
 
-		REPLACES_WALLS_WITH_EMBERS = new LuaScript(Level.class, "When first entering, 50% of all walls are replaced with embers.", "");
+		REPLACES_WALLS_WITH_EMBERS = new LuaScript(Level.class, "When first entering, 50% of all walls are replaced with embers.");
 		REPLACES_WALLS_WITH_EMBERS.code = "vars = {} static = {} function initForPlay(this, vars) this:super_initForPlay();\n" +
 				"\n" +
 				"-- btw, it is very important that you don't try accessing this using 'level', instead use 'this'\n" +
@@ -177,11 +195,184 @@ public class LuaTemplates {
 				"updateMap();\n" +
 				"\n" +
 				"Random.popGenerator();" +
-				"\nend" +
-				"\n\nreturn {vars = vars; static = static; initForPlay = initForPlay}";
+				"\nend\n" +
+				"\n" +
+				"\n" +
+				"return {\n" +
+				"    vars = vars; static = static; initForPlay = initForPlay;\n" +
+				"}";
+		
+		INSCRIBE_LOOT_TABLE = new LuaScript(Stylus.class, "Select a custom loot table.");
+		INSCRIBE_LOOT_TABLE.code = "vars = {} static = {} function createGlyphToInscribe(this, vars, armor)" +
+				"local list = new(\"List\");\n" +
+				
+				"\n" +
+				"--add an element multiple times to increase the odds!\n" +
+				
+				"\n" +
+				"--enchantments\n" +
+				"list:add(\"Affection\");\n" +
+				"list:add(\"AntiMagic\");\n" +
+				"list:add(\"Brimstone\");\n" +
+				"list:add(\"Camouflage\");\n" +
+				"list:add(\"Entanglement\");\n" +
+				"list:add(\"Flow\");\n" +
+				"list:add(\"Obfuscation\");\n" +
+				"list:add(\"Potential\");\n" +
+				"list:add(\"Repulsion\");\n" +
+				"list:add(\"Stone\");\n" +
+				"list:add(\"Swiftness\");\n" +
+				"list:add(\"Thorns\");\n" +
+				"list:add(\"Viscosity\");\n" +
+				
+				"\n" +
+				"--curses\n" +
+				"--list:add(\"AntiEntropy\");\n" +
+				"--list:add(\"Corrosion\");\n" +
+				"--list:add(\"Displacement\");\n" +
+				"--list:add(\"Metabolism\");\n" +
+				"--list:add(\"Multiplicity\");\n" +
+				"--list:add(\"Overgrowth\");\n" +
+				"--list:add(\"Stench\");\n" +
+				
+				"\n" +
+				"--should roll a different glyph\n" +
+				"if armor.glyph ~= nil then\n" +
+				"    list:removeAll(armor.glyph.simpleClassName);\n" +
+				"end\n" +
+				"\n" +
+				
+				"local glyphClassName = Random.element(list);\n" +
+				"return new(glyphClassName);\n" +
+				"end\n" +
+				"\n" +
+				"\n" +
+				"return {\n" +
+				"    vars = vars; static = static; createGlyphToInscribe = createGlyphToInscribe;\n" +
+				"}";
+		
+		SET_CURSED_EFFECTS = new LuaScript(Wand.class, "Select which curse effects can be used by the wand.");
+		SET_CURSED_EFFECTS.code = "vars = {} static = {} function cursedEffect(this, vars, user, bolt, positiveOnly)" +
+				
+				"\n" +
+				"--add an element multiple times to increase the odds!\n" +
+				
+				"\n" +
+				"--common (60% chance)\n" +
+				"local commons = new(\"List\");\n" +
+				"commons:add(\"BurnAndFreeze\");\n" +
+				"commons:add(\"SpawnRegrowth\");\n" +
+				"commons:add(\"RandomTeleport\");\n" +
+				"commons:add(\"RandomGas\");\n" +
+				"commons:add(\"RandomAreaEffect\");\n" +
+				"commons:add(\"Bubbles\");\n" +
+				"commons:add(\"RandomWand\");\n" +
+				"commons:add(\"SelfOoze\");\n" +
+				
+				"\n" +
+				"--uncommon (30% chance)\n" +
+				"local uncommons = new(\"List\");\n" +
+				"uncommons:add(\"RandomPlant\");\n" +
+				"uncommons:add(\"HealthTransfer\");\n" +
+				"uncommons:add(\"Explosion\");\n" +
+				"uncommons:add(\"LightningBolt\");\n" +
+				"uncommons:add(\"Geyser\");\n" +
+				"uncommons:add(\"SummonSheep\");\n" +
+				"uncommons:add(\"Levitate\");\n" +
+				"uncommons:add(\"Alarm\");\n" +
+				
+				"\n" +
+				"--rare (9% chance)\n" +
+				"local rares = new(\"List\");\n" +
+				"rares:add(\"SheepPolymorph\");\n" +
+				"rares:add(\"CurseEquipment\");\n" +
+				"rares:add(\"InterFloorTeleport\");\n" +
+				"rares:add(\"SummonMonsters\");\n" +
+				"rares:add(\"FireBall\");\n" +
+				"rares:add(\"ConeOfColors\");\n" +
+				"rares:add(\"MassInvuln\");\n" +
+				"rares:add(\"Petrify\");\n" +
+				
+				"\n" +
+				"--very rare (1% chance)\n" +
+				"local veryRares = new(\"List\");\n" +
+				"veryRares:add(\"ForestFire\");\n" +
+				"veryRares:add(\"SpawnGoldenMimic\");\n" +
+				"veryRares:add(\"AbortRetryFail\");\n" +
+				"veryRares:add(\"RandomTransmogrify\");\n" +
+				"veryRares:add(\"HeroShapeShift\");\n" +
+				"veryRares:add(\"SuperNova\");\n" +
+				"veryRares:add(\"SinkHole\");\n" +
+				"veryRares:add(\"GravityChaos\");\n" +
+				
+				"\n" +
+				"local roll = Random.int(100)\n" +
+				"local list;\n" +
+				"if roll < 60 then\n" +
+				"    list = commons;\n" +
+				"elseif roll < 90 then\n" +
+				"    list = uncommons;\n" +
+				"elseif roll < 99 then\n" +
+				"    list = rares;\n" +
+				"else\n" +
+				"    list = veryRares;\n" +
+				"end\n" +
+				"\n" +
+				
+				"local effect;\n" +
+				"repeat\n" +
+				"    effect = new( Random.element(list) )\n" +
+				"until effect:valid(this, user, bolt, positiveOnly)\n" +
+				"\n" +
+				"return effect;\n" +
+				"end\n" +
+				"\n" +
+				"return {\n" +
+				"    vars = vars; static = static; createGlyphToInscribe = createGlyphToInscribe;\n" +
+				"}";
+		
+		CUSTOM_CHAR_SPRITE = new LuaScript(CharSprite.class, "Basic template to create own animations, uses RatSprite as example values.\\nRequires some editing to be usuable!");
+		CUSTOM_CHAR_SPRITE.code = "vars = {} static = {} \n" +
+				"\n" +
+				"function initAnimations(this, vars)\n" +
+				"\n" +
+				"--each animation frame is 16px width and 15px tall\n" +
+				"local frames = new(\"TextureFilm\", this.texture_v, 16, 15);\n" +
+				"\n" +
+				"--two parameters for the Animation constructor: 'fps' and 'looped'\n" +
+				"this.idle_v = new(\"Animation\", 2, true);\n" +
+				"\n" +
+				"--the numbers are the individual frames in the sprite atlas\n" +
+				"--you can add infinitely many of them\n" +
+				"this.idle_v:frames(frames, 0,0,0,1);\n" +
+				"\n" +
+				"this.run_v = new(\"Animation\", 10, true);\n" +
+				"this.run_v:frames(frames, 6,7,8,9,10);\n" +
+				"\n" +
+				"this.attack_v = new(\"Animation\", 15, false);\n" +
+				"this.attack_v:frames(frames, 11, 12, 13, 14);\n" +
+				"\n" +
+				"this.die_v = new(\"Animation\", 10, false);\n" +
+				"this.die_v:frames(frames, 11,12,13,14);\n" +
+				"\n" +
+				"\n" +
+				"--these are optional\n" +
+				"--this.zap_v = new(\"Animation\", 20, false);\n" +
+				"--this.zap_v:frames(frames, 0,0,0);\n" +
+				"--this.operate_v = new(\"Animation\", 20, false);\n" +
+				"--this.operate_v:frames(frames, 0,0,0);\n" +
+				"\n" +
+				"-- note: some mobs have even more animations!\n" +
+				"\n" +
+				"end\n" +
+				"\n" +
+				"\n" +
+				"return {\n" +
+				"    vars = vars; static = static; initAnimations = initAnimations;\n" +
+				"}";
 
 		TEMPLATES = new LuaScript[]{KILL_HERO_ON_DIE, SPAWN_MOB_ON_DIE, CRYSTAL_GUARDIAN_RECOVERY, RANGED_ATTACK,
-				REPLACES_WALLS_WITH_EMBERS};
+				REPLACES_WALLS_WITH_EMBERS, INSCRIBE_LOOT_TABLE, SET_CURSED_EFFECTS, CUSTOM_CHAR_SPRITE};
 	}
 
 	private static String name(LuaScript script) {
@@ -190,6 +381,9 @@ public class LuaTemplates {
 		if (script == CRYSTAL_GUARDIAN_RECOVERY) return Messages.get(LuaTemplates.class, "crystal_guardian_recovery_name");
 		if (script == RANGED_ATTACK) return Messages.get(LuaTemplates.class, "ranged_attack_name");
 		if (script == REPLACES_WALLS_WITH_EMBERS) return Messages.get(LuaTemplates.class, "replaces_walls_with_embers_name");
+		if (script == INSCRIBE_LOOT_TABLE) return Messages.get(LuaTemplates.class, "inscribe_loot_table_name");
+		if (script == SET_CURSED_EFFECTS) return Messages.get(LuaTemplates.class, "set_cursed_effects_name");
+		if (script == CUSTOM_CHAR_SPRITE) return Messages.get(LuaTemplates.class, "custom_char_sprite_name");
 		return Messages.NO_TEXT_FOUND;
 	}
 
@@ -199,6 +393,9 @@ public class LuaTemplates {
 		if (script == CRYSTAL_GUARDIAN_RECOVERY) return Messages.get(LuaTemplates.class, "crystal_guardian_recovery_desc");
 		if (script == RANGED_ATTACK) return Messages.get(LuaTemplates.class, "ranged_attack_desc");
 		if (script == REPLACES_WALLS_WITH_EMBERS) return Messages.get(LuaTemplates.class, "replaces_walls_with_embers_desc");
+		if (script == INSCRIBE_LOOT_TABLE) return Messages.get(LuaTemplates.class, "inscribe_loot_table_desc");
+		if (script == SET_CURSED_EFFECTS) return Messages.get(LuaTemplates.class, "set_cursed_effects_desc");
+		if (script == CUSTOM_CHAR_SPRITE) return Messages.get(LuaTemplates.class, "custom_char_sprite_desc");
 		return Messages.NO_TEXT_FOUND;
 	}
 

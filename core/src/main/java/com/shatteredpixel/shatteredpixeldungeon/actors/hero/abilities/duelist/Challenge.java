@@ -110,14 +110,14 @@ public class Challenge extends ArmorAbility {
 		for (Char c : Actor.chars()) {
 			if (c != hero) passable[c.pos] = false;
 		}
-		PathFinder.buildDistanceMap(targetCh.pos, passable);
+		PathFinder.buildDistanceMap(targetCh.pos, passable, hero);
 		int[] reachable = PathFinder.distance.clone();
 
 		int blinkpos = hero.pos;
 		if (hero.hasTalent(Talent.CLOSE_THE_GAP) && !hero.rooted){
 
 			int blinkrange = 1 + hero.pointsInTalent(Talent.CLOSE_THE_GAP);
-			PathFinder.buildDistanceMap(hero.pos, Dungeon.level.getPassableAndAvoidVar(targetCh), blinkrange);
+			PathFinder.buildDistanceMapForCharacters(hero.pos, Dungeon.level.getPassableAndAvoidVar(targetCh), blinkrange, hero);
 
 			for (int i = 0; i < PathFinder.distance.length; i++){
 				if (PathFinder.distance[i] == Integer.MAX_VALUE
@@ -150,15 +150,15 @@ public class Challenge extends ArmorAbility {
 		}
 
 		if (blinkpos != hero.pos){
-			Dungeon.hero.pos = blinkpos;
-			Dungeon.level.occupyCell(Dungeon.hero);
+			hero.pos = blinkpos;
+			Dungeon.level.occupyCell(hero);
 			//prevents the hero from being interrupted by seeing new enemies
 			Dungeon.observe();
 			GameScene.updateFog();
-			Dungeon.hero.checkVisibleMobs();
+			hero.checkVisibleMobs();
 
-			Dungeon.hero.sprite.place( Dungeon.hero.pos );
-			CellEmitter.get( Dungeon.hero.pos ).burst( Speck.factory( Speck.WOOL ), 6 );
+			hero.sprite.place( hero.pos );
+			CellEmitter.get( hero.pos ).burst( Speck.factory( Speck.WOOL ), 6 );
 			Sample.INSTANCE.play( Assets.Sounds.PUFF );
 		}
 

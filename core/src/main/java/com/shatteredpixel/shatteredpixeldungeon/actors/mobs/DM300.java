@@ -21,12 +21,28 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors.mobs;
 
-import com.shatteredpixel.shatteredpixeldungeon.*;
+import com.shatteredpixel.shatteredpixeldungeon.Assets;
+import com.shatteredpixel.shatteredpixeldungeon.Badges;
+import com.shatteredpixel.shatteredpixeldungeon.Challenges;
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.ToxicGas;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Charm;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Chill;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Cripple;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Frost;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LockedFloor;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Paralysis;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Roots;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Sleep;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Slow;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Terror;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vertigo;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.spells.WallOfLight;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.CustomTileItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.Zone;
@@ -51,7 +67,13 @@ import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.audio.Sample;
-import com.watabou.utils.*;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
+import com.watabou.utils.GameMath;
+import com.watabou.utils.PathFinder;
+import com.watabou.utils.Point;
+import com.watabou.utils.Random;
+import com.watabou.utils.WatabouRect;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -81,7 +103,7 @@ public class DM300 extends DMMob implements MobBasedOnDepth {
 
 //	@Override
 //	public int damageRoll() {
-//		return Char.combatRoll( 15, 25 );
+//		return Random.NormalIntRange( 15, 25 );
 //	}
 //
 //	@Override
@@ -91,7 +113,7 @@ public class DM300 extends DMMob implements MobBasedOnDepth {
 //
 //	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 10);
+//		return super.drRoll() + Random.NormalIntRange(0, 10);
 //	}
 
 	public int pylonsActivated = 0;
@@ -158,8 +180,6 @@ public class DM300 extends DMMob implements MobBasedOnDepth {
 				hpSet = !CustomDungeon.isEditing();
 			}
 		}
-//		((DM300Sprite)sprite).updateChargeState(true);
-//		((DM300Sprite)sprite).charge();
 	}
 
 	@Override
@@ -212,26 +232,23 @@ public class DM300 extends DMMob implements MobBasedOnDepth {
 					if (turnsSinceLastAbility >= MIN_COOLDOWN){
 						//use a coneAOE to try and account for trickshotting angles
 						ConeAOE aim = new ConeAOE(new Ballistica(pos, enemy.pos, Ballistica.WONT_STOP, null), Float.POSITIVE_INFINITY, 30, Ballistica.STOP_SOLID | Ballistica.STOP_BARRIER_PROJECTILES, null);
-						if (aim.cells.contains(enemy.pos)) {
+						if (aim.cells.contains(enemy.pos) && !Char.hasProp(enemy, Property.INORGANIC)) {
 							lastAbility = GAS;
 							turnsSinceLastAbility = 0;
 
-							if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
-								sprite.zap(enemy.pos);
-								return false;
-							} else {
-								ventGas(enemy);
+							if (doRangedAttack()) {
 								Sample.INSTANCE.play(Assets.Sounds.GAS);
 								return true;
+							} else {
+								return false;
 							}
-						//if we can't gas, then drop rocks
+						//if we can't gas, or if target is inorganic then drop rocks
 						//unless enemy is already stunned, we don't want to stunlock them
 						} else if (enemy.paralysed <= 0) {
 							lastAbility = ROCKS;
 							turnsSinceLastAbility = 0;
 							if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
-								((DM300Sprite)sprite).slam(enemy.pos);
-								return false;
+								return DM300Sprite.slam(sprite, enemy.pos);
 							} else {
 								dropRocks(enemy);
 								Sample.INSTANCE.play(Assets.Sounds.ROCKS);
@@ -255,6 +272,10 @@ public class DM300 extends DMMob implements MobBasedOnDepth {
 							lastAbility = Random.Int(4) != 0 ? GAS : ROCKS;
 						}
 
+						if (Char.hasProp(enemy, Property.INORGANIC)){
+							lastAbility = ROCKS;
+						}
+
 						//doesn't spend a turn if enemy is at a distance
 						if (Dungeon.level.adjacent(pos, enemy.pos)){
 							spend(TICK);
@@ -264,18 +285,15 @@ public class DM300 extends DMMob implements MobBasedOnDepth {
 						abilityCooldown = Random.NormalIntRange(MIN_COOLDOWN, MAX_COOLDOWN);
 
 						if (lastAbility == GAS) {
-							if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
-								sprite.zap(enemy.pos);
-								return false;
-							} else {
-								ventGas(enemy);
+							if (doRangedAttack()) {
 								Sample.INSTANCE.play(Assets.Sounds.GAS);
 								return true;
+							} else {
+								return false;
 							}
 						} else {
 							if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
-								((DM300Sprite)sprite).slam(enemy.pos);
-								return false;
+								return DM300Sprite.slam(sprite, enemy.pos);
 							} else {
 								dropRocks(enemy);
 								Sample.INSTANCE.play(Assets.Sounds.ROCKS);
@@ -537,8 +555,13 @@ public class DM300 extends DMMob implements MobBasedOnDepth {
 		spend(Dungeon.isChallenged(Challenges.STRONGER_BOSSES) ? 2f : 3f);
 		yell(Messages.get(this, "charging"));
 		sprite.showStatus(CharSprite.POSITIVE, Messages.get(this, "invulnerable"));
-		((DM300Sprite)sprite).updateChargeState(true);
-		((DM300Sprite)sprite).charge();
+
+		if (sprite.extraCode instanceof DM300Sprite.SuperchargeSparks)
+			((DM300Sprite.SuperchargeSparks) sprite.extraCode).updateChargeState(sprite, true);
+
+		if (sprite instanceof DM300Sprite)
+			((DM300Sprite)sprite).charge();
+
 		chargeAnnounced = false;
 
 	}
@@ -549,7 +572,11 @@ public class DM300 extends DMMob implements MobBasedOnDepth {
 
 	public void loseSupercharge(){
 		supercharged = false;
-		((DM300Sprite)sprite).updateChargeState(false);
+		if (sprite.extraCode instanceof DM300Sprite.SuperchargeSparks)
+			((DM300Sprite.SuperchargeSparks) sprite.extraCode).updateChargeState(sprite, false);
+
+		//adjust turns since last ability to prevent DM immediately using an ability when charge ends
+		turnsSinceLastAbility = Math.max(turnsSinceLastAbility, MIN_COOLDOWN-3);
 
 		if (pylonsActivated < totalPylonsToActivate()){
 			yell(Messages.get(this, "charge_lost"));
@@ -657,7 +684,7 @@ public class DM300 extends DMMob implements MobBasedOnDepth {
 
 				Sample.INSTANCE.play( Assets.Sounds.ROCKS );
 
-				Rect gate = CavesBossLevel.gate;
+				WatabouRect gate = CavesBossLevel.gate;
 				for (int i : PathFinder.NEIGHBOURS9){
 					if (Dungeon.level.map[pos+i] == Terrain.WALL || Dungeon.level.map[pos+i] == Terrain.WALL_DECO){
 
@@ -678,6 +705,7 @@ public class DM300 extends DMMob implements MobBasedOnDepth {
 						Level.set(pos+i, Terrain.EMPTY_DECO);
 						GameScene.updateMap(pos+i);
 					}
+					Dungeon.level.blobs.doOnEach(WallOfLight.LightWall.class, b -> b.clear(pos+i));
 				}
 				Dungeon.level.cleanWalls();
 				Dungeon.observe();
@@ -704,8 +732,8 @@ public class DM300 extends DMMob implements MobBasedOnDepth {
 	}
 
 	@Override
-	public String description() {
-		String desc = super.description();
+	public String desc() {
+		String desc = super.desc();
 		if (supercharged) {
 			desc += "\n\n" + Messages.get(this, "desc_supercharged");
 		}

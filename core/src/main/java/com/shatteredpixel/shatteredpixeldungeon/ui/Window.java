@@ -25,6 +25,7 @@ import com.shatteredpixel.shatteredpixeldungeon.Chrome;
 import com.shatteredpixel.shatteredpixeldungeon.SPDAction;
 import com.shatteredpixel.shatteredpixeldungeon.effects.ShadowBox;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndTitledMessage;
 import com.watabou.input.KeyBindings;
 import com.watabou.input.KeyEvent;
 import com.watabou.input.PointerEvent;
@@ -33,6 +34,7 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.NinePatch;
 import com.watabou.noosa.PointerArea;
+import com.watabou.utils.GameMath;
 import com.watabou.utils.Point;
 import com.watabou.utils.Signal;
 
@@ -124,7 +126,7 @@ public class Window extends Group implements Signal.Listener<KeyEvent> {
 			width + chrome.marginHor(),
 			height + chrome.marginVer() );
 		
-		camera.resize( (int)chrome.width, (int)chrome.height );
+		camera.resize( (int)chrome.width(), (int)chrome.height() );
 
 		camera.x = (int)(Game.width - camera.screenWidth()) / 2;
 		camera.x += xOffset * camera.zoom;
@@ -132,7 +134,15 @@ public class Window extends Group implements Signal.Listener<KeyEvent> {
 		camera.y = (int)(Game.height - camera.screenHeight()) / 2;
 		camera.y += yOffset * camera.zoom;
 
-		shadow.boxRect( camera.x / camera.zoom, camera.y / camera.zoom, chrome.width(), chrome.height );
+		shadow.boxRect( camera.x / camera.zoom, camera.y / camera.zoom, chrome.width(), chrome.height() );
+	}
+
+	public int width() {
+		return width;
+	}
+
+	public int height() {
+		return height;
 	}
 
 	public Point getOffset(){
@@ -211,4 +221,46 @@ public class Window extends Group implements Signal.Listener<KeyEvent> {
 		hide();
 	}
 
+	public enum WindowSize {
+		
+		WIDTH_VERY_SMALL,
+		WIDTH_SMALL,
+		WIDTH_MEDIUM,
+		WIDTH_LARGE_S,
+		WIDTH_LARGE_M,
+		WIDTH_LARGE,
+		
+		HEIGHT_VERY_SMALL,
+		HEIGHT_SMALL,
+		HEIGHT_MEDIUM,
+		HEIGHT_LARGE;
+		
+		public int get() {
+			switch (this) {
+				case WIDTH_VERY_SMALL: return gateWidth(160, 0, (int) (PixelScene.uiCamera.width * 0.9f));
+				case WIDTH_SMALL:  return gateWidth(140, 180, PixelScene.uiCamera.width * 0.7f);
+				case WIDTH_MEDIUM: return gateWidth(150, 200, PixelScene.uiCamera.width * 0.8f);
+				case WIDTH_LARGE:  return gateWidth(160, WndTitledMessage.WIDTH_MAX, PixelScene.uiCamera.width * 0.9f);
+				
+				case WIDTH_LARGE_S:  return WIDTH_LARGE.get() - (PixelScene.landscape() ? 10 : 5);
+				case WIDTH_LARGE_M:  return WIDTH_LARGE.get() - (PixelScene.landscape() ? 5 : 0);
+				
+				case HEIGHT_VERY_SMALL:  return (int) (PixelScene.uiCamera.height * 0.65f);
+				case HEIGHT_SMALL:  return (int) (PixelScene.uiCamera.height * 0.8f);
+				case HEIGHT_MEDIUM: return (int) (PixelScene.uiCamera.height * 0.85f);
+				case HEIGHT_LARGE:  return (int) (PixelScene.uiCamera.height * 0.9f);
+			}
+			return 0;
+		}
+		
+		private int gateWidth(float min, float val, float max) {
+			if (min > PixelScene.uiCamera.width) min = PixelScene.uiCamera.width * 0.8f;
+			return (int) GameMath.gate(min, val, Math.min(PixelScene.uiCamera.width, max));
+		}
+		
+		private int gateHeight(float min, float val, float max) {
+			if (min > PixelScene.uiCamera.height) min = PixelScene.uiCamera.height * 0.8f;
+			return (int) GameMath.gate(min, val, Math.min(PixelScene.uiCamera.height, max));
+		}
+	}
 }

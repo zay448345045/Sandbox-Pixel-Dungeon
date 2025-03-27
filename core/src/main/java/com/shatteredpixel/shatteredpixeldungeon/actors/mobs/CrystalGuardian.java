@@ -31,6 +31,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Doom;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.effects.FloatingText;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Splash;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Bestiary;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
@@ -41,7 +42,7 @@ import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
-public class CrystalGuardian extends Mob{
+public class CrystalGuardian extends Mob {
 
 	{
 		spriteClass = CrystalGuardianSprite.class;
@@ -78,7 +79,7 @@ public class CrystalGuardian extends Mob{
 			}
 			if (HP == HT){
 				recovering = false;
-				if (sprite instanceof CrystalGuardianSprite) ((CrystalGuardianSprite) sprite).endCrumple();
+				if (sprite instanceof CrystalGuardianSprite) CrystalGuardianSprite.endCrumple(sprite);
 			}
 			spend(Actor.TICK);
 			return true;
@@ -88,7 +89,7 @@ public class CrystalGuardian extends Mob{
 
 //	@Override
 //	public int damageRoll() {
-//		return Char.combatRoll( 10, 16 );
+//		return Random.NormalIntRange( 10, 16 );
 //	}
 //
 //	@Override
@@ -110,7 +111,7 @@ public class CrystalGuardian extends Mob{
 
 //	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 10);
+//		return super.drRoll() + Random.NormalIntRange(0, 10);
 //	}
 
 	@Override
@@ -121,7 +122,8 @@ public class CrystalGuardian extends Mob{
 	@Override
 	public int defenseProc(Char enemy, int damage) {
 		if (recovering){
-			sprite.showStatus(CharSprite.NEGATIVE, Integer.toString(damage));
+			//this triggers before blocking, so the dmg as block-bypassing
+			sprite.showStatusWithIcon(CharSprite.NEGATIVE, Integer.toString(damage), FloatingText.PHYS_DMG_NO_BLOCK);
 			HP = Math.max(1, HP-damage);
 			damage = -1;
 		}
@@ -142,7 +144,9 @@ public class CrystalGuardian extends Mob{
 
 			if (!recovering) {
 				recovering = true;
-				if (sprite != null) ((CrystalGuardianSprite) sprite).crumple();
+				Bestiary.setSeen(getClass());
+				Bestiary.countEncounter(getClass());
+				if (sprite != null) CrystalGuardianSprite.crumple(sprite);
 			}
 		}
 		return super.isAlive();
@@ -207,7 +211,7 @@ public class CrystalGuardian extends Mob{
 		passable = super.modPassable(passable);
 		//if we are hunting, we can stomp through crystals, but prefer not to
 		if (state == HUNTING && target != -1){
-			PathFinder.buildDistanceMap(target, passable);
+			PathFinder.buildDistanceMap(target, passable, this);
 
 			if (PathFinder.distance[pos] > 2*Dungeon.level.distance(pos, target)) {
 				for (int i = 0; i < Dungeon.level.length(); i++) {
@@ -233,7 +237,7 @@ public class CrystalGuardian extends Mob{
 		protected void awaken(boolean enemyInFOV) {
 			if (enemyInFOV){
 				//do not wake up if we see an enemy we can't actually reach
-				PathFinder.buildDistanceMap(enemy.pos, Dungeon.level.getPassableVar(CrystalGuardian.this));
+				PathFinder.buildDistanceMap(enemy.pos, Dungeon.level.getPassableVar(CrystalGuardian.this), CrystalGuardian.this);
 				if (PathFinder.distance[pos] == Integer.MAX_VALUE){
 					return;
 				}

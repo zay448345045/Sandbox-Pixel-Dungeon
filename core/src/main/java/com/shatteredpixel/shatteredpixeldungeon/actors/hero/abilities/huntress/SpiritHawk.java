@@ -25,7 +25,12 @@ import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AllyBuff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Blindness;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.BlobImmunity;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Cripple;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Invisibility;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ArmorAbility;
@@ -153,8 +158,13 @@ public class SpiritHawk extends ArmorAbility {
 			defenseSkill = 60;
 
 			setFlying(true);
-			viewDistance = (int)GameMath.gate(6, 6+Dungeon.hero.pointsInTalent(Talent.EAGLE_EYE), 8);
-			baseSpeed = 2f + Dungeon.hero.pointsInTalent(Talent.SWIFT_SPIRIT)/2f;
+			if (Dungeon.hero != null) {
+				viewDistance = (int) GameMath.gate(6, 6 + Dungeon.hero.pointsInTalent(Talent.EAGLE_EYE), 8);
+				baseSpeed = 2f + Dungeon.hero.pointsInTalent(Talent.SWIFT_SPIRIT) / 2f;
+			} else {
+				viewDistance = 6;
+				baseSpeed = 2f;
+			}
 
 			immunities.addAll(new BlobImmunity().immunities());
 			immunities.add(AllyBuff.class);
@@ -180,7 +190,7 @@ public class SpiritHawk extends ArmorAbility {
 
 		@Override
 		public int damageRoll() {
-			return Char.combatRoll(5, 10);
+			return Random.NormalIntRange(5, 10);
 		}
 
 		@Override
@@ -221,6 +231,12 @@ public class SpiritHawk extends ArmorAbility {
 			Dungeon.level.updateFieldOfView( this, fieldOfView );
 			GameScene.updateFog(pos, viewDistance+(int)Math.ceil(speed()));
 			return result;
+		}
+
+		@Override
+		public void die(Object cause) {
+			setFlying(false);
+			super.die(cause);
 		}
 
 		@Override
@@ -266,6 +282,11 @@ public class SpiritHawk extends ArmorAbility {
 		public void aggro(Char ch) {
 			directableAlly.aggroOverride(ch);
 		}
+		
+		@Override
+		public void beckon(int cell) {
+			directableAlly.beckonOverride(cell);
+		}
 
 		@Override
 		public DirectableAlly getDirectableAlly() {
@@ -273,12 +294,15 @@ public class SpiritHawk extends ArmorAbility {
 		}
 
 		@Override
-		public String description() {
-			if (customDesc != null) return super.description();
+		public String desc() {
+			if (customDesc != null) return super.desc();
 
 			String message = Messages.get(this, "desc", (int)timeRemaining);
-			if (dodgesUsed < 2*Dungeon.hero.pointsInTalent(Talent.SWIFT_SPIRIT)){
-				message += "\n" + Messages.get(this, "desc_dodges", (2*Dungeon.hero.pointsInTalent(Talent.SWIFT_SPIRIT) - dodgesUsed));
+			if (Actor.chars().contains(this)){
+				message += "\n\n" + Messages.get(this, "desc_remaining", (int)timeRemaining);
+				if (dodgesUsed < 2*Dungeon.hero.pointsInTalent(Talent.SWIFT_SPIRIT)){
+					message += "\n" + Messages.get(this, "desc_dodges", (2*Dungeon.hero.pointsInTalent(Talent.SWIFT_SPIRIT) - dodgesUsed));
+				}
 			}
 			return message;
 		}

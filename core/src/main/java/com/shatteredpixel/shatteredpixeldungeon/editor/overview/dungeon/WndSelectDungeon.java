@@ -3,21 +3,34 @@ package com.shatteredpixel.shatteredpixeldungeon.editor.overview.dungeon;
 import com.badlogic.gdx.files.FileHandle;
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Chrome;
-import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.editor.EditorScene;
+import com.shatteredpixel.shatteredpixeldungeon.editor.OpenDungeonScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomLevel;
-import com.shatteredpixel.shatteredpixeldungeon.editor.levels.LevelScheme;
-import com.shatteredpixel.shatteredpixeldungeon.editor.overview.FloorOverviewScene;
 import com.shatteredpixel.shatteredpixeldungeon.editor.server.UploadDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.*;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.CustomDungeonSaves;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.DungeonToJsonConverter;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.ExportDungeonWrapper;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.ExoticPotion;
+import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.DungeonScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.services.server.ServerCommunication;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
-import com.shatteredpixel.shatteredpixeldungeon.windows.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollingListPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.StyledButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndError;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndGameInProgress;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptions;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndSupportPrompt;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndTextInput;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.ColorBlock;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
@@ -30,10 +43,16 @@ import com.watabou.utils.FileUtils;
 
 import java.io.IOException;
 import java.text.DateFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 import static com.shatteredpixel.shatteredpixeldungeon.editor.overview.dungeon.WndNewDungeon.DEFAULT_DUNGEON;
 
+@NotAllowedInLua
 public class WndSelectDungeon extends Window {
 
     private enum SortMode {
@@ -57,17 +76,19 @@ public class WndSelectDungeon extends Window {
 
     private List<CustomDungeonSaves.Info> allInfos;
     private CustomDungeonSaves.Info featuredInfo;
+    private final String featuredLabel;
     private Set<String> dungeonNames;
 
     public WndSelectDungeon(List<CustomDungeonSaves.Info> allInfos, boolean showAddButton) {
-        this(allInfos, showAddButton, null);
+        this(allInfos, showAddButton, null, null);
     }
 
-    public WndSelectDungeon(List<CustomDungeonSaves.Info> allInfos, boolean showAddButton, CustomDungeonSaves.Info featuredInfo) {
+    public WndSelectDungeon(List<CustomDungeonSaves.Info> allInfos, boolean showAddButton, CustomDungeonSaves.Info featuredInfo, String featuredLabel) {
         this.allInfos = allInfos;
         this.featuredInfo = featuredInfo;
+        this.featuredLabel = featuredLabel;
 
-        resize(Math.min(WndTitledMessage.WIDTH_MAX, (int) (PixelScene.uiCamera.width * 0.9)), (int) (PixelScene.uiCamera.height * 0.8f));
+        resize(WindowSize.WIDTH_LARGE.get(), WindowSize.HEIGHT_SMALL.get());
 
         listPane = new ScrollingListPane() {
             @Override
@@ -79,11 +100,11 @@ public class WndSelectDungeon extends Window {
                 Component[] comps = getItems();
                 for (int i = 0; i < comps.length; i++) {
                     if (comps[i] instanceof PlayAgain) {
-                        content.setSize(width, EditorUtilies.layoutCompsLinear(2, content, comps[i]) + 2);
+                        content.setSize(width, EditorUtilities.layoutCompsLinear(2, content, comps[i]) + 2);
                         comps[i] = null;
                     }
                 }
-                content.setSize(width, EditorUtilies.layoutStyledCompsInRectangles(2, width, content, comps));
+                content.setSize(width, EditorUtilities.layoutStyledCompsInRectangles(2, width, content, comps));
             }
         };
         add(listPane);
@@ -178,7 +199,7 @@ public class WndSelectDungeon extends Window {
 			return 0;
 		});
         if (featuredInfo != null) {
-            listPane.addItemNoLayouting(new PlayAgain(featuredInfo));
+            listPane.addItemNoLayouting(new PlayAgain(featuredInfo, featuredLabel));
         }
         for (CustomDungeonSaves.Info info : allInfos) {
             if (createNewDungeonBtn != null || info.numLevels > 0)
@@ -192,10 +213,11 @@ public class WndSelectDungeon extends Window {
 
     protected void select(String customDungeonName) {
         EditorScene.openDifferentLevel = true;
-        openDungeon(customDungeonName);
+        OpenDungeonScene.openDungeon(customDungeonName, OpenDungeonScene.Mode.EDITOR_LOAD);
     }
 
 
+    @NotAllowedInLua
     private class ListItem extends StyledButton {
 
         private final CustomDungeonSaves.Info info;
@@ -210,7 +232,7 @@ public class WndSelectDungeon extends Window {
         public ListItem(CustomDungeonSaves.Info info) {
             super(Chrome.Type.GREY_BUTTON_TR, info.name, 9);
 
-            depthIcon = Icons.get(Icons.DEFAULT_DEPTH);
+            depthIcon = Icons.getWithNoOffset(Level.Feeling.NONE);
             depthIcon.scale.set(1.2f);
             add(depthIcon);
             depthText = PixelScene.renderTextBlock(Integer.toString(info.numLevels), 7);
@@ -222,7 +244,7 @@ public class WndSelectDungeon extends Window {
                 if (timeDiff < 86_400_000L) {
                     if (timeDiff < 0) t = null;
                     else {
-                        t = EditorUtilies.convertTimeDifferenceToString(timeDiff);
+                        t = EditorUtilities.convertTimeDifferenceToString(timeDiff);
                     }
                 } else {
                     t = DateFormat.getDateInstance(DateFormat.SHORT, Locale.getDefault()).format(new Date(info.lastModified));
@@ -318,13 +340,14 @@ public class WndSelectDungeon extends Window {
             select(info.name);
         }
 
+        @NotAllowedInLua
         private class WndInfoDungeon extends Window {
 
             private static final int GAP = 6;
 
             public WndInfoDungeon(CustomDungeonSaves.Info info) {
 
-                resize(PixelScene.landscape() ? 215 : Math.min(160, (int) (PixelScene.uiCamera.width * 0.9)), 100);
+                resize(WindowSize.WIDTH_LARGE.get(), 100);
 
                 RenderedTextBlock title = PixelScene.renderTextBlock(info.name, 10);
                 title.hardlight(Window.TITLE_COLOR);
@@ -420,7 +443,7 @@ public class WndSelectDungeon extends Window {
                 upload.enable(!info.downloaded && info.numLevels > 0);
                 upload.icon(Icons.UPLOAD.get());
 
-                IconButton rename = new IconButton(Icons.get(Icons.RENAME_ON)) {
+                IconButton rename = new IconButton(Icons.get(Icons.SCROLL_COLOR)) {
                     @Override
                     protected void onClick() {
                         Window w = new WndTextInput(Messages.get(WndSelectDungeon.class, "rename_title"),
@@ -452,15 +475,12 @@ public class WndSelectDungeon extends Window {
                                         dungeonNames.add(info.name);
                                         updateList();
                                         WndInfoDungeon.this.hide();
-                                        Window w = new WndInfoDungeon(info);
-                                        if (Game.scene() instanceof EditorScene) EditorScene.show(w);
-                                        else Game.scene().addToFront(w);
+                                        DungeonScene.show(new WndInfoDungeon(info));
                                     }
                                 }
                             }
                         };
-                        if (Game.scene() instanceof EditorScene) EditorScene.show(w);
-                        else Game.scene().addToFront(w);
+                        DungeonScene.show(w);
                     }
 
                     @Override
@@ -507,7 +527,7 @@ public class WndSelectDungeon extends Window {
                                 }
                             }
                         };
-                        EditorScene.show(w);
+                        DungeonScene.show(w);
                     }
 
                     @Override
@@ -517,14 +537,14 @@ public class WndSelectDungeon extends Window {
                 };
                 add(copy);
 
-                float iconWidth = rename.icon().width + copy.icon().width + 2;
+                float iconWidth = rename.icon().width() + copy.icon().width() + 2;
 
                 float pos = 2;
                 title.maxWidth((int) (width - iconWidth - 2));
                 title.setPos((title.maxWidth() - title.width()) * 0.5f, pos);
 
-                rename.setRect(width - iconWidth, title.top() + (title.height() - rename.icon().height) * 0.5f, rename.icon().width, rename.icon().height);
-                copy.setRect(rename.right() + 2, title.top() + (title.height() - rename.icon().height) * 0.5f, copy.icon().width, copy.icon().height);
+                rename.setRect(width - iconWidth, title.top() + (title.height() - rename.icon().height()) * 0.5f, rename.icon().width(), rename.icon().height());
+                copy.setRect(rename.right() + 2, title.top() + (title.height() - rename.icon().height()) * 0.5f, copy.icon().width(), copy.icon().height());
                 pos = title.bottom() + GAP;
 
                 pos = statSlot(Messages.get(WndSelectDungeon.class, "num_floors"), Integer.toString(info.numLevels), pos) + GAP * 3;
@@ -535,7 +555,7 @@ public class WndSelectDungeon extends Window {
                 cont.setRect(0, pos, width / 2 - 1, 20);
                 add(cont);
 
-                erase.icon(Icons.get(Icons.CLOSE));
+                erase.icon(Icons.get(Icons.TRASH));
                 erase.setRect(width / 2 + 1, pos, width / 2 - 1, 20);
                 add(erase);
 
@@ -582,15 +602,15 @@ public class WndSelectDungeon extends Window {
         protected RenderedTextBlock playAgain;
         protected ColorBlock separator;
 
-        public PlayAgain(CustomDungeonSaves.Info info) {
+        public PlayAgain(CustomDungeonSaves.Info info, String featuredLabel) {
             listItem = new ListItem(info);
             add(listItem);
 
-            playAgain = PixelScene.renderTextBlock(Messages.get(this, "label"), 10);
+            playAgain = PixelScene.renderTextBlock(featuredLabel, 10);
             playAgain.align(RenderedTextBlock.RIGHT_ALIGN);
             add(playAgain);
 
-            separator = new ColorBlock(1, 1, 0xFF222222);
+            separator = new ColorBlock(1, 1, ColorBlock.SEPARATOR_COLOR);
             add(separator);
         }
 
@@ -613,29 +633,7 @@ public class WndSelectDungeon extends Window {
     }
 
     public static void openDungeon(String name) {
-        try {
-            Dungeon.customDungeon = CustomDungeonSaves.loadDungeon(name);
-        } catch (IOException e) {
-            SandboxPixelDungeon.reportException(e);
-        } catch (CustomDungeonSaves.RenameRequiredException e) {
-            e.showExceptionWindow();
-            return;
-        }
-        CustomTileLoader.loadTiles(EditorScene.openDifferentLevel);
-        String lastEditedFloor = Dungeon.customDungeon.getLastEditedFloor();
-        LevelScheme l;
-        if (Dungeon.customDungeon.getNumFloors() == 0 || lastEditedFloor == null || (l = Dungeon.customDungeon.getFloor(lastEditedFloor)) == null)
-            SandboxPixelDungeon.switchNoFade(FloorOverviewScene.class);
-        else {
-            if (l.getType() != CustomLevel.class)
-                SandboxPixelDungeon.switchNoFade(FloorOverviewScene.class);
-            else {
-                l.loadLevel();
-                if (l.getLevel() == null)
-                    SandboxPixelDungeon.switchNoFade(FloorOverviewScene.class);
-                else EditorScene.open((CustomLevel) l.getLevel());
-            }
-        }
+        OpenDungeonScene.quickOpenDungeon(name, OpenDungeonScene.Mode.EDITOR_LOAD);
     }
 
     private static class WndExportDungeon extends WndOptions {

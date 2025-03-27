@@ -1,15 +1,31 @@
 package com.shatteredpixel.shatteredpixeldungeon.editor.editcomps;
 
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.*;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Barrier;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.BuffWithDuration;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Burning;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ChampionEnemy;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Chill;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Corrosion;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Corruption;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Doom;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.FlavourBuff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Healing;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Invulnerability;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Levitation;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.SoulMark;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ToxicImbue;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.DelayedRockFall;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.DwarfKing;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Ghoul;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Tengu;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.CustomGameObjectClass;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.StyledCheckBox;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.Spinner;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.SpinnerIntegerModel;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.spinner.StyledSpinner;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.exotic.ScrollOfChallenge;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.exotic.ScrollOfSirensSong;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.SummonElemental;
@@ -31,7 +47,7 @@ public class EditBuffComp extends DefaultEditComp<Buff> {
     protected StyledSpinner duration, level;
     protected StyledCheckBox showFx;
 
-    private final Component[] comps, linearComps;
+    private final Component[] rectComps, linearComps;
 
     public EditBuffComp(Buff buff, DefaultEditComp<?> editComp) {
         super(buff);
@@ -125,7 +141,7 @@ public class EditBuffComp extends DefaultEditComp<Buff> {
             add(level);
         }
 
-        if (buff instanceof AnkhInvulnerability || buff instanceof Barrier || buff instanceof Blocking.BlockBuff || buff instanceof Tengu.BombAbility
+        if (buff instanceof Invulnerability || buff instanceof Barrier || buff instanceof Blocking.BlockBuff || buff instanceof Tengu.BombAbility
                 || buff instanceof Burning || buff instanceof ScrollOfChallenge.ChallengeArena || buff instanceof ChampionEnemy || buff instanceof Chill
                 || buff instanceof Corruption || buff instanceof DelayedRockFall || buff instanceof Doom || buff instanceof ScrollOfSirensSong.Enthralled
                 || buff instanceof Ghoul.GhoulLifeLink || buff instanceof Healing || buff instanceof SummonElemental.InvisAlly || buff instanceof Levitation
@@ -148,7 +164,7 @@ public class EditBuffComp extends DefaultEditComp<Buff> {
                         if (editComp instanceof EditMobComp) ((EditMobComp) editComp).buffs.removeBuffFromUI(buff.getClass());
                         editComp.updateObj();
                     }
-                    EditorUtilies.getParentWindow(this).hide();
+                    EditorUtilities.getParentWindow(this).hide();
                 }
             };
             add(removeBuff);
@@ -175,15 +191,56 @@ public class EditBuffComp extends DefaultEditComp<Buff> {
 //        } else changeDuration = null;
 
 
-        comps = new Component[]{permanent, duration, level, showFx};
+        rectComps = new Component[]{permanent, duration, level, showFx};
         linearComps = new Component[]{removeBuff};
+
+        initializeCompsForCustomObjectClass();
+    }
+
+    @Override
+    protected void updateStates() {
+        super.updateStates();
+
+        if (permanent != null) permanent.checked(obj.permanent);
+        if (duration != null) {
+            if (obj instanceof FlavourBuff) duration.setValue(obj.visualcooldown());
+            else duration.setValue(((BuffWithDuration) obj).left);
+        }
+        if (level != null) {
+            if (obj instanceof Corrosion) duration.setValue(((Corrosion) obj).damage);
+            else duration.setValue(((BuffWithDuration) obj).left);
+        }
+        if (showFx != null) showFx.checked(!obj.alwaysHidesFx);
+    }
+
+    @Override
+    protected void onInheritStatsClicked(boolean flag, boolean initializing) {
+        if (flag && !initializing) {
+            obj.copyStats((Buff) CustomObjectManager.getLuaClass(((CustomGameObjectClass) obj).getIdentifier()));
+        }
+
+        for (Component c : rectComps) {
+            if (c != null) c.setVisible(!flag);
+        }
+
+        for (Component c : linearComps) {
+            if (c != null) c.setVisible(!flag);
+        }
+
+//        if (rename != null) rename.setVisible(!flag);
+
+        ((CustomGameObjectClass) obj).setInheritStats(flag);
+        
+        super.onInheritStatsClicked(flag, initializing);
     }
 
     @Override
     protected void layout() {
         super.layout();
-        layoutCompsInRectangles(comps);
+        layoutCompsInRectangles(rectComps);
         layoutCompsLinear(linearComps);
+
+        layoutCustomObjectEditor();
     }
 
     @Override
@@ -216,6 +273,10 @@ public class EditBuffComp extends DefaultEditComp<Buff> {
 
         if (a instanceof BuffWithDuration) {
             if (((BuffWithDuration) a).left != ((BuffWithDuration) b).left) return false;
+        }
+        
+        if (a instanceof CustomGameObjectClass) {
+            if (((CustomGameObjectClass) a).getInheritStats() != ((CustomGameObjectClass) b).getInheritStats()) return false;
         }
 
         return true;

@@ -28,10 +28,11 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Wraith;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Shopkeeper;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.CustomGameObjectClass;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Copyable;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.EditItemComp;
 import com.shatteredpixel.shatteredpixeldungeon.editor.levels.CustomDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.ElmoParticle;
@@ -99,7 +100,7 @@ public class Heap extends GameObject implements Copyable<Heap> {
 	public LinkedList<Item> items = new LinkedList<>();
 
 	@Override
-	public int sparseArrayKey() {
+	public final int sparseArrayKey() {
 		return pos;
 	}
 
@@ -278,7 +279,7 @@ public class Heap extends GameObject implements Copyable<Heap> {
 		boolean burnt = false;
 		boolean evaporated = false;
 		
-		for (Item item : items.toArray( EditorUtilies.EMPTY_ITEM_ARRAY) ) {
+		for (Item item : items.toArray( EditorUtilities.EMPTY_ITEM_ARRAY) ) {
 			if (item instanceof Scroll && !item.unique) {
 				items.remove( item );
 				burnt = true;
@@ -337,10 +338,10 @@ public class Heap extends GameObject implements Copyable<Heap> {
 
 		} else {
 
-			for (Item item : items.toArray( EditorUtilies.EMPTY_ITEM_ARRAY )) {
+			for (Item item : items.toArray( EditorUtilities.EMPTY_ITEM_ARRAY )) {
 
-				//unique items aren't affect by explosions
-				if (item.unique || (item instanceof Armor && ((Armor) item).checkSeal() != null)){
+				//unique items and equipment aren't affect by explosions
+				if (item.unique || item.isUpgradable() || item instanceof EquipableItem){
 					continue;
 				}
 
@@ -360,8 +361,7 @@ public class Heap extends GameObject implements Copyable<Heap> {
 						return;
 					}
 
-				//upgraded items can endure the blast
-				} else if (item.level() <= 0) {
+				} else {
 					items.remove( item );
 				}
 
@@ -383,7 +383,7 @@ public class Heap extends GameObject implements Copyable<Heap> {
 		}
 		
 		boolean frozen = false;
-		for (Item item : items.toArray( EditorUtilies.EMPTY_ITEM_ARRAY )) {
+		for (Item item : items.toArray( EditorUtilities.EMPTY_ITEM_ARRAY )) {
 			if (item instanceof MysteryMeat) {
 				replace( item, FrozenCarpaccio.cook( (MysteryMeat)item ) );
 				frozen = true;
@@ -537,6 +537,24 @@ public class Heap extends GameObject implements Copyable<Heap> {
 		return  (Heap) bundle.get("HEAP");
 	}
 
+	@Override
+	public void copyStats(GameObject template) {
+		if (template == null) return;
+		if (getClass() != template.getClass()) return;
+		Bundle bundle = new Bundle();
+		bundle.put("OBJ", template);
+		bundle.getBundle("OBJ").put(CustomGameObjectClass.INHERIT_STATS, true);
+
+		int pos = this.pos;
+//		boolean replaceSprite = spriteClass != ((Mob) template).spriteClass;
+		restoreFromBundle(bundle.getBundle("OBJ"));
+		this.pos = pos;
+
+//		if (replaceSprite && sprite != null) {
+//			EditorScene.replaceMobSprite(this, ((Mob) template).spriteClass);
+//		}
+	}
+
 
 	public Image subicon, forSaleIndicator;
 	public BitmapText quantityDisplay, heapSize, itemLvl, keyLevel;
@@ -600,7 +618,7 @@ public class Heap extends GameObject implements Copyable<Heap> {
 		Item i = items.peek();
 
 		if (i != null) {
-			Image copy = EditorUtilies.createSubIcon(i);
+			Image copy = EditorUtilities.createSubIcon(i);
 			if (copy != null && !isContainerType()) {
 				subicon.copy(copy);
 				subicon.visible = true;
@@ -704,7 +722,7 @@ public class Heap extends GameObject implements Copyable<Heap> {
 				keyLevel.scale.set(0.45f);
 
 				keyLevel.hardlight(Window.TITLE_COLOR);
-				keyLevel.text(EditorUtilies.getDispayName(((Key) i).levelName));
+				keyLevel.text(EditorUtilities.getDispayName(((Key) i).levelName));
 				keyLevel.measure();
 
 				keyLevel.point(sprite.point());

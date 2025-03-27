@@ -58,6 +58,9 @@ abstract public class MissileWeapon extends Weapon {
 
 		setCursedKnown(true);
 	}
+
+	//whether or not this instance of the item exists purely to trigger its effect. i.e. no dropping
+	public boolean spawnedForEffect = false;
 	
 	protected boolean sticky = true;
 	
@@ -74,7 +77,11 @@ abstract public class MissileWeapon extends Weapon {
 	
 	@Override
 	public int min() {
-		return Math.max(0, min( buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero) ));
+		if (Dungeon.hero != null){
+			return Math.max(0, min(buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero)));
+		} else {
+			return Math.max(0 , min( buffedLvl() ));
+		}
 	}
 	
 	@Override
@@ -85,7 +92,11 @@ abstract public class MissileWeapon extends Weapon {
 	
 	@Override
 	public int max() {
-		return Math.max(0, max( buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero) ));
+		if (Dungeon.hero != null){
+			return Math.max(0, max( buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero) ));
+		} else {
+			return Math.max(0 , max( buffedLvl() ));
+		}
 	}
 	
 	@Override
@@ -237,7 +248,7 @@ abstract public class MissileWeapon extends Weapon {
 				}
 			}
 
-			super.onThrow( cell );
+			if (!spawnedForEffect) super.onThrow( cell );
 		} else {
 			if (!curUser.shoot( enemy, this )) {
 				rangedMiss( cell );
@@ -294,7 +305,7 @@ abstract public class MissileWeapon extends Weapon {
 	
 	protected void rangedHit( Char enemy, int cell ){
 		decrementDurability();
-		if (durability > 0){
+		if (durability > 0 && !spawnedForEffect){
 			//attempt to stick the missile weapon to the enemy, just drop it if we can't.
 			if (sticky && enemy != null && enemy.isActive() && enemy.alignment != Char.Alignment.ALLY){
 				PinCushion p = Buff.affect(enemy, PinCushion.class);
@@ -309,7 +320,7 @@ abstract public class MissileWeapon extends Weapon {
 	
 	protected void rangedMiss( int cell ) {
 		parent = null;
-		super.onThrow(cell);
+		if (!spawnedForEffect) super.onThrow(cell);
 	}
 
 	public float durabilityLeft(){
@@ -337,7 +348,7 @@ abstract public class MissileWeapon extends Weapon {
 			usages *= MagicalHolster.HOLSTER_DURABILITY_FACTOR;
 		}
 
-		usages *= RingOfSharpshooting.durabilityMultiplier( Dungeon.hero );
+		if (Dungeon.hero != null) usages *= RingOfSharpshooting.durabilityMultiplier( Dungeon.hero );
 
 		//at 100 uses, items just last forever.
 		if (usages >= MAX_DURABILITY) return 0;
@@ -386,7 +397,7 @@ abstract public class MissileWeapon extends Weapon {
 		if (owner instanceof Hero) {
 			int exStr = ((Hero)owner).STR() - STRReq();
 			if (exStr > 0) {
-				damage += Char.combatRoll( 0, exStr );
+				damage += Hero.heroDamageIntRange( 0, exStr );
 			}
 			if (owner.buff(Momentum.class) != null && owner.buff(Momentum.class).freerunning()) {
 				damage = Math.round(damage * (1f + 0.15f * ((Hero) owner).pointsInTalent(Talent.PROJECTILE_MOMENTUM)));
@@ -405,7 +416,7 @@ abstract public class MissileWeapon extends Weapon {
 	public final void resetParent() {
 		parent = null;
 	}
-	
+
 	@Override
 	public Item merge(Item other) {
 		super.merge(other);
@@ -451,7 +462,7 @@ abstract public class MissileWeapon extends Weapon {
 	@Override
 	public String info() {
 
-		String info = desc();
+		String info = super.info();
 		
 		info += "\n\n" + Messages.get( MissileWeapon.class, "stats",
 				tier,
@@ -459,13 +470,13 @@ abstract public class MissileWeapon extends Weapon {
 				Math.round(augment.damageFactor(max())),
 				STRReq());
 
-        if (Dungeon.hero != null) {
-            if (STRReq() > Dungeon.hero.STR()) {
-                info += " " + Messages.get(Weapon.class, "too_heavy");
-            } else if (Dungeon.hero.STR() > STRReq()) {
-                info += " " + Messages.get(Weapon.class, "excess_str", Dungeon.hero.STR() - STRReq());
-            }
-        }
+		if (Dungeon.hero != null) {
+			if (STRReq() > Dungeon.hero.STR()) {
+				info += " " + Messages.get(Weapon.class, "too_heavy");
+			} else if (Dungeon.hero.STR() > STRReq()) {
+				info += " " + Messages.get(Weapon.class, "excess_str", Dungeon.hero.STR() - STRReq());
+			}
+		}
 
 		if (enchantment != null && (cursedKnown() || !enchantment.curse())){
 			info += "\n\n" + Messages.get(Weapon.class, "enchanted", enchantment.name());
@@ -500,13 +511,15 @@ abstract public class MissileWeapon extends Weapon {
 	public int value() {
 		return 6 * tier * quantity * (level() + 1);
 	}
-	
+
+	private static final String SPAWNED = "spawned";
 	private static final String DURABILITY = "durability";
 	private static final String BASE_USES = "base_uses";
 
 	@Override
 	public void storeInBundle(Bundle bundle) {
 		super.storeInBundle(bundle);
+		bundle.put(SPAWNED, spawnedForEffect);
 		bundle.put(DURABILITY, durability);
 
 		MissileWeapon def = DefaultStatsCache.getDefaultObject(getClass());
@@ -522,6 +535,7 @@ abstract public class MissileWeapon extends Weapon {
 		bundleRestoring = true;
 		super.restoreFromBundle(bundle);
 		bundleRestoring = false;
+		spawnedForEffect = bundle.getBoolean(SPAWNED);
 		durability = bundle.getFloat(DURABILITY);
 
 		if (bundle.contains(BASE_USES)) baseUses = bundle.getFloat(BASE_USES);

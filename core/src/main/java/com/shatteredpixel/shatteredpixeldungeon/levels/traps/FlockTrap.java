@@ -27,6 +27,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Sheep;
 import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Bestiary;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
@@ -44,7 +45,7 @@ public class FlockTrap extends Trap {
 
 	@Override
 	public void activate() {
-		PathFinder.buildDistanceMap( pos, BArray.not( Dungeon.level.solid, null ), 2 );
+		PathFinder.buildDistanceMapForEnvironmentals( pos, BArray.not( Dungeon.level.solid, null ), 2 );
 		ArrayList<Integer> spawnPoints = new ArrayList<>();
 		for (int i = 0; i < PathFinder.distance.length; i++) {
 			if (PathFinder.distance[i] < Integer.MAX_VALUE) {
@@ -66,13 +67,15 @@ public class FlockTrap extends Trap {
 				if ((t = Dungeon.level.traps.get(i)) != null && t.active){
 					if (t.disarmedByActivation) t.disarm();
 					t.reveal();
+					Bestiary.setSeen(t.getClass());
+					Bestiary.countEncounter(t.getClass());
 					t.activate();
 				}
 				Dungeon.level.occupyCell(sheep);
-				Sample.INSTANCE.play(Assets.Sounds.PUFF);
-				Sample.INSTANCE.play(Assets.Sounds.SHEEP);
 			}
 		}
+		Sample.INSTANCE.play(Assets.Sounds.PUFF);
+		Sample.INSTANCE.play(Assets.Sounds.SHEEP);
 	}
 
 }

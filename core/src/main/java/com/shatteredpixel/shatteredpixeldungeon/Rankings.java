@@ -26,8 +26,9 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Belongings;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.LuaClassGenerator;
 import com.shatteredpixel.shatteredpixeldungeon.editor.quests.Quest;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
@@ -41,6 +42,7 @@ import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.ui.QuickSlotButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Toolbar;
 import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
@@ -49,10 +51,17 @@ import com.watabou.utils.FileUtils;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@NotAllowedInLua
 public enum Rankings {
 
 	INSTANCE;
@@ -241,9 +250,9 @@ public enum Rankings {
 		//save the hero and belongings
 		ArrayList<Item> allItems = (ArrayList<Item>) belongings.backpack.items.clone();
 		//remove items that won't show up in the rankings screen
-		for (Item item : belongings.backpack.items.toArray( EditorUtilies.EMPTY_ITEM_ARRAY)) {
+		for (Item item : belongings.backpack.items.toArray( EditorUtilities.EMPTY_ITEM_ARRAY)) {
 			if (item instanceof Bag){
-				for (Item bagItem : ((Bag) item).items.toArray( EditorUtilies.EMPTY_ITEM_ARRAY)){
+				for (Item bagItem : ((Bag) item).items.toArray( EditorUtilities.EMPTY_ITEM_ARRAY)){
 					if (Dungeon.quickslot.contains(bagItem)
 							&& !Dungeon.quickslot.contains(item)){
 						belongings.backpack.items.add(bagItem);
@@ -297,6 +306,8 @@ public enum Rankings {
 	}
 
 	public void loadGameData(Record rec){
+		LuaClassGenerator.skipConversion = true;
+		
 		Bundle data = rec.gameData;
 
 		Actor.clear();
@@ -342,6 +353,8 @@ public enum Rankings {
 			Dungeon.customSeedText = "";
 			Dungeon.daily = Dungeon.dailyReplay = false;
 		}
+		
+		LuaClassGenerator.skipConversion = false;
 	}
 
 	private static final String RECORDS	= "records";

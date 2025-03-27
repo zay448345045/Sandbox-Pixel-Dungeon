@@ -1,5 +1,7 @@
 package com.shatteredpixel.shatteredpixeldungeon.editor.editcomps;
 
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.CustomObjectManager;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.CustomGameObjectClass;
 import com.shatteredpixel.shatteredpixeldungeon.editor.inv.items.RoomItem;
 import com.shatteredpixel.shatteredpixeldungeon.editor.ui.ItemContainerWithLabel;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
@@ -50,12 +52,39 @@ public class EditRoomComp extends DefaultEditComp<Room> {
         add(spawnItemsOnLevel);
 
         comps = new Component[]{spawnItemsInRoom, spawnItemsOnLevel};
+
+        initializeCompsForCustomObjectClass();
+    }
+
+    @Override
+    protected void updateStates() {
+        super.updateStates();
+        if (spawnItemsOnLevel != null) spawnItemsOnLevel.setItemList(obj.spawnItemsOnLevel);
+    }
+
+    @Override
+    protected void onInheritStatsClicked(boolean flag, boolean initializing) {
+        if (flag && !initializing) {
+            obj.copyStats((Room) CustomObjectManager.getLuaClass(((CustomGameObjectClass) obj).getIdentifier()));
+        }
+
+        for (Component c : comps) {
+            if (c != null) c.setVisible(!flag);
+        }
+
+//        if (rename != null) rename.setVisible(!flag);
+
+        ((CustomGameObjectClass) obj).setInheritStats(flag);
+        
+        super.onInheritStatsClicked(flag, initializing);
     }
 
     @Override
     protected void layout() {
         super.layout();
         layoutCompsLinear(comps);
+
+        layoutCustomObjectEditor();
     }
 
     @Override
@@ -82,6 +111,10 @@ public class EditRoomComp extends DefaultEditComp<Room> {
         if (a.itemsGenerated != b.itemsGenerated) return false;
         if (!EditItemComp.isItemListEqual(a.spawnItemsInRoom, b.spawnItemsInRoom)) return false;
         if (!EditItemComp.isItemListEqual(a.spawnItemsOnLevel, b.spawnItemsOnLevel)) return false;
+        
+        if (a instanceof CustomGameObjectClass) {
+            if (((CustomGameObjectClass) a).getInheritStats() != ((CustomGameObjectClass) b).getInheritStats()) return false;
+        }
 
         return true;
     }

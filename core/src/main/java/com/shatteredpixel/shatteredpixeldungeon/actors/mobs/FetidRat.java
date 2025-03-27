@@ -72,7 +72,7 @@ public class FetidRat extends Rat {
 //
 //    @Override
 //    public int drRoll() {
-//        return super.drRoll() + Char.combatRoll(0, 2);
+//        return super.drRoll() + Random.NormalIntRange(0, 2);
 //    }
 
 	@Override
@@ -112,7 +112,7 @@ public class FetidRat extends Rat {
 			//of two potential wander positions, picks the one closest to the hero
 			int pos1 = super.randomDestination();
 			int pos2 = super.randomDestination();
-			PathFinder.buildDistanceMap(Dungeon.hero.pos, Dungeon.level.getPassableVar(FetidRat.this));
+			PathFinder.buildDistanceMap(Dungeon.hero.pos, Dungeon.level.getPassableVar(FetidRat.this), FetidRat.this);
 			if (PathFinder.distance[pos2] < PathFinder.distance[pos1]){
 				return pos2;
 			} else {

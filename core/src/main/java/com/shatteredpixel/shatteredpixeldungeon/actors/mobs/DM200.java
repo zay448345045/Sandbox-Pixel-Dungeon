@@ -53,7 +53,7 @@ public class DM200 extends DMMob {
 		maxLvl = 17;
 
 		loot = Random.oneOf(Generator.Category.WEAPON, Generator.Category.ARMOR);
-		lootChance = 0.125f; //initially, see lootChance()
+		lootChance = 0.2f; //initially, see lootChance()
 
 		properties.add(Property.INORGANIC);
 		properties.add(Property.LARGE);
@@ -63,7 +63,7 @@ public class DM200 extends DMMob {
 
 //	@Override
 //	public int damageRoll() {
-//		return Char.combatRoll( 10, 25 );
+//		return Random.NormalIntRange( 10, 25 );
 //	}
 //
 //	@Override
@@ -73,14 +73,14 @@ public class DM200 extends DMMob {
 //
 //	@Override
 //	public int drRoll() {
-//		return super.drRoll() + Char.combatRoll(0, 8);
+//		return super.drRoll() + Random.NormalIntRange(0, 8);
 //	}
 
 	@Override
 	public float lootChance(){
-		//each drop makes future drops 1/2 as likely
-		// so loot chance looks like: 1/8, 1/16, 1/32, 1/64, etc.
-		return super.lootChance() * (float)Math.pow(1/2f, Dungeon.LimitedDrops.DM200_EQUIP.count);
+		//each drop makes future drops 1/3 as likely
+		// so loot chance looks like: 1/5, 1/15, 1/45, 1/135, etc.
+		return super.lootChance() * (float)Math.pow(1/3f, Dungeon.LimitedDrops.DM200_EQUIP.count);
 	}
 
 	public Item createLoot() {
@@ -155,7 +155,7 @@ public class DM200 extends DMMob {
 
 	protected boolean canVent(int target){
 		if (ventCooldown > 0) return false;
-		PathFinder.buildDistanceMap(target, BArray.not(Dungeon.level.solid, null), Dungeon.level.distance(pos, target)+1);
+		PathFinder.buildDistanceMapForEnvironmentals(target, BArray.not(Dungeon.level.solid, null), Dungeon.level.distance(pos, target)+1);
 		//vent can go around blocking terrain, but not through it
 		if (PathFinder.distance[pos] == Integer.MAX_VALUE){
 			return false;
@@ -176,26 +176,14 @@ public class DM200 extends DMMob {
 				int oldPos = pos;
 
 				if (distance(enemy) >= 1 && Random.Int(100/distance(enemy)) == 0 && canVent(target)){
-					if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
-						sprite.zap( enemy.pos );
-						return false;
-					} else {
-						zap();
-						return true;
-					}
+					return doRangedAttack();
 
 				} else if (getCloser( target )) {
 					spend( 1 / speed() );
 					return moveSprite( oldPos,  pos );
 
 				} else if (canVent(target)) {
-					if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
-						sprite.zap( enemy.pos );
-						return false;
-					} else {
-						zap();
-						return true;
-					}
+					return doRangedAttack();
 
 				} else {
 					spend( TICK );

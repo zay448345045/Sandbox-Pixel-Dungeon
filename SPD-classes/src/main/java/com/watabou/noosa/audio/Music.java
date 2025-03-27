@@ -24,6 +24,7 @@ package com.watabou.noosa.audio;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.GdxRuntimeException;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Callback;
 import com.watabou.utils.DeviceCompat;
@@ -33,9 +34,11 @@ import com.watabou.utils.Random;
 import java.util.ArrayList;
 import java.util.Collections;
 
+@NotAllowedInLua
 public enum Music {
 	
-	INSTANCE;
+	INSTANCE,
+	SOUND_FILE_PREVIEW_PLAYER;
 	
 	private com.badlogic.gdx.audio.Music player;
 	
@@ -302,5 +305,4 @@ public enum Music {
 	public synchronized boolean isEnabled() {
 		return enabled;
 	}
-	
 }

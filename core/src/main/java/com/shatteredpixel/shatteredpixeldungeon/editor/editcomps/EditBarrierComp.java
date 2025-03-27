@@ -39,7 +39,7 @@ public class EditBarrierComp extends DefaultEditComp<Barrier> {
             final int bit = (int) Math.pow(2, i);
             StyledCheckBox cb = new StyledCheckBox(Messages.get(Barrier.class, "block_" + Barrier.getBlockKey(bit))) {
                 {
-                    super.checked((obj.blocks & bit) != 0);
+                    super.checked((obj.blocks & bit) == bit);
                 }
 
                 @Override
@@ -73,6 +73,18 @@ public class EditBarrierComp extends DefaultEditComp<Barrier> {
     }
 
     @Override
+    protected void updateStates() {
+        super.updateStates();
+
+        if (visible != null) visible.checked(obj.visible);
+
+        for (int i = 0; i < Barrier.NUM_BLOCK_TYPES; i++) {
+            final int bit = (int) Math.pow(2, i);
+            if (comps[i] != null) ((StyledCheckBox) comps[i]).checked((obj.blocks & bit) == bit);
+        }
+    }
+
+    @Override
     protected void layout() {
         super.layout();
         layoutCompsInRectangles(comps);
@@ -94,7 +106,7 @@ public class EditBarrierComp extends DefaultEditComp<Barrier> {
     }
 
     @Override
-    protected void updateObj() {
+	public void updateObj() {
 
         for (int i = 0; i < Barrier.NUM_BLOCK_TYPES; i++) {
             final int bit = (int) Math.pow(2, i);

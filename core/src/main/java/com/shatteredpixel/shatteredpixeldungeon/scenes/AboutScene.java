@@ -23,11 +23,22 @@ package com.shatteredpixel.shatteredpixeldungeon.scenes;
 
 import com.shatteredpixel.shatteredpixeldungeon.SandboxPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Flare;
-import com.shatteredpixel.shatteredpixeldungeon.ui.*;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Archs;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ExitButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
+import com.watabou.NotAllowedInLua;
 import com.watabou.input.PointerEvent;
-import com.watabou.noosa.*;
+import com.watabou.noosa.Camera;
+import com.watabou.noosa.ColorBlock;
+import com.watabou.noosa.Group;
+import com.watabou.noosa.Image;
+import com.watabou.noosa.PointerArea;
 import com.watabou.noosa.ui.Component;
 
+@NotAllowedInLua
 public class AboutScene extends PixelScene {
 
 	@Override
@@ -71,18 +82,12 @@ public class AboutScene extends PixelScene {
 
 		//*** Shattered Pixel Dungeon Credits ***
 
-		String shpxLink = "https://ShatteredPixel.com";
-		//tracking codes, so that the website knows where this pageview came from
-		shpxLink += "?utm_source=shatteredpd";
-		shpxLink += "&utm_medium=about_page";
-		shpxLink += "&utm_campaign=ingame_link";
-
 		CreditsBlock shpx = new CreditsBlock(true, Window.SHPX_COLOR,
 				"Shattered Pixel Dungeon",
 				Icons.SHPX.get(),
 				"Developed by: _Evan Debenham_\nBased on Pixel Dungeon's open source",
 				"ShatteredPixel.com",
-				shpxLink);
+				"https://ShatteredPixel.com");
 		if (landscape()){
 			shpx.setRect((w - fullWidth)/2f - 6, sandbox.bottom() + 8, 120, 0);
 		} else {
@@ -91,7 +96,7 @@ public class AboutScene extends PixelScene {
 		content.add(shpx);
 
 		CreditsBlock alex = new CreditsBlock(false, Window.SHPX_COLOR,
-				"Hero Art & Design:",
+				"Splash Art & Design:",
 				Icons.ALEKS.get(),
 				"Aleksandar Komitov",
 				"akomitov.artstation.com",
@@ -197,6 +202,43 @@ public class AboutScene extends PixelScene {
 				"https://github.com/prurigro/");
 		purigro.setRect(arcnor.right()+2, arcnor.top(), colWidth/2f, 0);
 		content.add(purigro);
+		
+		//*** ByteBuddy / Lua Credits ***
+		
+		final int BYTE_BUDDY_LUA_COLOR = 0xF0A020;
+		RenderedTextBlock byteBuddyAndLua = PixelScene.renderTextBlock("Lua-Implementation possible thanks to", 6);
+		content.add(byteBuddyAndLua);
+		
+		addLine(arcnor.bottom() + 4, content);
+		
+		CreditsBlock byteBuddy = new CreditsBlock(false, BYTE_BUDDY_LUA_COLOR,
+				"ByteBuddy:",
+				null,
+				null,
+				"github.com/raphw/byte-buddy",
+				"https://github.com/raphw/byte-buddy");
+		byteBuddy.setSize(colWidth/2f, 0);
+		content.add(byteBuddy);
+		
+		CreditsBlock lua = new CreditsBlock(false, BYTE_BUDDY_LUA_COLOR,
+				"Lua-Java:",
+				null,
+				null,
+				"github.com/luaj/luaj",
+				"https://github.com/luaj/luaj");
+		lua.setSize(colWidth/2f, 0);
+		content.add(lua);
+		
+		if (landscape()){
+			float hNeeded = Math.max(byteBuddy.height(), byteBuddyAndLua.height());
+			byteBuddyAndLua.setRect(wata.left(), arcnor.bottom() + 8 + (hNeeded-byteBuddyAndLua.height())*0.5f, colWidth, 0);
+			byteBuddy.setPos(byteBuddyAndLua.right(), arcnor.bottom() + 8 + (hNeeded - byteBuddy.height())*0.5f);
+			lua.setRect(byteBuddy.right()+2, arcnor.bottom() + 8 + (hNeeded - lua.height())*0.5f, colWidth/2f, 0);
+		} else {
+			byteBuddyAndLua.setRect(wata.left(), arcnor.bottom() + 8, colWidth, 0);
+			byteBuddy.setPos(alex.left(), byteBuddyAndLua.bottom()+5);
+			lua.setRect(byteBuddy.right()+2, byteBuddy.top(), colWidth/2f, 0);
+		}
 
 		//*** Transifex Credits ***
 
@@ -207,38 +249,12 @@ public class AboutScene extends PixelScene {
 				"ShatteredPD is community-translated via _Transifex_! Thank you so much to all of Shattered's volunteer translators!",
 				"transifex.com/shattered-pixel/...",
 				"https://explore.transifex.com/shattered-pixel/shattered-pixel-dungeon/");
-		transifex.setRect((Camera.main.width - colWidth)/2f, purigro.bottom() + 12, colWidth, 0);
+		transifex.setRect((Camera.main.width - colWidth)/2f, lua.bottom() + 12, colWidth, 0);
 		content.add(transifex);
 
 		addLine(transifex.top() - 4, content);
 
 		addLine(transifex.bottom() + 4, content);
-
-		//*** SandboxPD translation Credits ***
-
-		CreditsBlock myTranslation = new CreditsBlock(true,
-				Window.TITLE_COLOR,
-				null,
-				null,
-				"SandboxPD is only translated by the developer, but you can contact him to add more languages.","",""
-				);
-		myTranslation.setRect(transifex.left(), transifex.bottom()+8, colWidth, -1);
-		content.add(myTranslation);
-
-		addLine(myTranslation.bottom(), content);
-
-		//*** *** ***
-
-//		CreditsBlock community = new CreditsBlock(true,
-//				Window.TITLE_COLOR,
-//				null,
-//				null,
-//				"Save crystal sprite and idea: Arachnentoma\n","",""
-//		);
-//		community.setRect((Camera.main.width - colWidth)/2f,  myTranslation.bottom()+10, colWidth, -1);
-//		content.add(community);
-//
-//		addLine(community.bottom(), content);
 
 		//*** Freesound Credits ***
 
@@ -271,7 +287,7 @@ public class AboutScene extends PixelScene {
 				"_Phone vibration.wav_ by _Breviceps_",
 				"www.freesound.org",
 				"https://www.freesound.org");
-		freesound.setRect(myTranslation.left()-10, myTranslation.bottom() + 4, colWidth+20, -1);
+		freesound.setRect(transifex.left()-10, transifex.bottom() + 8, colWidth+20, -1);
 		content.add(freesound);
 
 		content.setSize( fullWidth, freesound.bottom()+10 );

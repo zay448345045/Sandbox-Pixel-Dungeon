@@ -23,10 +23,13 @@ package com.shatteredpixel.shatteredpixeldungeon.items.keys;
 
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.editor.util.BiPredicate;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
+import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Catalog;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Notes;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
@@ -56,12 +59,12 @@ public abstract class Key extends Item {
 
 	@Override
 	public String name() {
-		return super.name() + (cell == -1 ? "" : " (" + Messages.get(this, "cell_name", EditorUtilies.cellToStringNoBrackets(cell, Dungeon.level.width()))+")");
+		return super.name() + (cell == -1 ? "" : " (" + Messages.get(this, "cell_name", EditorUtilities.cellToStringNoBrackets(cell, Dungeon.level.width()))+")");
 	}
 
 	@Override
 	public String desc() {
-		return super.desc() + (cell == -1 ? "" : " \n\n" + Messages.get(this, "cell_desc", EditorUtilies.cellToStringNoBrackets(cell, Dungeon.level.width())));
+		return super.desc() + (cell == -1 ? "" : " \n\n" + Messages.get(this, "cell_desc", EditorUtilities.cellToStringNoBrackets(cell, Dungeon.level.width())));
 	}
 
 	@Override
@@ -73,14 +76,16 @@ public abstract class Key extends Item {
 	}
 
 	@Override
-	public boolean collect() {
+	public boolean collect(Bag bag) {
 		instantPickupKey(Dungeon.hero.pos);
 		return true;
 	}
 
 	public void instantPickupKey(int pos) {
+		Catalog.setSeen(getClass());
+		Statistics.itemTypesDiscovered.add(getClass());
 		GameScene.pickUpJournal(this, pos);
-		WndJournal.last_index = 2;
+		WndJournal.last_index = 0;
 		Notes.add(this);
 		GameScene.updateKeyDisplay();
 	}

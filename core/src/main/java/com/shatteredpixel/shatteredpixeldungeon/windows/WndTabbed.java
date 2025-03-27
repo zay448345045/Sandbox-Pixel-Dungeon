@@ -87,11 +87,11 @@ public class WndTabbed extends Window {
 		return tab;
 	}
 	
-	public void select( int index ) {
+	public final void select( int index ) {
 		select( tabs.get( index ) );
 	}
 	
-	public void select( Tab tab ) {
+	protected void select( Tab tab ) {
 		if (tab != selected) {
 			for (Tab t : tabs) {
 				if (t == selected) {
@@ -115,7 +115,7 @@ public class WndTabbed extends Window {
 			width + chrome.marginHor(),
 			height + chrome.marginVer() );
 		
-		camera.resize( (int)chrome.width, chrome.marginTop() + height + tabHeight() );
+		camera.resize( (int)chrome.width(), chrome.marginTop() + height + tabHeight() );
 		camera.x = (int)(Game.width - camera.screenWidth()) / 2;
 		camera.y = (int)(Game.height - camera.screenHeight()) / 2;
 		camera.y += yOffset * camera.zoom;
@@ -123,7 +123,7 @@ public class WndTabbed extends Window {
 		shadow.boxRect(
 				camera.x / camera.zoom,
 				camera.y / camera.zoom,
-				chrome.width(), chrome.height );
+				chrome.width(), chrome.height() );
 		// <- super.resize(...)
 		
 		for (Tab tab : tabs) {
@@ -177,14 +177,6 @@ public class WndTabbed extends Window {
 
 		{
 			hotArea.blockLevel = PointerArea.ALWAYS_BLOCK;
-		}
-
-		public Tab() {
-			this((Object[]) null);
-		}
-
-		public Tab(Object... params) {
-			super(params);
 		}
 		
 		@Override

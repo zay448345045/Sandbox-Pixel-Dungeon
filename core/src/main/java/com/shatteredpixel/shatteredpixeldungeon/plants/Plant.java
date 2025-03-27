@@ -31,13 +31,16 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Barkskin;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
+import com.shatteredpixel.shatteredpixeldungeon.customobjects.interfaces.CustomGameObjectClass;
 import com.shatteredpixel.shatteredpixeldungeon.editor.Copyable;
 import com.shatteredpixel.shatteredpixeldungeon.editor.editcomps.parts.customizables.Customizable;
-import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilies;
+import com.shatteredpixel.shatteredpixeldungeon.editor.util.EditorUtilities;
 import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.LeafParticle;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.wands.WandOfRegrowth;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Bestiary;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Catalog;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
@@ -45,7 +48,11 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.audio.Sample;
-import com.watabou.utils.*;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.Function;
+import com.watabou.utils.PathFinder;
+import com.watabou.utils.Random;
+import com.watabou.utils.Reflection;
 
 import java.util.ArrayList;
 
@@ -61,7 +68,7 @@ public abstract class Plant extends GameObject implements Customizable, Copyable
     protected Class<? extends Plant.Seed> seedClass;
 
     @Override
-    public int sparseArrayKey() {
+    public final int sparseArrayKey() {
         return pos;
     }
 
@@ -80,14 +87,16 @@ public abstract class Plant extends GameObject implements Customizable, Copyable
             Barkskin.conditionallyAppend(Dungeon.hero, 2, 1 + 2*(Dungeon.hero.pointsInTalent(Talent.NATURES_AID)));
         }
 
-        wither();
+		wither();
 
-        if (dropItem != null) {
-            Dungeon.level.drop(dropItem, pos).sprite.drop();
-        }
+		if (dropItem != null) {
+			Dungeon.level.drop(dropItem, pos).sprite.drop();
+		}
 
-        activate(ch);
-    }
+		activate( ch );
+		Bestiary.setSeen(getClass());
+		Bestiary.countEncounter(getClass());
+	}
 
     public abstract void activate(Char ch);
 
@@ -155,6 +164,24 @@ public abstract class Plant extends GameObject implements Customizable, Copyable
         return (Plant) b.get("PLANT");
     }
 
+    @Override
+    public void copyStats(GameObject template) {
+        if (template == null) return;
+        if (getClass() != template.getClass()) return;
+        Bundle bundle = new Bundle();
+        bundle.put("OBJ", template);
+        bundle.getBundle("OBJ").put(CustomGameObjectClass.INHERIT_STATS, true);
+
+        int pos = this.pos;
+//        boolean replaceSprite = spriteClass != ((Mob) template).spriteClass;
+        restoreFromBundle(bundle.getBundle("OBJ"));
+        this.pos = pos;
+
+//        if (replaceSprite && sprite != null) {
+//            EditorScene.replaceMobSprite(this, ((Mob) template).spriteClass);
+//        }
+    }
+
     public String name() {
         String msg;
         return customName == null ? Messages.get(this, "name") : Messages.NO_TEXT_FOUND.equals(msg = Messages.get(customName)) ? customName : msg;
@@ -174,7 +201,7 @@ public abstract class Plant extends GameObject implements Customizable, Copyable
     }
 
     public Image getSprite() {
-        return EditorUtilies.getTerrainFeatureTexture(image + 7 * 16);
+        return EditorUtilities.getTerrainFeatureTexture(image + 7 * 16);
     }
 
     @Override
@@ -197,123 +224,124 @@ public abstract class Plant extends GameObject implements Customizable, Copyable
         customDesc = desc;
     }
 
-    public static class Seed extends Item {
+    public static abstract class Seed extends Item {
 
-        public static final String AC_PLANT = "PLANT";
+		public static final String AC_PLANT	= "PLANT";
+		
+		private static final float TIME_TO_PLANT = 1f;
+		
+		{
+			stackable = true;
+			defaultAction = AC_THROW;
+		}
+		
+		protected Class<? extends Plant> plantClass;
+		
+		@Override
+		public ArrayList<String> actions( Hero hero ) {
+			ArrayList<String> actions = super.actions( hero );
+			actions.add( AC_PLANT );
+			return actions;
+		}
+		
+		@Override
+		protected void onThrow( int cell ) {
+			if (Dungeon.level.map[cell] == Terrain.ALCHEMY
+					|| Dungeon.level.pit[cell]
+					|| Dungeon.level.traps.get(cell) != null
+					|| Dungeon.isChallenged(Challenges.NO_HERBALISM)) {
+				super.onThrow( cell );
+			} else {
+				Catalog.countUse(getClass());
+				Dungeon.level.plant( this, cell );
+				if (Dungeon.hero.subClass == HeroSubClass.WARDEN) {
+					for (int i : PathFinder.NEIGHBOURS8) {
+						int c = Dungeon.level.map[cell + i];
+						if ( c == Terrain.EMPTY || c == Terrain.EMPTY_DECO
+								|| c == Terrain.EMBERS || c == Terrain.GRASS){
+							Level.set(cell + i, Terrain.FURROWED_GRASS);
+							GameScene.updateMap(cell + i);
+							CellEmitter.get( cell + i ).burst( LeafParticle.LEVEL_SPECIFIC, 4 );
+						}
+					}
+				}
+			}
+		}
+		
+		@Override
+		public void execute( Hero hero, String action ) {
 
-        private static final float TIME_TO_PLANT = 1f;
+			super.execute (hero, action );
 
-        {
-            stackable = true;
-            defaultAction = AC_THROW;
-        }
+			if (action.equals( AC_PLANT )) {
 
-        protected Class<? extends Plant> plantClass;
+				hero.busy();
+				((Seed)detach( hero.belongings.backpack )).onThrow( hero.pos );
+				hero.spend( TIME_TO_PLANT );
 
-        @Override
-        public ArrayList<String> actions(Hero hero) {
-            ArrayList<String> actions = super.actions(hero);
-            actions.add(AC_PLANT);
-            return actions;
-        }
+				hero.sprite.operate( hero.pos );
+				
+			}
+		}
+		
+		public Plant couch( int pos, Level level ) {
+			if (level != null && level.heroFOV != null && level.heroFOV[pos]) {
+				Sample.INSTANCE.play(Assets.Sounds.PLANT);
+			}
+			Plant plant = Reflection.newInstance(plantClass);
+			plant.pos = pos;
+			return plant;
+		}
+		
+		@Override
+		public boolean isUpgradable() {
+			return false;
+		}
+		
+		@Override
+		public boolean isIdentified() {
+			return true;
+		}
+		
+		@Override
+		public int value() {
+			return 10 * quantity;
+		}
 
-        @Override
-        protected void onThrow(int cell) {
-            if (Dungeon.level.map[cell] == Terrain.ALCHEMY
-                    || Dungeon.level.pit[cell]
-                    || Dungeon.level.traps.get(cell) != null
-                    || Dungeon.isChallenged(Challenges.NO_HERBALISM)) {
-                super.onThrow(cell);
-            } else {
-                Dungeon.level.plant(this, cell);
-                if (Dungeon.hero.subClass == HeroSubClass.WARDEN) {
-                    for (int i : PathFinder.NEIGHBOURS8) {
-                        int c = Dungeon.level.map[cell + i];
-                        if (c == Terrain.EMPTY || c == Terrain.EMPTY_DECO
-                                || c == Terrain.EMBERS || c == Terrain.GRASS) {
-                            Level.set(cell + i, Terrain.FURROWED_GRASS);
-                            GameScene.updateMap(cell + i);
-                            CellEmitter.get(cell + i).burst(LeafParticle.LEVEL_SPECIFIC, 4);
-                        }
-                    }
-                }
-            }
-        }
+		@Override
+		public int energyVal() {
+			return 2 * quantity;
+		}
 
-        @Override
-        public void execute(Hero hero, String action) {
+		@Override
+		public String desc() {
+			String desc = customDesc == null ? Messages.get(plantClass, "desc") : customDesc;
+			if (Dungeon.hero != null && Dungeon.hero.subClass == HeroSubClass.WARDEN){
+				desc += "\n\n" + Messages.get(plantClass, "warden_desc");
+			}
+			return desc;
+		}
 
-            super.execute(hero, action);
-
-            if (action.equals(AC_PLANT)) {
-
-                hero.busy();
-                ((Seed) detach(hero.belongings.backpack)).onThrow(hero.pos);
-                hero.spend(TIME_TO_PLANT);
-
-                hero.sprite.operate(hero.pos);
-
-            }
-        }
-
-        public Plant couch(int pos, Level level) {
-            if (level != null && level.heroFOV != null && level.heroFOV[pos]) {
-                Sample.INSTANCE.play(Assets.Sounds.PLANT);
-            }
-            Plant plant = Reflection.newInstance(plantClass);
-            plant.pos = pos;
-            return plant;
-        }
-
-        @Override
-        public boolean isUpgradable() {
-            return false;
-        }
-
-        @Override
-        public boolean isIdentified() {
-            return true;
-        }
-
-        @Override
-        public int value() {
-            return 10 * quantity;
-        }
-
-        @Override
-        public int energyVal() {
-            return 2 * quantity;
-        }
-
-        @Override
-        public String desc() {
-            String desc = customDesc == null ? Messages.get(plantClass, "desc") : customDesc;
-            if (Dungeon.hero != null && Dungeon.hero.subClass == HeroSubClass.WARDEN) {
-                desc += "\n\n" + Messages.get(plantClass, "warden_desc");
-            }
-            return desc;
-        }
-
-        @Override
-        public String info() {
-            return Messages.get(Seed.class, "info", desc());
-        }
-
-        public static class PlaceHolder extends Seed {
-
-            {
-                image = ItemSpriteSheet.SEED_HOLDER;
-            }
-
-            @Override
-            public boolean isSimilar(Item item) {
-                return item instanceof Plant.Seed;
-            }
-
-            @Override
-            public String info() {
-                return "";
-            }
-        }
-    }
+		@Override
+		public String info() {
+			return Messages.get( Seed.class, "info", super.info() );
+		}
+		
+		public static class PlaceHolder extends Seed {
+			
+			{
+				image = ItemSpriteSheet.SEED_HOLDER;
+			}
+			
+			@Override
+			public boolean isSimilar(Item item) {
+				return item instanceof Plant.Seed;
+			}
+			
+			@Override
+			public String info() {
+				return "";
+			}
+		}
+	}
 }

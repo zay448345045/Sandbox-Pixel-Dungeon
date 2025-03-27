@@ -74,11 +74,11 @@ public class WaterOfTransmutation extends WellWater {
     @Override
     public void use(BlobEmitter emitter) {
         super.use(emitter);
-        emitter.start(Speck.factory(Speck.CHANGE), 0.2f, 0);
+        emitter.pour( Speck.factory(Speck.CHANGE), 0.2f );
     }
 
     @Override
-    protected Notes.Landmark record() {
+    public Notes.Landmark landmark() {
         return Notes.Landmark.WELL_OF_TRANSMUTATION;
     }
 

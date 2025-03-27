@@ -23,6 +23,7 @@ package com.shatteredpixel.shatteredpixeldungeon.sprites;
 
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.HeroDisguise;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
@@ -37,6 +38,8 @@ import com.watabou.utils.PointF;
 import com.watabou.utils.RectF;
 import com.watabou.utils.Reflection;
 
+import java.util.LinkedHashMap;
+
 public class HeroSprite extends CharSprite implements HeroSpriteLike {
 	
 	private static final int FRAME_WIDTH	= 12;
@@ -48,6 +51,14 @@ public class HeroSprite extends CharSprite implements HeroSpriteLike {
 	
 	private Animation fly;
 	private Animation read;
+
+	@Override
+	public LinkedHashMap<String, Animation> getAnimations() {
+		LinkedHashMap<String, Animation> result = super.getAnimations();
+		result.put("fly", fly);
+		result.put("read", read);
+		return result;
+	}
 
 	public HeroSprite(Hero hero) {
 		super();
@@ -61,18 +72,26 @@ public class HeroSprite extends CharSprite implements HeroSpriteLike {
 		else
 			die();
 	}
+
+	public void disguise(HeroClass cls){
+		updateArmor(Dungeon.hero, cls);
+	}
 	
 	public void updateArmor() {
 		updateArmor(Dungeon.hero);
 	}
 
 	public void updateArmor(Hero hero) {
+		updateArmor(hero, hero.heroClass);
+	}
+	
+	public void updateArmor(Hero hero, HeroClass cls) {
 
 		if (hero.internalSpriteClass != null) {
 
 			CharSprite anims = Reflection.newInstance(hero.internalSpriteClass);
 
-			if (anims instanceof StatueSprite) ((StatueSprite) anims).setArmor(hero.tier());
+			if (anims instanceof StatueSprite) StatueSprite.setArmor(anims, hero.tier());
 
 			texture(anims.texture);
 
@@ -97,7 +116,7 @@ public class HeroSprite extends CharSprite implements HeroSpriteLike {
 
 		} else {
 
-			texture( hero.heroClass.spritesheet() );
+			texture( cls.spritesheet() );
 
 			TextureFilm film = new TextureFilm( tiers(), hero.tier(), FRAME_WIDTH, FRAME_HEIGHT );
 
@@ -211,6 +230,14 @@ public class HeroSprite extends CharSprite implements HeroSpriteLike {
 		
 		return tiers;
 	}
+
+	public static Image avatar( Hero hero ){
+		if (hero.buff(HeroDisguise.class) != null){
+			return avatar(hero.buff(HeroDisguise.class).getDisguise(), hero.tier());
+		} else {
+			return avatar(hero.heroClass, hero.tier());
+		}
+	}
 	
 	public static Image avatar( HeroClass cl, int armorTier ) {
 		
@@ -226,6 +253,14 @@ public class HeroSprite extends CharSprite implements HeroSpriteLike {
 	public static class HeroMobSprite extends MobSprite implements HeroSpriteLike {
 
 		private Animation fly, read;
+
+		@Override
+		public LinkedHashMap<String, Animation> getAnimations() {
+			LinkedHashMap<String, Animation> result = super.getAnimations();
+			result.put("fly", fly);
+			result.put("read", read);
+			return result;
+		}
 
 		public HeroMobSprite() {
 			//for reflection
@@ -332,6 +367,11 @@ public class HeroSprite extends CharSprite implements HeroSpriteLike {
 		@Override
 		protected void playZapAnim(int cell) {
 			//do nothing
+		}
+
+		@Override
+		public boolean hasOwnZapAnimation() {
+			return true;
 		}
 
 	}

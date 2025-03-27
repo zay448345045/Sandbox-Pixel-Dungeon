@@ -24,6 +24,8 @@ package com.shatteredpixel.shatteredpixeldungeon;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Languages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.services.updates.Updates;
+import com.watabou.NotAllowedInLua;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.audio.Sample;
@@ -33,6 +35,7 @@ import com.watabou.utils.Point;
 
 import java.util.Locale;
 
+@NotAllowedInLua
 public class SPDSettings extends GameSettings {
 	
 	//Version info
@@ -43,6 +46,7 @@ public class SPDSettings extends GameSettings {
 	public static final String KEY_LAST_UPLOADED_TO_SERVER_TIMER = "last_uploaded_to_server_timer";
 	public static final String KEY_LAST_UPDATED_TO_SERVER_TIMER = "last_updated_to_server_timer";
 	public static final String KEY_UUID = "uuid";
+	public static final String KEY_LAST_CHECKED_SERVER = "last_checked_server";
 
 	public static void version( int value)  {
 		put( KEY_VERSION, value );
@@ -90,6 +94,15 @@ public class SPDSettings extends GameSettings {
 
 	public static void uuid(String uuid) {
 		put( KEY_UUID, uuid );
+	}
+
+	public static long lastCheckedServer() {
+		return getLong( KEY_LAST_UPLOADED_TO_SERVER_TIMER, System.currentTimeMillis()) + 200;
+	}
+
+	public static void checkedServerNow() {
+		put( KEY_LAST_UPLOADED_TO_SERVER_TIMER, System.currentTimeMillis() + 200 );
+		Updates.dungeonsSeen();
 	}
 
 	//Display
@@ -200,6 +213,8 @@ public class SPDSettings extends GameSettings {
 	public static final String KEY_SYSTEMFONT	= "system_font";
 	public static final String KEY_VIBRATION    = "vibration";
 
+	public static final String KEY_GAMES_SORT    = "games_sort";
+
 	//0 = mobile, 1 = mixed (large without inventory in main UI), 2 = large
 	public static void interfaceSize( int value ){
 		put( KEY_UI_SIZE, value );
@@ -275,6 +290,14 @@ public class SPDSettings extends GameSettings {
 		return getBoolean(KEY_VIBRATION, true) || !Game.platform.supportsVibration();
 	}
 
+	public static String gamesInProgressSort(){
+		return getString(KEY_GAMES_SORT, "level");
+	}
+
+	public static void gamesInProgressSort(String value){
+		put(KEY_GAMES_SORT, value);
+	}
+
 	//Game State
 	
 	public static final String KEY_LAST_CLASS	= "last_class";
@@ -284,6 +307,7 @@ public class SPDSettings extends GameSettings {
 	public static final String KEY_INTRO		= "intro";
 
 	public static final String KEY_SUPPORT_NAGGED= "support_nagged";
+	public static final String KEY_VICTORY_NAGGED= "victory_nagged";
 	
 	public static void intro( boolean value ) {
 		put( KEY_INTRO, value );
@@ -331,6 +355,15 @@ public class SPDSettings extends GameSettings {
 
 	public static boolean supportNagged() {
 		return getBoolean(KEY_SUPPORT_NAGGED, false);
+	}
+
+	public static void victoryNagged( boolean value ) {
+		put( KEY_VICTORY_NAGGED, value );
+	}
+
+	public static boolean victoryNagged() {
+		return true;
+//		return getBoolean(KEY_VICTORY_NAGGED, false);
 	}
 
 	//Input
@@ -496,7 +529,8 @@ public class SPDSettings extends GameSettings {
 	public static final String KEY_WINDOW_WIDTH     = "window_width";
 	public static final String KEY_WINDOW_HEIGHT    = "window_height";
 	public static final String KEY_WINDOW_MAXIMIZED = "window_maximized";
-	
+	public static final String KEY_FULLSCREEN_MONITOR = "fullscreen_monitor";
+
 	public static void windowResolution( Point p ){
 		put(KEY_WINDOW_WIDTH, p.x);
 		put(KEY_WINDOW_HEIGHT, p.y);
@@ -515,5 +549,13 @@ public class SPDSettings extends GameSettings {
 	
 	public static boolean windowMaximized(){
 		return getBoolean( KEY_WINDOW_MAXIMIZED, false );
+	}
+
+	public static void fulLScreenMonitor( int value ){
+		put( KEY_FULLSCREEN_MONITOR, value);
+	}
+
+	public static int fulLScreenMonitor(){
+		return getInt( KEY_FULLSCREEN_MONITOR, 0 );
 	}
 }

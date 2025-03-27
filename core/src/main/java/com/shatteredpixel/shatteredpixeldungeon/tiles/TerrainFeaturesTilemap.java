@@ -48,7 +48,9 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 		this.plants = plants;
 		this.traps = traps;
 
-		map( CustomDungeon.isEditing() ? Dungeon.level.map : Dungeon.level.visualMap, Dungeon.level.width() );
+		if (Dungeon.level != null) {
+			map(CustomDungeon.isEditing() ? Dungeon.level.map : Dungeon.level.visualMap, Dungeon.level.width());
+		}
 
 		instance = this;
 	}
@@ -71,10 +73,10 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 			return plants.get(pos).image + 7*16;
 		}
 
+		if (CustomDungeon.isEditing()
+				|| CustomTileItem.findAnyCustomTileAt(pos) == null) return -1;
+		
 		Zone.GrassType grassType = Zone.getGrassType(Dungeon.level, pos);
-		if (grassType == Zone.GrassType.NONE
-				&& CustomDungeon.isEditing()
-				&& CustomTileItem.findAnyCustomTileAt(pos) == null) return -1;
 
 		int stage = Dungeon.level.visualRegions[pos];
 		if(stage == 0) stage = Dungeon.curLvlScheme().getVisualRegion() - 1;
@@ -88,8 +90,41 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 		} else if (tile == Terrain.EMBERS) {
 			return 9 + (16*5) + (DungeonTileSheet.tileVariance[pos] >= 50 ? 1 : 0);
 		}
+		
+		int logicalTerrain = Dungeon.level.map[pos];
+		if (logicalTerrain == Terrain.HIGH_GRASS){
+			return 9 + 16*stage + (DungeonTileSheet.tileVariance[pos] >= 50 ? 1 : 0);
+		} else if (logicalTerrain == Terrain.FURROWED_GRASS){
+			return 11 + 16*stage + (DungeonTileSheet.tileVariance[pos] >= 50 ? 1 : 0);
+		} else if (logicalTerrain == Terrain.GRASS) {
+			return 13 + 16*stage + (DungeonTileSheet.tileVariance[pos] >= 50 ? 1 : 0);
+		} else if (logicalTerrain == Terrain.EMBERS) {
+			return 9 + (16*5) + (DungeonTileSheet.tileVariance[pos] >= 50 ? 1 : 0);
+		}
 
 		return -1;
+	}
+
+	public static Image getTrapVisual( Trap trap ){
+		if (instance == null) instance = new TerrainFeaturesTilemap(null, null);
+
+		RectF uv = instance.tileset.get((trap.active ? trap.color : Trap.BLACK) + (trap.shape * 16));
+		if (uv == null) return null;
+
+		Image img = new Image( instance.texture );
+		img.frame(uv);
+		return img;
+	}
+
+	public static Image getPlantVisual( Plant plant ){
+		if (instance == null) instance = new TerrainFeaturesTilemap(null, null);
+
+		RectF uv = instance.tileset.get(plant.image + 7*16);
+		if (uv == null) return null;
+
+		Image img = new Image( instance.texture );
+		img.frame(uv);
+		return img;
 	}
 
 	public static Image tile(int pos, int tile ) {
