@@ -79,7 +79,9 @@ dependencies {
     natives "com.badlogicgames.gdx:gdx-freetype-platform:1.11.0:natives-x86_64"
     implementation "com.badlogicgames.gdx-controllers:gdx-controllers-android:$gdxControllersVersion"
 
-    implementation 'com.android.support.constraint:constraint-layout:2.0.4'
+//    implementation 'com.android.support.constraint:constraint-layout:2.0.4'
+
+implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
 }
 
 // called every time gradle gets executed, takes the native dependencies of
