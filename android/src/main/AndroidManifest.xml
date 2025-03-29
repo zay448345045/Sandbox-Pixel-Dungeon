@@ -18,9 +18,11 @@
 
 	<!-- We perform a runtime check to ensure controllers are disabled on API 14 & 15 -->
 	<uses-sdk tools:overrideLibrary="com.badlogicgames.gdx.controllers" />
+
 <uses-sdk
         android:minSdkVersion="19"
-        android:targetSdkVersion="35" /> <!- 您可以根据您的需求调整 targetSdkVersion -->
+        android:targetSdkVersion="35" />
+ <!- 您可以根据您的需求调整 targetSdkVersion -->
 	<!-- Note that the game doesn't truly support small screen resolutions,
 		it instead forces downscaling to work on these displays.-->
 	<supports-screens
