@@ -6,8 +6,8 @@ on:
      - 'action.on' 
 #    branches: [ "master" ]
     branches: [ "debug" ]
-  pull_request:
-    branches: [ "master" ]
+#  pull_request:
+#    branches: [ "master" ]
 
 jobs:
   build:
