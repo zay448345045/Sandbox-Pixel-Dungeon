@@ -35,6 +35,7 @@
 		android:icon="@mipmap/ic_launcher"
 		android:label="${appName}"
 tools:replace="android:appComponentFactory"
+android:appComponentFactory="androidx.core.app.CoreComponentFactory"
 		android:theme="@android:style/Theme.Black.NoTitleBar"
 		android:appCategory="game"
 		android:isGame="true"
