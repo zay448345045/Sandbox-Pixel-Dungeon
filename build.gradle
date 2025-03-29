@@ -7,7 +7,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.7.1'
+        classpath 'com.android.tools.build:gradle:8.9.1'
     }
 }
 
@@ -20,13 +20,13 @@ allprojects {
         appVersionCode = 833
         appVersionName = '1.3.2'
 
-        appJavaCompatibility = JavaVersion.VERSION_1_8
+        appJavaCompatibility = JavaVersion.VERSION_23
 
-        appAndroidCompileSDK = 34
+        appAndroidCompileSDK = 35
         appAndroidMinSDK = 14
-        appAndroidTargetSDK = 34
+        appAndroidTargetSDK = 35
 
-        gdxVersion = '1.12.1'
+        gdxVersion = '1.13.1'
         gdxControllersVersion = '2.2.4-SNAPSHOT'
         robovmVersion = '2.3.21'
     }
