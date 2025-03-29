@@ -34,6 +34,7 @@
 	<application
 		android:icon="@mipmap/ic_launcher"
 		android:label="${appName}"
+tools:replace="android:appComponentFactory"
 		android:theme="@android:style/Theme.Black.NoTitleBar"
 		android:appCategory="game"
 		android:isGame="true"
