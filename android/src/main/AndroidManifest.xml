@@ -22,7 +22,7 @@
 <uses-sdk
         android:minSdkVersion="19"
         android:targetSdkVersion="35" />
- <!- 您可以根据您的需求调整 targetSdkVersion -->
+ <!-- 您可以根据您的需求调整 targetSdkVersion -->
 	<!-- Note that the game doesn't truly support small screen resolutions,
 		it instead forces downscaling to work on these displays.-->
 	<supports-screens
